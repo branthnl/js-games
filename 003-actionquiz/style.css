@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
+
+* {
+	margin: 0;
+	padding: 0;
+	font-family: 'Montserrat', sans-serif;
+	/*user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;*/
+}
+
+.actionQuiz {
+	padding: 12px;
+	background-color: #eee;
+}
+
+/* HEAD */
+.actionQuiz_head {}
+
+.actionQuiz_nav {
+	border: 1px solid #bbb;
+	padding: 0 8px;
+}
+.actionQuiz_navItem {
+	display: inline-block;
+	margin: 12px 0;
+}
+.actionQuiz_navItem > input[type="radio"] {
+	opacity: 0;
+	position: absolute;
+}
+
+.actionQuiz_navItem > input[type="radio"] + label {
+	padding: 6px 12px;
+	background-color: #ddd;
+}
+
+.actionQuiz_navItem > input[type="radio"] + label:hover {
+	cursor: pointer;
+	background-color: #ccc;
+}
+
+.actionQuiz_navItem > input[type="radio"]:checked + label {
+	background-color: #bbb;
+}
+
+.actionQuiz_navQuestion {
+	border: 1px solid #bbb;
+	padding: 0 8px;
+}
+
+.actionQuiz_navQuestionItem {
+	display: inline-block;
+	margin: 12px 0;
+}
+
+.actionQuiz_navQuestionItem > input[type="radio"] {
+	opacity: 0;
+	position: absolute;
+}
+
+.actionQuiz_navQuestionItem > input[type="radio"] + label {
+	padding: 6px 12px;
+	background-color: #ddd;
+}
+
+.actionQuiz_navQuestionItem > input[type="radio"] + label:hover {
+	cursor: pointer;
+	background-color: #ccc;
+}
+
+.actionQuiz_navQuestionItem > input[type="radio"]:checked + label {
+	background-color: #bbb;
+}
+
+/* CREATE */
+.actionQuiz_create {
+	padding: 12px;
+}
+
+.actionQuiz_createQuestion {
+	resize: none;
+	width: calc(100% - 16px);
+	height: 100px;
+	padding: 8px;
+	margin-bottom: 12px;
+}
+
+.actionQuiz_createAnswer {
+	margin-bottom: 12px;
+}
+
+.actionQuiz_createAnswerItem {}
+
+.actionQuiz_createAnswerItem input[type="text"] {
+	width: calc(100% - 40px);
+	margin: 12px 0;
+	padding: 8px;
+}
+
+.actionQuiz_createSubmit {
+	display: inline-block;
+	padding: 8px;
+	border-radius: 6px;
+	background-color: #ddd;
+}
+
+.actionQuiz_createSubmit:hover {
+	cursor: pointer;
+	background-color: #ccc;
+}
+
+/* QUIZ */
+.actionQuiz_quiz {
+	padding: 12px;
+}
+
+.actionQuiz_quizQuestion {
+	margin-bottom: 12px;
+}
+
+.actionQuiz_quizAnswer {}
+
+.actionQuiz_quizAnswerItem > input[type="radio"] {
+	opacity: 0;
+	position: absolute;
+}
+
+.actionQuiz_quizAnswerItem > input[type="radio"] + label {
+	display: block;
+	padding: 8px;
+	margin-bottom: 12px;
+	background-color: #ddd;
+}
+
+.actionQuiz_quizAnswerItem > input[type="radio"] + label:hover {
+	cursor: pointer;
+	background-color: #ccc;
+}
+
+.actionQuiz_quizAnswerItem > input[type="radio"]:checked + label {
+	background-color: #bbb;
+}
+
+
+/* CHECK */
+.actionQuiz_check {
+	padding: 12px;
+}
+
+.actionQuiz_checkInfo {}
+
+/* MISC */
+input[type="radio"][disabled] + label {
+	color: #ddd;
+	background-color: #eee;
+}
+
+input[type="radio"][disabled] + label:hover {
+	cursor: no-drop;
+	background-color: #eee;
+}
+
+input[type="radio"][disabled]:checked + label:hover {
+	cursor: no-drop;
+	background-color: #bbb;
+}
+
+/* ANSWERED */
+.actionQuiz_navQuestionItem[answered] > input[type="radio"] + label {
+	background-color: #7f7;
+}
+
+.actionQuiz_navQuestionItem[answered] > input[type="radio"] + label:hover {
+	background-color: #6e6;
+}
+
+.actionQuiz_navQuestionItem[answered] > input[type="radio"]:checked + label {
+	background-color: #5d5;
+}
+
+.actionQuiz_navQuestionItem[answered] > input[type="radio"][disabled] + label {
+	background-color: #7f7;
+}
+
+.actionQuiz_navQuestionItem[answered] > input[type="radio"][disabled] + label:hover {
+	background-color: #7f7;
+}
+
+.actionQuiz_navQuestionItem[answered] > input[type="radio"][disabled]:checked + label {
+	background-color: #5d5;
+}
+
+/* INCORRECT */
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"] + label {
+	background-color: #f77;
+}
+
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"] + label:hover {
+	background-color: #e66;
+}
+
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"]:checked + label {
+	background-color: #d55;
+}
+
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"][disabled] + label {
+	background-color: #f77;
+}
+
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"][disabled] + label:hover {
+	background-color: #f77;
+}
+
+.actionQuiz_navQuestionItem[incorrect] > input[type="radio"][disabled]:checked + label {
+	background-color: #d55;
+}

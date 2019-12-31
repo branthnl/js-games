@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Action Quiz</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+	<div class="actionQuiz">
+		<div class="actionQuiz_head">
+			<div class="actionQuiz_nav">
+				<div class="actionQuiz_navItem">
+					<input type="radio" name="nav" id="nav1" onclick="changeScene()" checked>
+					<label for="nav1">Create Question</label>
+				</div>
+				<div class="actionQuiz_navItem">
+					<input type="radio" name="nav" id="nav2" onclick="changeScene()">
+					<label for="nav2">Answer Question</label>
+				</div>
+				<div class="actionQuiz_navItem">
+					<input type="radio" name="nav" id="nav3" onclick="changeScene()">
+					<label for="nav3">Check Answer</label>
+				</div>
+			</div>
+			<div class="actionQuiz_navQuestion"></div>
+		</div>
+		<div class="actionQuiz_create">
+			<textarea class="actionQuiz_createQuestion" placeholder="Type question..."></textarea>
+			<div class="actionQuiz_createAnswer">
+				<div class="actionQuiz_createAnswerItem">
+					<input type="radio" name="createAnswer" id="createAnswer0" checked>
+					<label for="createAnswer0"><input type="text" name="" placeholder="Answer.."></label>
+				</div>
+				<div class="actionQuiz_createAnswerItem">
+					<input type="radio" name="createAnswer" id="createAnswer1">
+					<label for="createAnswer1"><input type="text" name="" placeholder="Answer.."></label>
+				</div>
+				<div class="actionQuiz_createAnswerItem">
+					<input type="radio" name="createAnswer" id="createAnswer2">
+					<label for="createAnswer2"><input type="text" name="" placeholder="Answer.."></label>
+				</div>
+				<div class="actionQuiz_createAnswerItem">
+					<input type="radio" name="createAnswer" id="createAnswer3">
+					<label for="createAnswer3"><input type="text" name="" placeholder="Answer.."></label>
+				</div>
+			</div>
+			<div class="actionQuiz_createSubmit" onclick="createQuestion()">Submit</div>
+		</div>
+		<div class="actionQuiz_quiz">
+			<div class="actionQuiz_quizQuestion"></div>
+			<div class="actionQuiz_quizAnswer"></div>
+		</div>
+		<div class="actionQuiz_check">
+			<div class="actionQuiz_checkInfo"></div>
+		</div>
+		<div class="actionQuiz_aside"></div>
+	</div>
+	<script src="https://www.gstatic.com/firebasejs/7.5.2/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/7.5.2/firebase-auth.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/7.5.2/firebase-database.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>

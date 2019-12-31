@@ -1,3 +1,4 @@
+const FONT_FAMILY = 'Fresca, sans-serif';
 const C = {
 	red: '#f1334d',
 	blue: '#68c2ff',
@@ -38,33 +39,19 @@ const KeyCode = {
 	Escape: 27
 }
 
-Math.clamp = function(a, b, c) {
-	return Math.min(c, Math.max(b, a));
+Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
+Math.range = (min, max) => Math.random() * (max - min) + min;
+Math.degtorad = (d) => d * Math.PI / 180;
+Math.radtodeg = (r) => r * 180 / Math.PI;
+Math.lendirx = (l, d) => l * Math.cos(Math.degtorad(d));
+Math.lendiry = (l, d) => l * Math.sin(Math.degtorad(d));
+Math.lendir = function(l, d) {
+	return {
+		x: Math.lendirx(l, d),
+		y: Math.lendiry(l, d)
+	}
 }
-
-Math.range = function(min, max) {
-	return Math.random() * (max - min) + min;
-}
-
-Math.degtorad = function(d) {
-	return d * Math.PI / 180;
-}
-
-Math.radtodeg = function(r) {
-	return r * 180 / Math.PI;
-}
-
-Math.lendirx = function(l, d) {
-	return -Math.sin(Math.degtorad(d)) * l;
-}
-
-Math.lendiry = function(l, d) {
-	return Math.cos(Math.degtorad(d)) * l;
-}
-
-Math.randomNegator = function(n) {
-	return Math.range(0, 100) < (n || 50)? 1 : -1;
-}
+Math.randomNegator = (n) => Math.range(0, 100) < (n || 50)? 1 : -1; // The higher n the more likely it gets to positive 1;
 
 function BranthTime() {
 	this.time = 0;
@@ -188,12 +175,11 @@ function BranthKey(keyCode) {
 
 function BranthInput() {
 	this.key = [];
-	for (let key in KeyCode) {
-		this.key.push(new BranthKey(KeyCode[key]));
+	for (i in KeyCode) { // KeyCode is a const listing all keycodes
+		this.key.push(new BranthKey(KeyCode[i]));
 	}
 	this.keyUp = function(keyCode) {
-		for (let i = 0; i < this.key.length; i++) {
-			const k = this.key[i];
+		for (k of this.key) {
 			if (keyCode === k.keyCode) {
 				if (k.released) {
 					return true;
@@ -203,8 +189,7 @@ function BranthInput() {
 		return false;
 	}
 	this.keyDown = function(keyCode) {
-		for (let i = 0; i < this.key.length; i++) {
-			const k = this.key[i];
+		for (k of this.key) {
 			if (keyCode === k.keyCode) {
 				if (k.pressed) {
 					return true;
@@ -214,8 +199,7 @@ function BranthInput() {
 		return false;
 	}
 	this.keyHold = function(keyCode) {
-		for (let i = 0; i < this.key.length; i++) {
-			const k = this.key[i];
+		for (k of this.key) {
 			if (keyCode === k.keyCode) {
 				if (k.hold) {
 					return true;
@@ -225,34 +209,32 @@ function BranthInput() {
 		return false;
 	}
 	this.up = function(e) {
-		for (let i = 0; i < this.key.length; i++) {
-			const k = this.key[i];
+		for (k of this.key) {
 			if (e.which == k.keyCode || e.keyCode == k.keyCode) {
 				k.up();
 			}
 		}
 	}
 	this.down = function(e) {
-		for (let i = 0; i < this.key.length; i++) {
-			const k = this.key[i];
+		for (k of this.key) {
 			if (e.which == k.keyCode || e.keyCode == k.keyCode) {
-				if (!k.hold) k.down();
+				if (!k.hold) {
+					k.down();
+				}
 			}
 		}
 	}
 	this.update = function() {
-		for (let i = 0; i < this.key.length; i++) {
-			this.key[i].update();
+		for (k of this.key) {
+			k.update();
 		}
 	}
 }
 
-function BranthCanvas(w, h, c) {
-	let cnv = document.createElement('canvas');
-	cnv.width = w;
-	cnv.height = h;
-	cnv.style.backgroundColor = c;
-	return cnv;
+function BranthCanvas(w, h) {
+	let c = document.createElement('canvas');
+	c.width = w; c.height = h;
+	return c;
 }
 
 function BranthDraw(ctx) {
@@ -269,8 +251,8 @@ function BranthDraw(ctx) {
 	this.setVAlign = function(s) {
 		ctx.textBaseline = s;
 	}
-	this.setHValign = function(h, v) {
-		this.setHalign(h);
+	this.setHVAlign = function(h, v) {
+		this.setHAlign(h);
 		this.setVAlign(v);
 	}
 	this.setShadow = function(x, y, b, c) {
@@ -282,8 +264,8 @@ function BranthDraw(ctx) {
 	this.resetShadow = function() {
 		this.setShadow(0, 0, 0, C.black);
 	}
-	this.font = function(s) {
-		ctx.font = s + ' Montserrat, sans-serif';
+	this.font = function(s) { // ex. '24px', 'bold 12px', 'italic 18px Comic Sans';
+		ctx.font = `${s} ${FONT_FAMILY}`;
 	}
 	this.text = function(x, y, text) {
 		ctx.fillText(text, x, y);
@@ -306,15 +288,25 @@ function BranthDraw(ctx) {
 	this.lineTo = function(x, y) {
 		ctx.lineTo(x, y);
 	}
-	this.rect = function(x, y, w, h) {
-		ctx.fillRect(x, y, w, h);
+	this.draw = function(outline) {
+		if (outline) {
+			ctx.stroke();
+		}
+		else {
+			ctx.fill();
+		}
+	}
+	this.rect = function(x, y, w, h, outline) {
+		ctx.beginPath();
+		ctx.rect(x, y, w, h);
+		ctx.closePath();
+		this.draw(outline);
 	}
 	this.circle = function(x, y, r, outline) {
 		ctx.beginPath();
 		ctx.arc(x, y, r, 0, 2 * Math.PI);
 		ctx.closePath();
-		if (outline) ctx.stroke();
-		else ctx.fill();
+		this.draw(outline);
 	}
 	this.polyBegin = function(x, y) {
 		ctx.beginPath();
@@ -325,54 +317,26 @@ function BranthDraw(ctx) {
 	}
 	this.polyEnd = function(outline) {
 		ctx.closePath();
-		if (outline) ctx.stroke();
-		else ctx.fill();
+		this.draw(outline);
 	}
-	this.star = function(x, y, r, d) {
-		const sr = r * 0.5;
-		const lp = [
-			{
-				x: Math.lendirx(r, d + 180),
-				y: Math.lendiry(r, d + 180)
-			},
-			{
-				x: Math.lendirx(r, d + 252),
-				y: Math.lendiry(r, d + 252)
-			},
-			{
-				x: Math.lendirx(r, d + 324),
-				y: Math.lendiry(r, d + 324)
-			},
-			{
-				x: Math.lendirx(r, d + 36),
-				y: Math.lendiry(r, d + 36)
-			},
-			{
-				x: Math.lendirx(r, d + 108),
-				y: Math.lendiry(r, d + 108)
-			}
+	this.star = function(x, y, r, outline) {
+		this.starTransformed(x, y, r, 0, outline);
+	}
+	this.starTransformed = function(x, y, r, d = 0, outline) {
+		const lp = [ // Large part (polygon)
+			Math.lendir(r, d + 270),
+			Math.lendir(r, d + 342),
+			Math.lendir(r, d + 54),
+			Math.lendir(r, d + 126),
+			Math.lendir(r, d + 198)
 		];
-		const sp = [
-			{
-				x: Math.lendirx(sr, d + 216),
-				y: Math.lendiry(sr, d + 216)
-			},
-			{
-				x: Math.lendirx(sr, d + 288),
-				y: Math.lendiry(sr, d + 288)
-			},
-			{
-				x: Math.lendirx(sr, d + 0),
-				y: Math.lendiry(sr, d + 0)
-			},
-			{
-				x: Math.lendirx(sr, d + 72),
-				y: Math.lendiry(sr, d + 72)
-			},
-			{
-				x: Math.lendirx(sr, d + 144),
-				y: Math.lendiry(sr, d + 144)
-			}
+		const sr = r * 0.5; // Small radius
+		const sp = [ // Small part (polygon)
+			Math.lendir(sr, d + 306),
+			Math.lendir(sr, d + 18),
+			Math.lendir(sr, d + 90),
+			Math.lendir(sr, d + 162),
+			Math.lendir(sr, d + 234)
 		];
 		this.polyBegin(x + lp[0].x, y + lp[0].y);
 		this.vertex(x + sp[0].x, y + sp[0].y);
@@ -384,35 +348,21 @@ function BranthDraw(ctx) {
 		this.vertex(x + sp[3].x, y + sp[3].y);
 		this.vertex(x + lp[4].x, y + lp[4].y);
 		this.vertex(x + sp[4].x, y + sp[4].y);
-		this.polyEnd(false);
+		this.polyEnd(outline);
 	}
-	this.rectd = function(x, y, w, h, d) {
-		w /= 2;
-		h /= 2;
-		const r = Math.sqrt(w ** 2 + h ** 2);
+	this.rectTransformed = function(x, y, w, h, d, outline) {
+		const r = Math.hypot(w / 2, h / 2);
 		const p = [
-			{
-				x: Math.lendirx(r, d + 225),
-				y: Math.lendiry(r, d + 225)
-			},
-			{
-				x: Math.lendirx(r, d + 315),
-				y: Math.lendiry(r, d + 315)
-			},
-			{
-				x: Math.lendirx(r, d + 45),
-				y: Math.lendiry(r, d + 45)
-			},
-			{
-				x: Math.lendirx(r, d + 135),
-				y: Math.lendiry(r, d + 135)
-			}
+			Math.lendir(r, d + 225),
+			Math.lendir(r, d + 315),
+			Math.lendir(r, d + 45),
+			Math.lendir(r, d + 135)
 		];
 		this.polyBegin(x + p[0].x, y + p[0].y);
 		this.vertex(x + p[1].x, y + p[1].y);
 		this.vertex(x + p[2].x, y + p[2].y);
 		this.vertex(x + p[3].x, y + p[3].y);
-		this.polyEnd();
+		this.polyEnd(outline);
 	}
 	this.clearRect = function(x, y, w, h) {
 		ctx.clearRect(x, y, w, h);
@@ -422,32 +372,28 @@ function BranthDraw(ctx) {
 function BranthObject(k) {
 	this.k = k;
 	this.o = [];
-	for (let i = 0; i < this.k.length; i++) {
+	for (i in this.k) {
 		this.o.push([]);
 	}
-	this.getIndex = function(k) {
-		for (let i = 0; i < this.k.length; i++) {
+	this.getId = function(k) {
+		for (i in this.k) {
 			if (k == this.k[i]) {
-				return i;
+				return +i;
 			}
 		}
 		return -1;
 	}
 	this.add = function(k, o) {
-		let i = this.getIndex(k);
-		this.o[i].push(o);
+		this.o[this.getId(k)].push(o);
 	}
 	this.take = function(k) {
-		let i = this.getIndex(k);
-		return this.o[i];
+		return this.o[this.getId(k)];
 	}
 	this.trash = function(k, j) {
-		let i = this.getIndex(k);
-		delete this.o[i][j];
+		delete this.o[this.getId(k)][j];
 	}
 	this.clear = function(k) {
-		let i = this.getIndex(k);
-		this.o[i] = [];
+		this.o[this.getId(k)] = [];
 	}
 	this.clearAll = function() {
 		for (let i = 0; i < this.o.length; i++) {
@@ -455,9 +401,9 @@ function BranthObject(k) {
 		}
 	}
 	this.getNotNullLength = function(k) {
-		let i = this.getIndex(k);
+		const i = this.getId(k);
 		let count = 0;
-		for (let j = 0; j < this.o[i].length; j++) {
+		for (j in this.o[i]) {
 			if (this.o[i][j] != null) {
 				count++;
 			}
@@ -476,41 +422,44 @@ function BranthObject(k) {
 	}
 }
 
-function BranthParticle(k, x, y, dx, dy, r, d, dd, a, c, life, shape, grav) {
+function BranthParticle(k, x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav) {
 	this.x = x;
 	this.y = y;
-	this.dx = dx;
-	this.dy = dy;
-	this.r = r;
+	this.size = size;
+	this.spd = spd;
+	this.dx = Math.lendirx(spd, d);
+	this.dy = Math.lendiry(spd, d);
 	this.d = d;
+	this.r = r;
 	this.a = a;
-	this.c = c;
-	this.life = life;
-	this.shape = shape;
 	this.i = OBJ.take(k).length;
 	this.update = function() {
-		this.a = Math.max(0, this.a - Time.deltaTime / this.life);
+		this.a = Math.max(0, this.a - Time.deltaTime / life);
 		if (this.a <= 0) {
 			OBJ.trash(k, this.i);
 		}
 		this.x += this.dx;
 		this.y += this.dy;
-		this.d += dd;
-		this.dy += grav;
+		this.size = Math.max(this.size + sizeinc, 0);
+		this.spd += spdinc;
+		this.dx = Math.lendirx(this.spd, this.d);
+		this.dy = Math.lendiry(this.spd, this.d) + Math.lendiry(grav, 90); // 90 is downwards
+		this.d += dinc;
+		this.r += rinc;
 		this.render();
 	}
 	this.render = function() {
 		Draw.setAlpha(this.a);
-		Draw.setColor(this.c);
-		switch (this.shape) {
+		Draw.setColor(c);
+		switch (shape) {
 			case Shape.rect:
-				Draw.rectd(this.x, this.y, this.r, this.r, this.d);
+				Draw.rectTransformed(this.x, this.y, this.size, this.size, this.r);
 				break;
 			case Shape.star:
-				Draw.star(this.x, this.y, this.r, this.d);
+				Draw.starTransformed(this.x, this.y, this.size, this.r);
 				break;
 			case Shape.circle:
-				Draw.circle(this.x, this.y, this.r, false);
+				Draw.circle(this.x, this.y, this.size);
 				break;
 			default: break;
 		}
@@ -532,15 +481,31 @@ function BranthEmitter(key) {
 		min: 1,
 		max: 2
 	}
-	this.r = {
+	this.spdinc = {
+		min: 0,
+		max: 0
+	}
+	this.size = {
 		min: 2,
 		max: 8
+	}
+	this.sizeinc = {
+		min: 0,
+		max: 0
 	}
 	this.d = {
 		min: 0,
 		max: 360
 	}
-	this.dspd = {
+	this.dinc = {
+		min: 5,
+		max: 10
+	}
+	this.r = {
+		min: 0,
+		max: 360
+	}
+	this.rinc = {
 		min: 5,
 		max: 10
 	}
@@ -574,20 +539,37 @@ function BranthEmitter(key) {
 		this.spd.min = min;
 		this.spd.max = max;
 	}
+	this.setSpeedInc = function(min, max) {
+		this.spdinc.min = min;
+		this.spdinc.max = max;
+	}
 	this.setSize = function(min, max) {
-		this.r.min = min;
-		this.r.max = max;
+		this.size.min = min;
+		this.size.max = max;
+	}
+	this.setSizeInc = function(min, max) {
+		this.sizeinc.min = min;
+		this.sizeinc.max = max;
 	}
 	this.setDirection = function(min, max) {
 		this.d.min = min;
 		this.d.max = max;
 	}
-	this.setAngleSpeed = function(min, max) {
-		this.dspd.min = min;
-		this.dspd.max = max;
+	this.setDirectionInc = function(min, max) {
+		this.dinc.min = min;
+		this.dinc.max = max;
+	}
+	this.setRotation = function(min, max) {
+		this.r.min = min;
+		this.r.max = max;
+	}
+	this.setRotationInc = function(min, max) {
+		this.rinc.min = min;
+		this.rinc.max = max;
 	}
 	this.setAlpha = function(min, max) {
-		this.a.min
+		this.a.min = min;
+		this.a.max = max;
 	}
 	this.setColor = function(c) {
 		this.c = c;
@@ -607,9 +589,13 @@ function BranthEmitter(key) {
 		switch (s) {
 			case 'puff':
 				this.setSpeed(2, 3);
+				this.setSpeedInc(0, 0);
 				this.setSize(5, 10);
+				this.setSizeInc(0, 0);
 				this.setDirection(0, 360);
-				this.setAngleSpeed(0, 0);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 360);
+				this.setRotationInc(0, 0);
 				this.setAlpha(0.8, 1);
 				this.setColor(C.white);
 				this.setLife(250, 400);
@@ -617,32 +603,38 @@ function BranthEmitter(key) {
 				this.setGravity(0, 0);
 				break;
 			case 'starpuff':
-				this.setSpeed(4, 5);
-				this.setSize(5, 8);
-				this.setDirection(0, 360);
-				this.setAngleSpeed(-5, 5);
-				this.setAlpha(0.5, 1);
+				this.setSpeed(1, 1);
+				this.setSpeedInc(-0.01, -0.01);
+				this.setSize(10, 10);
+				this.setSizeInc(0, 0);
+				this.setDirection(270, 270);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
 				this.setColor(C.yellow);
-				this.setLife(1000, 2000);
+				this.setLife(4000, 4000);
 				this.setShape(Shape.star);
-				this.setGravity(0.1, 0.1);
+				this.setGravity(0, 0);
 				break;
 			default: break;
 		}
 	}
 	this.emit = function(n) {
 		for (let i = 0; i < n; i++) {
-			const len = Math.range(this.spd.min, this.spd.max);
-			const dir = Math.range(this.d.min, this.d.max);
+			// BranthParticle(k, x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav)
 			const p = new BranthParticle(
 				this.key,
 				Math.range(this.x.min, this.x.max),
 				Math.range(this.y.min, this.y.max),
-				Math.lendirx(len, dir),
-				Math.lendiry(len, dir),
+				Math.range(this.spd.min, this.spd.max),
+				Math.range(this.spdinc.min, this.spdinc.max),
+				Math.range(this.size.min, this.size.max),
+				Math.range(this.sizeinc.min, this.sizeinc.max),
+				Math.range(this.d.min, this.d.max),
+				Math.range(this.dinc.min, this.dinc.max),
 				Math.range(this.r.min, this.r.max),
-				dir,
-				Math.range(this.dspd.min, this.dspd.max),
+				Math.range(this.rinc.min, this.rinc.max),
 				Math.range(this.a.min, this.a.max),
 				this.c,
 				Math.range(this.life.min, this.life.max),
@@ -680,8 +672,8 @@ const World = {
 			time: 0,
 			alpha: 0,
 			color: C.white,
-			delay: 500,
-			interval: 1000
+			delay: 0,
+			interval: 10
 		},
 		isTransitioning: false
 	},
@@ -728,9 +720,9 @@ const World = {
 			case this.scene.list['menu']:
 				if (!this.scene.isTransitioning) {
 					Emtr.preset('starpuff');
-					Emtr.setArea(Room.mid.x, Room.end.x, Room.y, Room.end.y);
+					Emtr.setArea(Room.x, Room.end.x, Room.y, Room.end.y);
 					Emtr.setColor(C.blue);
-					Emtr.emit(1);
+					if (Math.round(Time.time / 100) % 4 == 0) Emtr.emit(1);
 					if (Inpt.keyDown(KeyCode.Enter)) {
 						this.changeScene(this.scene.list['game']);
 					}
@@ -748,13 +740,13 @@ const World = {
 			default: break;
 		}
 	}
-};
+}
 
 const Time = new BranthTime();
 const Room = new BranthScene(0, 0, 640, 360);
 const View = new BranthScene(0, 0, 640, 360);
 const Inpt = new BranthInput();
-const Canv = new BranthCanvas(View.w, View.h, C.black);
+const Canv = new BranthCanvas(View.w, View.h);
 const Draw = new BranthDraw(Canv.getContext('2d'));
 const OBJ = new BranthObject(['particle']);
 const Emtr = new BranthEmitter('particle');

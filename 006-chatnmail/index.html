@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Chat and Mail</title>
+	<link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+	<div class="mn">
+		<div class="mnHeader">
+			<h1>MAIL</h1>
+			<h1 style="float: right;">CHAT</h1>
+		</div>
+		<div class="mnMail">
+			<div class="mnMailText"></div>
+			<div class="mnMailInput mnMailCompose"><small><small>Compose</small></small></div>
+			<div class="mnMailInput mnMailNotification">Notif!</div>
+		</div>
+		<div class="mnChat">
+			<div class="mnChatText"></div>
+			<div class="mnChatForm">
+				<input class="mnChatInput" type="text" placeholder="Type in your message..." tabindex="-1">
+				<div class="mnChatSubmit">Send</div>
+			</div>
+		</div>
+		<div class="mnCompose" style="display: none;">
+			<div class="mnComposeForm">
+				<p>To:</p>
+				<input class="mnComposeInput" type="text" id="to" tabindex="-1">
+				<p>Subject:</p>
+				<input class="mnComposeInput" type="text" id="title" tabindex="-1">
+				<textarea class="mnComposeInput" id="content" tabindex="-1"></textarea>
+				<div class="mnComposeSubmit">Proceed</div>
+			</div>
+		</div>
+		<div class="mnLogin">
+			<div class="mnLoginForm">
+				<p>Login or Register</p>
+				<input class="mnLoginInput" type="text" placeholder="Username" tabindex="1" autofocus>
+				<input class="mnLoginInput" type="password" placeholder="Password" tabindex="2">
+				<div class="mnLoginSubmit" tabindex="3">Proceed</div>
+			</div>
+			<div class="mnLoginInfo"></div>
+		</div>
+	</div>
+	<script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-database.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>

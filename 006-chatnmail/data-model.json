@@ -1,0 +1,48 @@
+{
+	"mn": {
+		"chat": [
+			{
+				"from": "Branth",
+				"text": "Hi there, welcome",
+				"date": "12/15/2019"
+			},
+			{
+				"from": "Branth",
+				"text": "anyone?",
+				"date": "12/19/2019"
+			}
+		],
+		"users": {
+			"branth": {
+				"pass": "branth9",
+				"mail": [
+					{
+						"from": "Jojo",
+						"title": "Hi room mate"
+					},
+					{
+						"from": "Udin",
+						"title": "Give me my money!"
+					}
+				]
+			},
+			"maarten": {
+				"pass": "maarten1",
+				"mail": [
+					{
+						"from": "Wilbur",
+						"title": "Watch out for scam"
+					},
+					{
+						"from": "Napho",
+						"title": "TOnight Show 7:PM"
+					},
+					{
+						"from": "Preance",
+						"title": "What can I help you"
+					}
+				]
+			}
+		}
+	}
+}

@@ -1,0 +1,239 @@
+* {
+	margin: 0;
+	padding: 0;
+	font-family: 'Raleway', sans-serif;
+}
+
+.mn {
+	color: #222;
+	height: calc(100vh - 2rem);
+	padding: 1rem;
+	position: relative;
+}
+
+.mnHeader {
+	padding: 0 1rem;
+	border-radius: 5px 5px 0 0;
+	background-color: #ddd;
+}
+
+.mnHeader > h1 {
+	display: inline-block;
+}
+
+.mnMail, .mnChat {
+	float: left;
+	height: calc(100% - 4rem);
+	padding: 1rem;
+	background-color: #eee;
+}
+
+.mnMail {
+	position: relative;
+	width: calc(70% - 2rem);
+	overflow-y: scroll;
+	background-color: #eee;
+}
+
+.mnMailItem {
+	color: #888;
+	padding: 1rem 0.5rem;
+}
+
+.mnMailItem > h3 > i {
+	color: #aaa;
+}
+
+.mnMailItem:hover {
+	color: #222;
+	cursor: pointer;
+	background-color: #ddd;
+}
+
+.mnMailItem:hover > h3 > i {
+	color: #222;
+}
+
+.mnMailInput {
+	position: absolute;
+	top: 100%;
+	left: 100%;
+	width: 4rem;
+	text-align: center;
+	background-color: #ccc;
+}
+
+.mnMailInput:hover {
+	cursor: pointer;
+	background-color: #bbb;
+}
+
+.mnMailCompose {
+	transform: translate(calc(-100% - 1rem), calc(-100% - 1rem));
+	height: 2.625rem;
+	padding-top: 1.375rem;
+	border-radius: 50%;
+}
+
+.mnMailNotification {
+	transform: translate(calc(-100% - 1rem), calc(-100% - 6rem));
+	height: 2rem;
+	padding-top: 1rem;
+	border-radius: 10%;
+}
+
+.mnChat {
+	width: calc(30% - 2rem);
+}
+
+.mnChatText {
+	height: calc(100% - 4.5rem);
+	overflow-y: scroll;
+	margin-bottom: 0.5rem;
+}
+
+.mnChatTextItem {
+	margin-bottom: 0.5rem;
+}
+
+.mnChatTextItem > p:nth-child(3) {
+	color: #aaa;
+	font-size: 0.75rem;
+	margin-top: 0.25rem;
+}
+
+.mnChatForm {
+	height: 3.5rem;
+}
+
+.mnChatInput {
+	width: calc(100% - 0.75rem);
+	height: 1rem;
+	padding: 0.25rem;
+	margin-bottom: 0.25rem;
+}
+
+.mnChatSubmit {
+	height: 1rem;
+	padding: 0.25rem;
+	text-align: center;
+	background-color: #ccc;
+}
+
+.mnChatSubmit:hover {
+	cursor: pointer;
+	background-color: #bbb;
+}
+
+.mnCompose {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+.mnComposeForm {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	padding: 1rem;
+	transform: translate(-50%, -50%);
+	background-color: #eee;
+}
+
+.mnComposeForm > p {
+	margin-bottom: 0.5rem;
+}
+
+.mnComposeInput {
+	width: calc(100% - 0.75rem);
+	height: 1rem;
+	padding: 0.25rem;
+	margin-bottom: 0.25rem;
+}
+
+.mnComposeForm > textarea {
+	resize: vertical;
+	max-height: 10rem;
+}
+
+.mnComposeSubmit {
+	height: 1rem;
+	padding: 0.25rem;
+	text-align: center;
+	background-color: #ccc;
+}
+
+.mnComposeSubmit:hover {
+	cursor: pointer;
+	background-color: #bbb;
+}
+
+.mnLogin {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+.mnLoginInfo {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 0;
+	width: 100%;
+	padding: 1rem 0;
+	transform: translateY(-9rem);
+	text-align: center;
+	background-color: #eee;
+	animation: moveUp 0.2s ease;
+}
+
+.mnLoginForm {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	padding: 1rem;
+	transform: translate(-50%, -50%);
+	background-color: #eee;
+}
+
+.mnLoginForm > p {
+	margin-bottom: 0.5rem;
+}
+
+.mnLoginInput {
+	width: calc(100% - 0.75rem);
+	height: 1rem;
+	padding: 0.25rem;
+	margin-bottom: 0.25rem;
+}
+
+.mnLoginSubmit {
+	height: 1rem;
+	padding: 0.25rem;
+	text-align: center;
+	background-color: #ccc;
+}
+
+.mnLoginSubmit:hover {
+	cursor: pointer;
+	background-color: #bbb;
+}
+
+@keyframes moveUp {
+	0% {
+		opacity: 0;
+		transform: translateY(-7rem);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(-9rem);
+	}
+}

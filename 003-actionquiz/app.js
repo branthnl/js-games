@@ -1,5 +1,12 @@
 firebase.initializeApp({
-// fill in with ur details
+	apiKey: "AIzaSyCGEog7n86S2n_vPOzTJtbpig8c6U7TPw8",
+	authDomain: "eap-150.firebaseapp.com",
+	databaseURL: "https://eap-150.firebaseio.com",
+	projectId: "eap-150",
+	storageBucket: "eap-150.appspot.com",
+	messagingSenderId: "929057402910",
+	appId: "1:929057402910:web:a27eb9dddd2bb5eabe3e0f",
+	measurementId: "G-D6ELH4NB8D"
 });
 
 const db = firebase.database().ref();

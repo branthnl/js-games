@@ -1,0 +1,170 @@
+<script>
+
+const C = {
+	red: 'red',
+	lime: 'lime',
+	black: 'black'
+}
+
+const Draw = {
+	setColor: function(c) {
+		ctx.fillStyle = c;
+	},
+	rect: function(x, y, w, h) {
+		ctx.fillRect(x, y, w, h);
+	}
+}
+
+const Tile = {
+	w: 20,
+	h: 15,
+	scale: 20,
+	mid: {
+		w: 10,
+		h: 7,
+		scale: 10
+	}
+}
+
+const World = {
+	snake: {
+		tail: 5
+	}
+}
+
+const Snake = {
+	x: 0,
+	y: 0,
+	dx: 0,
+	dy: 0,
+	size: Tile.scale * 0.9,
+	mid: {
+		size: Tile.scale * 0.45
+	},
+	tail: World.snake.tail,
+	trail: [],
+	update: function() {
+		this.x += this.dx;
+		this.y += this.dy;
+
+		if (this.x < 0) {
+			this.x = Tile.w - 1;
+		}
+
+		if (this.x > Tile.w - 1) {
+			this.x = 0;
+		}
+
+		if (this.y < 0) {
+			this.y = Tile.h - 1;
+		}
+
+		if (this.y > Tile.h - 1) {
+			this.y = 0;
+		}
+
+		this.render();
+	},
+	render: function() {
+		Draw.setColor(C.lime);
+		for (let i = 0; i < this.trail.length; i++) {
+			Draw.rect(this.trail[i].x * Tile.scale + Tile.mid.scale - this.mid.size, this.trail[i].y * Tile.scale + Tile.mid.scale - this.mid.size, this.size, this.size);
+			if (this.trail[i].x === this.x && this.trail[i].y === this.y) {
+				this.tail = World.snake.tail;
+				this.dx = 0;
+				this.dy = 0;
+			}
+		}
+		this.trail.push({x: this.x, y: this.y});
+		while (this.trail.length > this.tail) {
+			this.trail.shift();
+		}
+		if (Apple.x === this.x && Apple.y === this.y) {
+			this.tail++;
+			Apple.respawn();
+		}
+	}
+}
+
+const Apple = {
+	x: Tile.mid.w,
+	y: Tile.mid.h,
+	size: Tile.scale * 0.8,
+	mid: {
+		size: Tile.scale * 0.4
+	},
+	respawn: function() {
+		let hitSnake = true;
+		while (hitSnake) {
+			this.x = Math.floor(Math.random() * Tile.w);
+			this.y = Math.floor(Math.random() * Tile.h);
+			let count = 0;
+			for (let i = 0; i < Snake.trail.length; i++) {
+				if (this.x === Snake.trail[i].x && this.y === Snake.trail[i].y) {
+					hitSnake = true;
+					count++;
+					break;
+				}
+			}
+			if (count === 0) {
+				hitSnake = false;
+			}
+		}
+	},
+	update: function() {
+		this.render();
+	},
+	render: function() {
+		Draw.setColor(C.red);
+		Draw.rect(this.x * Tile.scale + Tile.mid.scale - this.mid.size, this.y * Tile.scale + Tile.mid.scale - this.mid.size, this.size, this.size);
+	}
+}
+
+const Canv = document.createElement('canvas');
+Canv.width = Tile.w * Tile.scale;
+Canv.height = Tile.h * Tile.scale;
+const ctx = Canv.getContext('2d');
+
+const Game = {
+	start: function() {
+		this.update();
+	},
+	update: function() {
+		Draw.setColor(C.black);
+		Draw.rect(0, 0, Canv.width, Canv.height);
+		Snake.update();
+		Apple.update();
+		setTimeout(Game.update, 1000 / 15);
+	}
+}
+
+const Input = {
+	keyDown: function(e) {
+		switch (e.keyCode) {
+			case 37:
+				Snake.dx = -1;
+				Snake.dy = 0;
+				break;
+			case 38:
+				Snake.dx = 0;
+				Snake.dy = -1;
+				break;
+			case 39:
+				Snake.dx = 1;
+				Snake.dy = 0;
+				break;
+			case 40:
+				Snake.dx = 0;
+				Snake.dy = 1;
+				break;
+		}
+	}
+}
+
+window.onload = function() {
+	document.body.appendChild(Canv);
+	document.addEventListener('keydown', Input.keyDown);
+	Game.start();
+}
+
+</script>

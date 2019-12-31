@@ -432,6 +432,7 @@ function BranthParticle(k, x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a
 	this.d = d;
 	this.r = r;
 	this.a = a;
+	this.g = grav;
 	this.i = OBJ.take(k).length;
 	this.update = function() {
 		this.a = Math.max(0, this.a - Time.deltaTime / life);
@@ -443,7 +444,8 @@ function BranthParticle(k, x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a
 		this.size = Math.max(this.size + sizeinc, 0);
 		this.spd += spdinc;
 		this.dx = Math.lendirx(this.spd, this.d);
-		this.dy = Math.lendiry(this.spd, this.d) + Math.lendiry(grav, 90); // 90 is downwards
+		this.g += grav;
+		this.dy = Math.lendiry(this.spd, this.d) + Math.lendiry(this.g, 90); // 90 is downwards
 		this.d += dinc;
 		this.r += rinc;
 		this.render();
@@ -603,19 +605,19 @@ function BranthEmitter(key) {
 				this.setGravity(0, 0);
 				break;
 			case 'starpuff':
-				this.setSpeed(1, 1);
-				this.setSpeedInc(-0.01, -0.01);
-				this.setSize(10, 10);
-				this.setSizeInc(0, 0);
-				this.setDirection(270, 270);
-				this.setDirectionInc(0, 0);
+				this.setSpeed(4, 4);
+				this.setSpeedInc(0.02, 0.02);
+				this.setSize(8, 10);
+				this.setSizeInc(-0.04, -0.04);
+				this.setDirection(315, 315);
+				this.setDirectionInc(-2, -2);
 				this.setRotation(0, 0);
-				this.setRotationInc(0, 0);
-				this.setAlpha(1, 1);
+				this.setRotationInc(-5, -5);
+				this.setAlpha(0.8, 1);
 				this.setColor(C.yellow);
 				this.setLife(4000, 4000);
 				this.setShape(Shape.star);
-				this.setGravity(0, 0);
+				this.setGravity(0.08, 0.08);
 				break;
 			default: break;
 		}

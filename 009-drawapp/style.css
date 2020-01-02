@@ -1,8 +1,12 @@
 * {
 	margin: 0;
 	padding: 0;
-	color: #1b1b1b;
-	background-color: #f0f0f0;
+	color: #000000;
+	background-color: #ffffff;
+	user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
 }
 
 .da {
@@ -14,43 +18,78 @@
 
 .da > div {
 	position: fixed;
+	color: #1b1b1b;
+	background-color: #f0f0f0;
+	border: 1px solid #909090;
+}
+
+.daTool {
+	display: inline-block;
+	width: 24px;
+	height: 24px;
+	overflow: hidden;
+	background-color: #e1e1e1;
+	border: 1.5px solid #b4b4b4;
+}
+
+.daTool:hover {
+	background-color: #e5f1fb;
+	border: 1.5px solid #1c88db;
+}
+
+.daTool.selected {
+	background-color: #cce4f7;
+	border: 1.5px solid #1864a2;
+}
+
+.daTool.toggle {
+	background-color: #f0f0f0;
+	border: 0;
+}
+
+.daTool.toggle:hover {
+	background-color: #cce4f7;
 }
 
 .daToolBar {
 	top: 0;
 	left: 0;
-	width: 100%;
-	height: 32px;
-	background-color: green;
+	width: calc(100% - 2px - 4px); /* width - border - padding */
+	height: calc(32px - 4px - 4px); /* height - border - padding */
+	padding: 4px;
 }
 
 .daCanvas {
-	top: 32px;
-	left: 160px;
-	width: calc(100% - 160px - 140px);
-	height: calc(100% - 32px - 24px);
+	top: calc(32px + 2px) /* ToolBar.height + border */;
+	left: calc(97px + 2px) /* ToolWindow.width + border */;
+	width: calc(100% - 97px - 97px - 6px); /* width - ToolWindow.width - ColorsWindow.width - border */;
+	height: calc(100% - 32px - 24px - 6px); /* height - ToolBar.height - StatusBar.height - border */
 	overflow: auto;
-	background-color: yellow;
 }
 
 .daCanvas > canvas {
-	background-color: white;
+	background-size: 16px 16px;
+	background-image: linear-gradient(#ffffff 50%, #d3d3d3 50%);
+	cursor: url('images/pencil.png') 5 18, auto;
 }
 
 .daToolWindow {
-	top: 32px;
+	top: calc(32px + 2px); /* ToolBar.height + border */
 	left: 0;
-	width: 160px;
-	height: calc(100% - 32px - 24px);
-	background-color: blue;
+	width: 97px;
+	height: calc(100% - 32px - 24px - 6px); /* height - ToolBar.height - StatusBar.height - border */
+	text-align: center;
+}
+
+.daToolWindow > .daTool {
+	margin-top: 4px;
 }
 
 .daColorsWindow {
-	top: 32px;
+	top: calc(32px + 2px); /* ToolBar.height + border */
 	right: 0;
-	width: 140px;
-	height: calc(100% - 32px - 24px);
-	background-color: brown;
+	width: 97px;
+	height: calc(100% - 32px - 24px - 6px); /* height - ToolBar.height - StatusBar.height - border */
 }
 
 .daStatusBar {
@@ -58,5 +97,4 @@
 	left: 0;
 	width: 100%;
 	height: 24px;
-	background-color: gray;
 }

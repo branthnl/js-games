@@ -85,6 +85,14 @@
 	margin-top: 4px;
 }
 
+.daToolWindow > fieldset {
+	background-color: #f0f0f0;
+}
+
+.daToolWindow > fieldset > legend {
+	background-color: #f0f0f0;
+}
+
 .daColorsWindow {
 	top: calc(32px + 2px); /* ToolBar.height + border */
 	right: 0;

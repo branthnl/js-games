@@ -100,7 +100,8 @@ let OBJ = {
 	getIndexFromKey: function(k) {
 		let i = 0;
 		switch (k) {
-			case 'ball':
+			case 'ball': i++
+			case 'bubble':
 			default: break;
 		}
 		return i;
@@ -197,13 +198,48 @@ function Ball(x, y, r, c) {
 	this.render = function() {
 		Draw.setColor(this.c);
 		Draw.circle(this.x, this.y, this.r);
+		Draw.setColor(C.white);
+		Draw.circle(this.x - this.r / 3, this.y - this.r / 3, this.r / 4);
+	}
+}
+
+function Bubble(x, y, r, c) {
+	this.x = x;
+	this.y = y;
+	this.r = r;
+	this.c = c;
+	this.update = function() {
+		this.render();
+	}
+	this.render = function() {
+		Draw.setColor(this.c);
+		Draw.circle(this.x, this.y, this.r);
+		Draw.setColor(C.white);
+		Draw.circle(this.x - this.r / 3, this.y - this.r / 3, this.r / 4);
 	}
 }
 
 const Game = {
+	generateBubbles: function() {
+		const r = 12;
+		for (let i = 0; i < 15; i++) {
+			for (let j = 0; j < 8 + (i > 4 && i < 10? 1 : 0); j++) {
+				if (j % 2 == 0 && i > 13) {
+					continue;
+				}
+				const b = {
+					x: r + i * r * 2 + (j % 2 == 0? r : 0),
+					y: r + j * r * 2,
+					c: Math.range(0, 100) < 50? (Math.range(0, 100) < 50? C.blue : C.yellow) : (Math.range(0, 100) < 50? C.red : C.green)
+				}
+				OBJ.add('bubble', new Bubble(b.x, b.y, r - 1, b.c));
+			}
+		}
+	},
 	start: function() {
-		let b = new Ball(Room.mid.w, Room.h - 32, 8, C.white);
+		let b = new Ball(Room.mid.w, Room.h - 32, 11, C.red);
 		OBJ.add('ball', b);
+		this.generateBubbles();
 		main();
 	},
 	update: function() {

@@ -13,8 +13,6 @@ const Draw = {
 	lineW: 1,
 	toolIndex: 0,
 	begin: function(m) {
-		ctx.beginPath();
-		ctx.moveTo(m.x, m.y);
 		this.draw(m);
 	},
 	draw: function(m) {
@@ -23,6 +21,11 @@ const Draw = {
 		ctx.lineWidth = this.lineW;
 		ctx.strokeStyle = '#000000';
 		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(m.x, m.y);
+	},
+	end: function() {
+		ctx.beginPath();
 	}
 }
 
@@ -49,6 +52,7 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => {
 	isDrawing = false;
+	Draw.end();
 });
 
 function changeTool(index) {

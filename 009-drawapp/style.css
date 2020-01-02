@@ -1,6 +1,7 @@
 * {
 	margin: 0;
 	padding: 0;
+	font-family: sans-serif;
 	color: #000000;
 	background-color: #ffffff;
 	user-select: none;
@@ -21,6 +22,15 @@
 	color: #1b1b1b;
 	background-color: #f0f0f0;
 	border: 1px solid #909090;
+}
+
+.da fieldset {
+	background-color: #f0f0f0;
+}
+
+.da legend {
+	font-size: 12px;
+	background-color: #f0f0f0;
 }
 
 .daTool {
@@ -85,19 +95,38 @@
 	margin-top: 4px;
 }
 
-.daToolWindow > fieldset {
-	background-color: #f0f0f0;
-}
-
-.daToolWindow > fieldset > legend {
-	background-color: #f0f0f0;
-}
-
 .daColorsWindow {
 	top: calc(32px + 2px); /* ToolBar.height + border */
 	right: 0;
 	width: 97px;
 	height: calc(100% - 32px - 24px - 6px); /* height - ToolBar.height - StatusBar.height - border */
+}
+
+.daColorsWindow > fieldset {
+	margin-bottom: 6px;
+	padding: 4px;
+	width: calc(100% - 16px); /* width - padding */
+}
+
+.daColorsWindow > #color {
+	height: 200px;
+}
+
+.daColorsWindow > #opacity {
+	height: 36px;
+}
+
+.daColorsWindow > #opacity > input {
+	width: calc(100% - 4px); /* width - padding */
+}
+
+.daColorsWindow > #colormode {
+	height: 52px;
+}
+
+.daColorsWindow > #colormode > label {
+	font-size: 12px;
+	background-color: #f0f0f0;
 }
 
 .daStatusBar {

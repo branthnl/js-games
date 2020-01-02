@@ -89,7 +89,23 @@
 				</div>
 			</fieldset>
 		</div>
-		<div class="daColorsWindow"></div>
+		<div class="daColorsWindow">
+			<fieldset id="color">
+				<legend>Colors</legend>
+			</fieldset>
+			<fieldset id="opacity">
+				<legend>Opacity</legend>
+				<input type="number" value="255" min="0" max="255">
+			</fieldset>
+			<fieldset id="colormode">
+				<legend>Color Mode</legend>
+				<input type="radio" name="colorMode" id="colorModeBlend" checked>
+				<label for="colorModeBlend">Blend</label>
+				<br>
+				<input type="radio" name="colorMode" id="colorModeReplace">
+				<label for="colorModeReplace">Replace</label>
+			</fieldset>
+		</div>
 		<div class="daStatusBar"></div>
 	</div>
 	<script src="app.js"></script>

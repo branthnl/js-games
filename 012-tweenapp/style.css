@@ -1,0 +1,37 @@
+* {
+	margin: 0;
+	padding: 0;
+	font-family: 'Lato', sans-serif;
+}
+
+.container {
+	position: relative;
+	padding: 1rem;
+	width: calc(100vw - 2rem);
+	height: calc(100vh - 2rem);
+	overflow-x: hidden;
+	background-color: #eee;
+	text-align: center;
+}
+
+#back {
+	position: absolute;
+	top: 1rem;
+}
+
+#squish {
+	margin-top: 4rem;
+	text-align: center;
+}
+
+#stretch, #color, #shadow, canvas {
+	margin-top: 2rem;
+	text-align: center;
+}
+
+canvas {
+	width: 32rem;
+	height: 18rem;
+	border-radius: 1rem;
+	background-color: #ddd;
+}

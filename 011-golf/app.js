@@ -5,7 +5,7 @@ const C = {
 	tree1: '#99bb50',
 	tree2: '#8db145',
 	grass1: '#aeba3b',
-	grass2: '#9dab2d',
+	grass2: '#7d8b20',
 	ground1: '#514d36',
 	ground2: '#4c4832',
 	white: '#ffffff',
@@ -180,6 +180,8 @@ function BranthDraw(ctx) {
 		this.polyEnd(outline);
 	}
 	this.scale = (x, y) => ctx.scale(x, y);
+	this.translate = (x, y) => ctx.translate(x, y);
+	this.lineWidth = (n) => ctx.lineWidth = n; // in pixel
 	this.setBlend = (s) => ctx.globalCompositeOperation = s;
 	this.resetBlend = () => ctx.globalCompositeOperation = Blend.sourceOver;
 	this.createLinearGradient = (x0, y0, x1, y1) => ctx.createLinearGradient(x0, y0, x1, y1);
@@ -295,34 +297,64 @@ const onUpdate = (t) => {
 		Draw.closePath();
 		Draw.setColor(C.ground1);
 		Draw.fill();
-	}
+	};
 	const drawGround2 = () => {
 		for (c of conv) {
+			const s = Canv.w / 434;
 			Draw.setColor(C.ground2);
-			Draw.circle(c.x - 12, c.y + 50, 8);
-			Draw.circle(c.x - 8, c.y + 50, 4);
-			Draw.circle(c.x - 24, c.y + 80, 3);
-			Draw.circle(c.x - 20, c.y + 80, 4);
-			Draw.circle(c.x - 8, c.y + 110, 7);
-			Draw.circle(c.x - 4, c.y + 140, 5);
-			Draw.circle(c.x + 24, c.y + 50, 4);
-			Draw.circle(c.x + 38, c.y + 80, 4);
-			Draw.circle(c.x + 19, c.y + 80, 4);
-			Draw.circle(c.x + 70, c.y + 100, 4);
-			Draw.circle(c.x - 8, c.y + 140, 5);
-			Draw.circle(c.x - 14, c.y + 180, 3);
-			Draw.circle(c.x - 10, c.y + 230, 9);
-			Draw.circle(c.x - 60, c.y + 240, 6);
-			Draw.circle(c.x - 40, c.y + 189, 8);
-			Draw.circle(c.x - 12, c.y + 260, 6);
-			Draw.circle(c.x - 8, c.y + 300, 5);
-			Draw.circle(c.x - 8, c.y + 320, 9);
+			Draw.circle(c.x - s * 12, c.y + s *  50, 8 * s);
+			Draw.circle(c.x - s *  8, c.y + s *  50, 4 * s);
+			Draw.circle(c.x - s * 24, c.y + s *  80, 3 * s);
+			Draw.circle(c.x - s * 20, c.y + s *  80, 4 * s);
+			Draw.circle(c.x - s *  8, c.y + s * 110, 7 * s);
+			Draw.circle(c.x - s *  4, c.y + s * 140, 5 * s);
+			Draw.circle(c.x + s * 24, c.y + s *  50, 4 * s);
+			Draw.circle(c.x + s * 38, c.y + s *  80, 4 * s);
+			Draw.circle(c.x + s * 19, c.y + s *  80, 4 * s);
+			Draw.circle(c.x + s * 70, c.y + s * 100, 4 * s);
+			Draw.circle(c.x - s *  8, c.y + s * 140, 5 * s);
+			Draw.circle(c.x - s * 14, c.y + s * 180, 3 * s);
+			Draw.circle(c.x - s * 10, c.y + s * 230, 9 * s);
+			Draw.circle(c.x - s * 60, c.y + s * 240, 6 * s);
+			Draw.circle(c.x - s * 40, c.y + s * 189, 8 * s);
+			Draw.circle(c.x - s * 12, c.y + s * 260, 6 * s);
+			Draw.circle(c.x - s *  8, c.y + s * 300, 5 * s);
+			Draw.circle(c.x - s *  8, c.y + s * 320, 9 * s);
 		}
-	}
+	};
 	drawGround1();
 	drawGround2();
 
 	// Draw Grass
+	const drawGrass = () => {
+		let yOffset = Canv.h / 250;
+		for (i of [1, 0, 2.5]) {
+			let count = 0;
+			Draw.beginPath();
+			for (c of conv) {
+				if (count === 0) {
+					Draw.moveTo(c.x, c.y + yOffset * i);
+				}
+				else {
+					Draw.lineTo(c.x, c.y + yOffset * i);
+				}
+				count++;
+			}
+			if (i >= 2) {
+				Draw.lineWidth(Canv.w / 434);
+				Draw.setColor(C.white);
+				Draw.setAlpha(0.2);
+				Draw.stroke();
+				Draw.setAlpha(1);
+			}
+			else {
+				Draw.lineWidth(Canv.h / 50);
+				Draw.setColor(i > 0? C.grass2 : C.grass1);
+				Draw.stroke();
+			}
+		}
+	};
+	drawGrass();
 
 	// Loop
 	window.requestAnimationFrame(onUpdate);

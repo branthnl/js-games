@@ -244,6 +244,40 @@ const Time = new BranthTime();
 const Canv = new BranthCanvas();
 const Draw = new BranthDraw(Canv.getContext('2d'));
 
+const GRAVITY = 9.807 / 50;
+const GRAVITY_DIRECTION = 90;
+
+function GolfBall(x, y) {
+	this.x = x;
+	this.y = y;
+	this.xp = x; // x previous
+	this.yp = y; // y previous
+	this.d = 0; // direction
+	this.spd = 0;
+	this.gravSpd = 0;
+	this.impulse = function(direction, amount) {
+		this.d = direction;
+		this.spd = amount;
+		this.gravSpd = GRAVITY;
+	}
+	this.update = function() {
+		this.xp = this.x;
+		this.yp = this.y;
+		this.x += Math.lendirx(this.spd, this.d) + Math.lendirx(this.gravSpd, GRAVITY_DIRECTION);
+		this.y += Math.lendiry(this.spd, this.d) + Math.lendiry(this.gravSpd, GRAVITY_DIRECTION);
+		this.gravSpd += GRAVITY;
+		this.spd *= 0.9999;
+		if (this.y > Canv.mid.h) {
+			this.impulse(270, 9);
+		}
+		this.render();
+	}
+	this.render = function() {
+		Draw.setColor(C.white);
+		Draw.circle(this.x, this.y, 4);
+	}
+}
+
 /*
 Ground Shape Coordinates
 
@@ -436,6 +470,31 @@ const onUpdate = (t) => {
 	drawFlag();
 	drawPole();
 
+	// Draw Ball
+	golfBall.update();
+
+	// Draw Hole Cover
+	// const drawHoleCover = () => {
+	// 	const hc = {
+	// 		h: Canv.h / 250, // from draw grass yOffset
+	// 	}
+
+	// 	Draw.beginPath();
+	// 	Draw.moveTo(hole.x - 10 * s, hole.y + Canv.h / 50 - hc.h * 2);
+	// 	Draw.lineTo(hole.x + 10 * s, hole.y + Canv.h / 50 - hc.h * 2);
+	// 	Draw.lineWidth(hc.h);
+	// 	Draw.setColor(C.grass2);
+	// 	Draw.stroke(Cap.round);
+
+	// 	Draw.beginPath();
+	// 	Draw.moveTo(hole.x - 11 * s, hole.y + Canv.h / 50 - hc.h * 3);
+	// 	Draw.lineTo(hole.x + 11 * s, hole.y + Canv.h / 50 - hc.h * 3);
+	// 	Draw.lineWidth(hc.h);
+	// 	Draw.setColor(C.grass1);
+	// 	Draw.stroke(Cap.round);
+	// };
+	// drawHoleCover();
+
 	// Loop
 	window.requestAnimationFrame(onUpdate);
 }
@@ -445,10 +504,13 @@ const onResize = () => {
 	Draw.scale(2, 2);
 };
 
+let golfBall;
+
 const onLoad = () => {
 	document.body.appendChild(Canv);
 	window.addEventListener('resize', onResize);
 	onResize();
+	golfBall = new GolfBall(Canv.mid.w, Canv.mid.h);
 	onUpdate();
 };
 

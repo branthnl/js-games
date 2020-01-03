@@ -2,46 +2,58 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title>Chat and Mail</title>
-	<link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+	<title>Monthly Exam</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-	<div class="mn">
-		<div class="mnHeader">
-			<h1>MAIL</h1>
-			<h1 style="float: right;">CHAT</h1>
-		</div>
-		<div class="mnMail">
-			<div class="mnMailText"></div>
-			<div class="mnMailInput mnMailCompose"><small><small>Compose</small></small></div>
-			<div class="mnMailInput mnMailNotification">Notif!</div>
-		</div>
-		<div class="mnChat">
-			<div class="mnChatText"></div>
-			<div class="mnChatForm">
-				<input class="mnChatInput" type="text" placeholder="Type in your message..." tabindex="-1">
-				<div class="mnChatSubmit">Send</div>
+	<div class="me">
+		<div class="meLogin" style="display: block;">
+			<div class="meLoginForm">
+				<h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
+				<label>Username</label>
+				<input class="form-control mb-3" type="text" autofocus>
+				<!-- <label>Password</label>
+				<input class="form-control mb-3" type="password"> -->
+				<button class="btn btn-primary btn-block">Sign in</button>
 			</div>
 		</div>
-		<div class="mnCompose" style="display: none;">
-			<div class="mnComposeForm">
-				<p>To:</p>
-				<input class="mnComposeInput" type="text" id="to" tabindex="-1">
-				<p>Subject:</p>
-				<input class="mnComposeInput" type="text" id="title" tabindex="-1">
-				<textarea class="mnComposeInput" id="content" tabindex="-1"></textarea>
-				<div class="mnComposeSubmit">Proceed</div>
+		<div class="meMenu" style="display: none;">
+			<h5 class="mb-3 font-weight-normal">Logged in as: Mark</h5>
+			<button class="btn btn-primary mb-3" onclick="meMenuButtonEvent();">Exam January 2020</button>
+			<button class="btn btn-primary mb-3" onclick="meMenuLogoutEvent();">Log out</button>
+			<table class="table"></table>
+		</div>
+		<div class="meExam" style="display: none;">
+			<div class="meExamNav">
+				<select class="custom-select mb-3" size="10" multiple>
+					<option value="1" selected>Question 1</option>
+					<option value="2">Question 2</option>
+					<option value="3">Question 3</option>
+					<option value="4">Question 4</option>
+					<option value="5">Question 5</option>
+					<option value="6">Question 6</option>
+					<option value="7">Question 7</option>
+					<option value="8">Question 8</option>
+					<option value="9">Question 9</option>
+					<option value="10">Question 10</option>
+				</select>
+				<button class="btn btn-sm btn-primary btn-block">Finish exam</button>
+			</div>
+			<div class="meExamForm">
+				<p class="meExamQuestion"></p>
+				<div class="meExamAnswers"></div>
 			</div>
 		</div>
-		<div class="mnLogin">
-			<div class="mnLoginForm">
-				<p>Login or Register</p>
-				<input class="mnLoginInput" type="text" placeholder="Username" tabindex="1" autofocus>
-				<input class="mnLoginInput" type="password" placeholder="Password" tabindex="2">
-				<div class="mnLoginSubmit" tabindex="3">Proceed</div>
+		<div class="meCheck" style="display: none;">
+			<div class="meCheckNav">
+				<select class="custom-select mb-3" size="10" multiple></select>
+				<button class="btn btn-sm btn-primary btn-block">Back to menu</button>
 			</div>
-			<div class="mnLoginInfo"></div>
+			<div class="meCheckForm">
+				<p class="meCheckQuestion"></p>
+				<div class="meCheckAnswers"></div>
+			</div>
 		</div>
 	</div>
 	<script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-app.js"></script>

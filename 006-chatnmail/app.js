@@ -1,202 +1,240 @@
-const d = document;
-d.q = (q) => d.querySelector(q);
-d.c = (c) => d.createElement(c);
-d.a = (a) => d.appendChild(a);
+const D = document;
+D.q = (q) => D.querySelector(q);
+D.c = (c) => D.createElement(c);
 
-const dateFormat = (date) => (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
 const isNoLetter = (s) => s.replace(/[A-Za-z0-9]/g, "").length === s.length;
 
 const USER = {
-	name: ''
+	name: 'anonymous',
+	score: 0
 }
 
 firebase.initializeApp({
-	apiKey: "AIzaSyDOFPgoi-1C5e9gf52mW9yY-UgYqCUT2IM",
-	authDomain: "mail-c5d4e.firebaseapp.com",
-	databaseURL: "https://mail-c5d4e.firebaseio.com",
-	projectId: "mail-c5d4e",
-	storageBucket: "mail-c5d4e.appspot.com",
-	messagingSenderId: "182515294698",
-	appId: "1:182515294698:web:cc3386e1fc8ea1c99b5293",
-	measurementId: "G-4VRDHKBFNH"
+	apiKey: "AIzaSyDWh7EVq6tRyq0I8i40ATGoUc6vc5s3dpU",
+	authDomain: "exam-ae3d4.firebaseapp.com",
+	databaseURL: "https://exam-ae3d4.firebaseio.com",
+	projectId: "exam-ae3d4",
+	storageBucket: "exam-ae3d4.appspot.com",
+	messagingSenderId: "233636355104",
+	appId: "1:233636355104:web:3aafa9028aa808ae287045",
+	measurementId: "G-Y8D3K31GYB"
 });
 
-const db = firebase.database().ref('mn');
+const db = firebase.database().ref('me');
 db.c = (c) => db.child(c);
-const dbChat = db.c('chat');
 const dbUsers = db.c('users');
-let dbMail = db.c('users/' + USER.name + '/mail');
 
-const mnMailText = d.q('.mnMailText');
-const mnMailCompose = d.q('.mnMailCompose');
-const mnMailNotification = d.q('.mnMailNotification');
+const me = D.q('.me');
+const meLogin = D.q('.meLogin');
+const meLoginForm = D.q('.meLoginForm');
+const meLoginFormUser = D.q('.meLoginForm > input[type="text"]');
+// const meLoginFormPass = D.q('.meLoginForm > input[type="password"]');
+const meLoginFormSubmit = D.q('.meLoginForm > button');
+const meMenu = D.q('.meMenu');
+const meMenuH5 = D.q('.meMenu > h5');
+const meMenuTable = D.q('.meMenu > table');
+const meExam = D.q('.meExam');
+const meExamNavSelect = D.q('.meExamNav > select');
+const meExamNavButton = D.q('.meExamNav > button');
+const meExamQuestion = D.q('.meExamQuestion');
+const meExamAnswers = D.q('.meExamAnswers');
+const meCheck = D.q('.meCheck');
+const meCheckNavSelect = D.q('.meCheckNav > select');
+const meCheckNavButton = D.q('.meCheckNav > button');
+const meCheckQuestion = D.q('.meCheckQuestion');
+const meCheckAnswers = D.q('.meCheckAnswers');
 
-const mnChat = d.q('.mnChat');
-const mnChatText = d.q('.mnChatText');
-const mnChatInput = d.q('.mnChatInput');
-const mnChatSubmit = d.q('.mnChatSubmit');
-
-const mnCompose = d.q('.mnCompose');
-const mnComposeTo = d.q('.mnComposeInput[id="to"]');
-const mnComposeTitle = d.q('.mnComposeInput[id="title"]');
-const mnComposeContent = d.q('.mnComposeInput[id="content"]');
-const mnComposeSubmit = d.q('.mnComposeSubmit');
-
-const mnLogin = d.q('.mnLogin');
-const mnLoginInfo = d.q('.mnLoginInfo');
-const mnLoginUser = d.q('.mnLoginInput[type="text"]');
-const mnLoginPass = d.q('.mnLoginInput[type="password"]');
-const mnLoginSubmit = d.q('.mnLoginSubmit');
-
-function mnMailComposeStart() {
-	mnCompose.style.display = 'block';
-	mnChatInput.setAttribute('tabindex', -1);
-	mnChatSubmit.setAttribute('tabindex', -1);
-	mnComposeTo.setAttribute('tabindex', 6);
-	mnComposeTitle.setAttribute('tabindex', 7);
-	mnComposeContent.setAttribute('tabindex', 8);
-	mnComposeSubmit.setAttribute('tabindex', 9);
-}
-
-function mnChatTextPush(from, text, date) {
-	const i = d.c('div');
-	const b = d.c('b');
-	const p = d.c('p');
-	const t = d.c('p');
-	b.innerHTML = from;
-	p.innerHTML = text;
-	t.innerHTML = date;
-	if (from === USER.name) {
-		b.style.color = '#22a';
-		i.style.textAlign = 'right';
-	}
-	i.setAttribute('class', 'mnChatTextItem');
-	i.appendChild(b);
-	i.appendChild(p);
-	i.appendChild(t);
-	mnChatText.appendChild(i);
-}
-
-function mnChatSubmitClick() {
-	const m = mnChatInput.value;
-	if (isNoLetter(m)) {
-		return;
-	}
-	const t = {
-		from: USER.name,
-		text: m,
-		date: dateFormat(new Date())
-	}
-	mnChatTextPush(t.from, t.text, t.date);
-	dbChat.push(t);
-	mnChatText.scrollTo(0, mnChatText.scrollHeight);
-	mnChatInput.value = '';
-}
-
-function mnComposeSubmitClick() {
-	const m = {
-		to: mnComposeTo.value,
-		title: mnComposeTitle.value,
-		content: mnComposeContent.value
-	}
-	dbUsers.child(m.to).child('mail').push({
-		from: USER.name || 'Branth NL',
-		title: m.title,
-		content: m.content
-	});
-	mnChatInput.setAttribute('tabindex', 4);
-	mnChatSubmit.setAttribute('tabindex', 5);
-	mnCompose.style.display = 'none';
-}
-
-function mnLoginPopInfo(s) {
-	mnLoginInfo.innerHTML = s;
-	if (mnLoginInfo.style.display != 'block') {
-		mnLoginInfo.style.display = 'block';
-	}
-}
-
-function mnLoginSubmitClick() {
-	const u = mnLoginUser.value;
-	const p = mnLoginPass.value;
-	if (isNoLetter(u)) {
-		mnLoginPopInfo('Please include at least one letter in username');
-		return;
-	}
-	if (isNoLetter(p)) {
-		mnLoginPopInfo('Please include at least one letter in password');
-		return;
-	}
-	let isExists = false;
-	dbUsers.once('value', snap => {
-		snap.forEach(c => {
-			if (c.key == u) {
-				if (c.val().pass != p) {
-					mnLoginPopInfo('Incorrect password for this existing username');
-					return;
-				}
-				isExists = true;
+const ME = {
+	questionID: 1,
+	answers: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	changeAnswer: function(id, value) {
+		this.answers[id] = value;
+	},
+	changeQuestion: function(id) {
+		id = id || this.questionID;
+		meExamQuestion.innerHTML = 'Question ' + id;
+		meExamAnswers.innerHTML = '';
+		for (i of [1, 2, 3, 4]) {
+			const div = D.c('div');
+			const divRadio = D.c('input');
+			const divLabel = D.c('label');
+			divRadio.setAttribute('type', 'radio');
+			divRadio.setAttribute('id', 'choice' + i);
+			divRadio.setAttribute('name', 'choice');
+			divRadio.setAttribute('class', 'custom-control-input');
+			divRadio.setAttribute('onclick', `ME.changeAnswer(${id - 1}, ${i});`);
+			if (this.answers[id - 1] == i) {
+				divRadio.setAttribute('checked', '');
 			}
-		});
-	});
-	// Questionable
-	// if (!isExists) {
-	// 	dbUsers.child(u).set({
-	// 		pass: p,
-	// 		mail: [{
-	// 			from: 'Branth NL',
-	// 			title: 'Welcome to Mail Notification!'
-	// 		}]
-	// 	});
-	// }
-	USER.name = mnLoginUser.value;
-	dbMail = db.c('users/' + USER.name + '/mail');
-	mnChatInput.setAttribute('tabindex', 4);
-	mnChatSubmit.setAttribute('tabindex', 5);
-	mnMailTextLoad();
-	mnChatTextLoad();
-	mnLogin.style.display = 'none';
+			divLabel.setAttribute('for', 'choice' + i);
+			divLabel.setAttribute('class', 'custom-control-label');
+			divLabel.innerHTML = 'Incorrect answer';//'Choice ' + i;
+			if (i == 1) {
+				divLabel.innerHTML = 'Correct answer';
+			}
+			div.setAttribute('class', 'custom-control custom-radio');
+			div.appendChild(divRadio);
+			div.appendChild(divLabel);
+			meExamAnswers.appendChild(div);
+		}
+	},
+	checkQuestion: function(id) {
+		id = id || this.questionID;
+		meCheckQuestion.innerHTML = 'Question ' + id;
+		meCheckAnswers.innerHTML = '';
+		for (i of [1, 2, 3, 4]) {
+			const div = D.c('div');
+			const divRadio = D.c('input');
+			const divLabel = D.c('label');
+			divRadio.setAttribute('type', 'radio');
+			divRadio.setAttribute('id', 'choice' + i);
+			divRadio.setAttribute('class', 'custom-control-input');
+			divRadio.setAttribute('disabled', '');
+			if (this.answers[id - 1] == i) {
+				divRadio.setAttribute('checked', '');
+			}
+			divLabel.setAttribute('class', 'custom-control-label');
+			divLabel.innerHTML = 'Incorrect answer';//'Choice ' + i;
+			if (i == 1) {
+				divLabel.innerHTML = 'Correct answer';
+			}
+			div.setAttribute('class', 'custom-control custom-radio');
+			div.appendChild(divRadio);
+			div.appendChild(divLabel);
+			meCheckAnswers.appendChild(div);
+		}
+	}
 }
 
-function mnMailTextLoad() {
-	dbMail.on('value', snap => {
-		mnMailText.innerHTML = '';
-		snap.forEach(c => {
-			const v = c.val();
-			const i = d.c('div');
-			const h = d.c('h3');
-			h.innerHTML = v.title + ' <i>— ' + v.from + '</i>';
-			i.setAttribute('class', 'mnMailItem');
-			i.appendChild(h);
-			mnMailText.appendChild(i);
-		});
-	});
+function meLoginFormSubmitEvent() {
+	const u = meLoginFormUser.value;
+	if (isNoLetter(u)) {
+		alert('Please include at least one letter in username.');
+		return;
+	}
+	USER.name = u;
+	dbUsers.child(USER.name + '/name').set(USER.name);
+	meLogin.style.display = 'none';
+	meMenuH5.innerHTML = 'Logged in as: ' + USER.name;
+	meMenu.style.display = 'block';
 }
 
-function mnChatTextLoad() {
-	dbChat.on('value', snap => {
-		mnChatText.innerHTML = '';
-		snap.forEach(c => {
-			const v = c.val();
-			mnChatTextPush(v.from, v.text, v.date);
-			// Questionable
-			// if ((mnChatText.scrollTop + mnChatText.clientHeight) > (mnChatText.scrollHeight - 20)) {
-			// 	mnChatText.scrollTo(0, mnChatText.scrollHeight);
-			// }
-		});
-	});
+meLoginForm.addEventListener('keypress', (e) => {
+	if (e.which == 13 || e.keyCode == 13) {
+		meLoginFormSubmitEvent();
+	}
+});
+
+meLoginFormSubmit.addEventListener('click', () => {
+	meLoginFormSubmitEvent();
+});
+
+function meMenuButtonEvent() {
+	meMenu.style.display = 'none';
+	meExamNavSelect.value = '1';
+	meExam.style.display = 'block';
+	ME.questionID = 1;
+	ME.answers = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+	ME.changeQuestion();
 }
 
-window.onload = function() {
-	const isEnter = (e) => e.which == 13 || e.keyCode == 13;
-	mnMailCompose.setAttribute('onclick', 'mnMailComposeStart()');
-	mnChatInput.addEventListener('keydown', (e) => { if (isEnter(e)) mnChatSubmitClick(); });
-	mnChatSubmit.addEventListener('keydown', (e) => { if (isEnter(e)) mnChatSubmitClick(); });
-	mnChatSubmit.setAttribute('onclick', 'mnChatSubmitClick()');
-	mnComposeSubmit.addEventListener('keydown', (e) => { if (isEnter(e)) mnComposeSubmitClick(); });
-	mnComposeSubmit.setAttribute('onclick', 'mnComposeSubmitClick()');
-	mnLoginUser.addEventListener('keydown', (e) => { if (isEnter(e)) mnLoginSubmitClick(); });
-	mnLoginPass.addEventListener('keydown', (e) => { if (isEnter(e)) mnLoginSubmitClick(); });
-	mnLoginSubmit.addEventListener('keydown', (e) => { if (isEnter(e)) mnLoginSubmitClick(); });
-	mnLoginSubmit.setAttribute('onclick', 'mnLoginSubmitClick()');
+meExamNavButton.addEventListener('click', () => {
+	meExam.style.display = 'none';
+	meCheckNavSelect.innerHTML = '';
+	let count = 0;
+	for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+		const option = D.c('option');
+		option.setAttribute('value', i);
+		option.innerHTML = 'Question ' + i;
+		if (i == 1) {
+			option.setAttribute('selected', '');
+		}
+		if (ME.answers[i - 1] == 1) {
+			option.setAttribute('class', 'correct');
+			count++;
+		}
+		else {
+			option.setAttribute('class', 'incorrect');
+		}
+		meCheckNavSelect.appendChild(option);
+	}
+	USER.score = count;
+	dbUsers.child(USER.name + '/score').set(USER.score);
+	meCheckNavSelect.value = '1';
+	meCheck.style.display = 'block';
+	ME.questionID = 1;
+	ME.checkQuestion();
+});
+
+meExamNavSelect.addEventListener('click', () => {
+	const id = meExamNavSelect.value;
+	if (id != ME.questionID) {
+		ME.questionID =  +id;
+		ME.changeQuestion();
+	}
+});
+
+meCheckNavButton.addEventListener('click', () => {
+	meCheck.style.display = 'none';
+	meMenu.style.display = 'block';
+});
+
+meCheckNavSelect.addEventListener('click', () => {
+	const id = meCheckNavSelect.value;
+	if (id != ME.questionID) {
+		ME.questionID =  +id;
+		ME.checkQuestion();
+	}
+});
+
+let RANK = [];
+
+dbUsers.on('value', snap => {
+	let rank = [];
+	let scores = [];
+	meMenuTable.innerHTML = '';
+	const thead = D.c('thead');
+	thead.innerHTML = `
+		<tr>
+			<th scope="col">#</th>
+			<th scope="col">Username</th>
+			<th scope="col">Score</th>
+		</tr>
+	`;
+	const tbody = D.c('tbody');
+	let count = 0;
+	snap.forEach(childSnap => {
+		const user = {
+			name: childSnap.val().name,
+			score: (childSnap.val().score || 0) * 10 + '%'
+		}
+		rank.push(user);
+		scores.push(user.score + count);
+		count++;
+	});
+	if (count > 0) {
+		const sortedId = scores.map((v) => +v.split('%').join('')).sort((a, b) => b - a).map((v) => +('' + v)[('' + v).length - 1]);
+		for (i in sortedId) {
+			const user = rank[sortedId[i]];
+			const tr = D.c('tr');
+			const trTh = D.c('th');
+			const trTd1 = D.c('td');
+			const trTd2 = D.c('td');
+			trTh.setAttribute('scope', 'row');
+			trTh.innerHTML = +i + 1;
+			trTd1.innerHTML = user.name;
+			trTd2.innerHTML = user.score;
+			tr.appendChild(trTh);
+			tr.appendChild(trTd1);
+			tr.appendChild(trTd2);
+			tbody.appendChild(tr);
+		}
+		meMenuTable.appendChild(thead);
+		meMenuTable.appendChild(tbody);
+	}
+});
+
+function meMenuLogoutEvent() {
+	meMenu.style.display = 'none';
+	meLogin.style.display = 'block';
 }

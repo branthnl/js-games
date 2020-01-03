@@ -8,6 +8,9 @@ const C = {
 	grass2: '#7d8b20',
 	ground1: '#514d36',
 	ground2: '#4c4832',
+	hole: '#333022',
+	flag: '#19816e',
+	pole: '#949d9f',
 	white: '#ffffff',
 	black: '#000000'
 };
@@ -20,6 +23,11 @@ const Align = {
 	b: 'bottom',
 	m: 'middle'
 };
+
+const Cap = {
+	butt: 'butt', // default value
+	round: 'round'
+}
 
 const Blend = {
 	sourceOver: 'source-over', // default value
@@ -37,6 +45,7 @@ Math.lendir = (l, d) => ({
 	x: Math.lendirx(l, d),
 	y: Math.lendiry(l, d)
 });
+Math.lerp = (from, to, t) => from + t * (to - from);
 
 Math.randomNegator = (n) => Math.range(0, 100) < (n || 50)? 1 : -1; // The higher n the more likely it gets to positive 1;
 
@@ -94,14 +103,21 @@ function BranthDraw(ctx) {
 	this.fill = function() {
 		ctx.fill();
 	}
-	this.stroke = function() {
+	this.stroke = function(cap) {
+		if (cap) {
+			ctx.lineCap = cap;
+		}
 		ctx.stroke();
+		ctx.lineCap = Cap.butt;
 	}
 	this.moveTo = function(x, y) {
 		ctx.moveTo(x, y);
 	}
 	this.lineTo = function(x, y) {
 		ctx.lineTo(x, y);
+	}
+	this.quadraticCurveTo = function(controlX, controlY, endX, endY) {
+		ctx.quadraticCurveTo(controlX, controlY, endX, endY);
 	}
 	this.draw = function(outline) {
 		if (outline) {
@@ -120,6 +136,20 @@ function BranthDraw(ctx) {
 	this.circle = function(x, y, r, outline) {
 		ctx.beginPath();
 		ctx.arc(x, y, r, 0, 2 * Math.PI);
+		ctx.closePath();
+		this.draw(outline);
+	}
+	this.roundrect = function(x, y, w, h, r, outline) {
+		r = Math.clamp(r, 0, Math.min(w / 2, h / 2)) || 0;
+		ctx.beginPath();
+		ctx.moveTo(x, y + r);
+		ctx.quadraticCurveTo(x, y, x + r, y);
+		ctx.lineTo(x + w - r, y);
+		ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+		ctx.lineTo(x + w, y + h - r);
+		ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+		ctx.lineTo(x + r, y + h);
+		ctx.quadraticCurveTo(x, y + h, x, y + h - r);
 		ctx.closePath();
 		this.draw(outline);
 	}
@@ -181,6 +211,8 @@ function BranthDraw(ctx) {
 	}
 	this.scale = (x, y) => ctx.scale(x, y);
 	this.translate = (x, y) => ctx.translate(x, y);
+	this.lineCap = (s) => ctx.lineCap = s;
+	this.resetLineCap = (s) => ctx.lineCap = Cap.butt;
 	this.lineWidth = (n) => ctx.lineWidth = n; // in pixel
 	this.setBlend = (s) => ctx.globalCompositeOperation = s;
 	this.resetBlend = () => ctx.globalCompositeOperation = Blend.sourceOver;
@@ -241,28 +273,26 @@ if (length === 6) {
 
 */
 
-const groundShape = [
-	{
+let groundShape;
+
+const generateGroundShape = () => {
+	groundShape = [{
 		i: 0,
-		j: 1
-	},
-	{
+		j: Math.rangeInt(0, 5)
+	}];
+	groundShape.push({
 		i: 1,
-		j: 1
-	},
-	{
-		i: 2,
-		j: 1
-	},
-	{
-		i: 3,
-		j: 2
-	},
-	{
-		i: 4,
-		j: 2
+		j: groundShape[0].j
+	});
+	for (i of [2, 3, 4, 5]) {
+		groundShape.push({
+			i: i,
+			j: i === 5? groundShape[4].j : Math.rangeInt(0, 5)
+		});
 	}
-];
+}
+
+generateGroundShape();
 
 const onUpdate = (t) => {
 	Time.update(t);
@@ -280,7 +310,7 @@ const onUpdate = (t) => {
 	// Convert Ground Shape Coordinates
 	const convert = (c) => ({
 		x: Canv.w / (groundShape.length - 1 || 1) * c.i,
-		y: Canv.h * 0.65 - (Canv.h / 20) * c.j
+		y: Canv.h * 0.65 - (Canv.h / 40) * c.j
 	});
 	const conv = groundShape.map(convert);
 
@@ -302,7 +332,7 @@ const onUpdate = (t) => {
 		for (c of conv) {
 			const s = Canv.w / 434;
 			Draw.setColor(C.ground2);
-			Draw.circle(c.x - s * 12, c.y + s *  50, 8 * s);
+			Draw.circle(c.x - s * 12, c.y + s *  50, 6 * s);
 			Draw.circle(c.x - s *  8, c.y + s *  50, 4 * s);
 			Draw.circle(c.x - s * 24, c.y + s *  80, 3 * s);
 			Draw.circle(c.x - s * 20, c.y + s *  80, 4 * s);
@@ -314,16 +344,19 @@ const onUpdate = (t) => {
 			Draw.circle(c.x + s * 70, c.y + s * 100, 4 * s);
 			Draw.circle(c.x - s *  8, c.y + s * 140, 5 * s);
 			Draw.circle(c.x - s * 14, c.y + s * 180, 3 * s);
-			Draw.circle(c.x - s * 10, c.y + s * 230, 9 * s);
+			Draw.circle(c.x - s * 10, c.y + s * 230, 7 * s);
 			Draw.circle(c.x - s * 60, c.y + s * 240, 6 * s);
-			Draw.circle(c.x - s * 40, c.y + s * 189, 8 * s);
+			Draw.circle(c.x - s * 40, c.y + s * 189, 6 * s);
 			Draw.circle(c.x - s * 12, c.y + s * 260, 6 * s);
 			Draw.circle(c.x - s *  8, c.y + s * 300, 5 * s);
-			Draw.circle(c.x - s *  8, c.y + s * 320, 9 * s);
+			Draw.circle(c.x - s *  8, c.y + s * 320, 6 * s);
 		}
 	};
 	drawGround1();
 	drawGround2();
+
+	// Canvas Scaler
+	const s = Canv.w / 434;
 
 	// Draw Grass
 	const drawGrass = () => {
@@ -341,7 +374,7 @@ const onUpdate = (t) => {
 				count++;
 			}
 			if (i >= 2) {
-				Draw.lineWidth(Canv.w / 434);
+				Draw.lineWidth(s);
 				Draw.setColor(C.white);
 				Draw.setAlpha(0.2);
 				Draw.stroke();
@@ -350,11 +383,58 @@ const onUpdate = (t) => {
 			else {
 				Draw.lineWidth(Canv.h / 50);
 				Draw.setColor(i > 0? C.grass2 : C.grass1);
-				Draw.stroke();
+				if (i === 1) {
+					Draw.setShadow(0, 4 * s, 20 * s, 'rgba(0, 0, 0, 0.2)');
+				}
+				Draw.stroke(Cap.round);
+				Draw.resetShadow();
 			}
 		}
 	};
 	drawGrass();
+
+	// Draw Hole
+	const lastLine = conv.slice(conv.length - 2);
+	const hole = {
+		x: Math.lerp(lastLine[0].x, lastLine[1].x, 0.5),
+		y: Math.lerp(lastLine[0].y, lastLine[1].y, 0.5)
+	}
+	const drawHole = () => {
+		Draw.setColor(C.grass2);
+		Draw.roundrect(hole.x - 12 * s, hole.y - Canv.h / 130, 24 * s, Canv.h / 50, 5 * s);
+		Draw.lineWidth(0.5 * s);
+		Draw.setColor('rgba(255, 255, 255, 0.2)');
+		Draw.roundrect(hole.x - 12 * s, hole.y - Canv.h / 130, 24 * s, Canv.h / 50, 5 * s, true);
+		Draw.setColor(C.hole);
+		Draw.roundrect(hole.x - 10 * s, hole.y - Canv.h / 200, 20 * s, Canv.h / 15, 5 * s);
+	};
+	const drawFlag = () => {
+		const flag = {
+			x: hole.x,
+			y: hole.y - Canv.h / 15,
+			w: 25 * s,
+			h: Canv.h / 100
+		}
+		const wave = Math.sin(Time.time / 100) * s;
+		Draw.setColor(C.flag);
+		Draw.beginPath();
+		Draw.moveTo(flag.x, flag.y - flag.h);
+		Draw.quadraticCurveTo(flag.x + flag.w * 0.3, flag.y - flag.h * (0.3 + 0.1 * wave), flag.x + flag.w + flag.w * 0.03 * wave, flag.y + flag.h * 0.2 * wave);
+		Draw.lineTo(flag.x, flag.y + flag.h);
+		Draw.setColor(C.flag);
+		Draw.fill();
+	};
+	const drawPole = () => {
+		Draw.beginPath();
+		Draw.moveTo(hole.x, hole.y + Canv.h / 100);
+		Draw.quadraticCurveTo(hole.x + Math.min(0.2, Math.sin(Time.time / 500) * 2) * s, hole.y + Canv.h / 100 - Canv.h / 22, hole.x, hole.y + Canv.h / 100 - Canv.h / 11);
+		Draw.lineWidth(2 * s);
+		Draw.setColor(C.pole);
+		Draw.stroke(C.round);
+	};
+	drawHole();
+	drawFlag();
+	drawPole();
 
 	// Loop
 	window.requestAnimationFrame(onUpdate);

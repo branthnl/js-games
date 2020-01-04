@@ -30,9 +30,7 @@ class BranthObject {
 		this.y = y;
 	}
 	static ID = 0;
-	static getID() { return BranthObject.ID++; }
-	id = BranthObject.getID();
-	depth = 0;
+	id = BranthObject.ID++;
 	active = true;
 	visible = true;
 	update() {}
@@ -59,19 +57,26 @@ class BranthObject {
 	}
 }
 
-const OBJ = {
-	o: [],
-	classes: [],
-	add(i) {
-		const c = i.constructor;
-		if (!this.classes.includes(c)) {
-			this.o.push([]);
-			this.classes.push(c);
+class OBJ {
+	static list = [];
+	static classes = [];
+	static add(cls) {
+		this.list.push([]);
+		this.classes.push(cls);
+	}
+	static create(cls, x, y) {
+		if (this.classes.includes(cls)) {
+			const i = new cls(x, y);
+			this.list[this.classes.indexOf(cls)].push(i);
+			return i;
 		}
-		this.o[this.classes.indexOf(c)].push(i);
-	},
-	update() {
-		for (const o of this.o) {
+		else {
+			console.log(`Class not found: ${cls}`);
+			return null;
+		}
+	}
+	static update() {
+		for (const o of this.list) {
 			for (const i of o) {
 				if (i.active) {
 					i.update();
@@ -81,17 +86,12 @@ const OBJ = {
 				}
 			}
 		}
-	},
-	clearAll() {
-		for (const i in this.o) {
-			this.o[i] = [];
-		}
 	}
-};
+}
 
 const UI = {
 	update() {
-		for (const o of OBJ.o) {
+		for (const o of OBJ.list) {
 			for (const i of o) {
 				if (i.visible) {
 					i.renderUI();

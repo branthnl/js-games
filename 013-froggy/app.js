@@ -1,21 +1,22 @@
 class Frog extends BranthObject {
-	depth = 0;
+	start() {
+		//
+	}
+	update() {
+		//
+	}
+	render() {
+	}
 }
 
-class Lotus extends BranthObject {
-	depth = 1;
-}
-
+OBJ.add(Frog);
 const Menu = new BranthRoom('Menu', 640, 640);
 const Game = new BranthRoom('Game', 240, 360);
 Room.add(Menu);
 Room.add(Game);
 
-const frog1 = new Frog();
-
-OBJ.add(frog1);
-
 Menu.start = () => {
+	OBJ.create(Frog, 45, 45);
 }
 
 Game.start = () => {

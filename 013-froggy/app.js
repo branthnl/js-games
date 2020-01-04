@@ -6,6 +6,8 @@ class Frog extends BranthObject {
 		//
 	}
 	render() {
+		Draw.setColor(C.White);
+		Draw.ellipse(this.x, this.y, 50, 27);
 	}
 }
 

@@ -203,6 +203,15 @@ const Cap = {
 	round: 'round'
 };
 
+const Poly = {
+	fill: 'name: fill, closePath: true, outline: false',
+	stroke: 'name: stroke, closePath: true, outline: true',
+	lineList: 'name: lineList, closePath: false, outline: true',
+	pointList: 'name: pointList, closePath: false, outline: true',
+	triangleList: 'name: triangleList, closePath: false, outline: true',
+	triangleListFill: 'name: triangleList, closePath: false, outline: false'
+};
+
 class Draw {
 	static setAlpha(a) {
 		CTX.globalAlpha = a;
@@ -218,8 +227,8 @@ class Draw {
 		CTX.textBaseline = align;
 	}
 	static setHVAlign(h, v) {
-		this.setHAlign(h);
-		this.setVAlign(v);
+		CTX.textAlign = h;
+		CTX.textBaseline = v || h;
 	}
 	static setFont(font) {
 		CTX.font = `${font} ${DEFAULT_FONT}`;
@@ -270,6 +279,40 @@ class Draw {
 		CTX.quadraticCurveTo(x, y + h, x, y + h - r);
 		CTX.closePath();
 		this.draw(outline);
+	}
+	static poly = {
+		name: '',
+		vertices: []
+	}
+	static polyBegin(poly) {
+		this.poly.name = poly;
+		this.poly.vertices = [];
+	}
+	static vertex(x, y) {
+		this.poly.vertices.push({ x, y });
+	}
+	static polyEnd() {
+		const get = (p, s) => p.filter(x => x.includes(s))[0][1];
+		const split = (s) => s.replace(/\s/g, '').split(',').map(x => x.split(':'));
+		const getName = (s) => get(split(s), 'name');
+		const param = split(this.poly.name);
+		const name = get(param, 'name');
+		const outline = get(param, 'outline') === 'true';
+		const closePath = get(param, 'closePath') === 'true';
+		switch (name) {
+			case getName(Poly.fill):
+			case getName(Poly.stroke):
+				let count = 0;
+				CTX.beginPath();
+				for (const v of this.poly.vertices) {
+					if (count === 0) CTX.moveTo(v.x, v.y);
+					else CTX.lineTo(v.x, v.y);
+					count++;
+				}
+				if (closePath) CTX.closePath();
+				this.draw(outline);
+				break;
+		}
 	}
 	static setCap(cap) {
 		CTX.lineCap = cap;

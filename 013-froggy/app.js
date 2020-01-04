@@ -8,6 +8,18 @@ class Frog extends BranthObject {
 	render() {
 		Draw.setColor(C.White);
 		Draw.ellipse(this.x, this.y, 50, 27);
+		Draw.polyBegin(Poly.fill);
+		Draw.vertex(400, 400);
+		Draw.vertex(420, 420);
+		Draw.vertex(400, 440);
+		Draw.vertex(380, 420);
+		Draw.polyEnd();
+		Draw.polyBegin(Poly.stroke);
+		Draw.vertex(300, 300);
+		Draw.vertex(320, 320);
+		Draw.vertex(300, 340);
+		Draw.vertex(280, 320);
+		Draw.polyEnd();
 	}
 }
 

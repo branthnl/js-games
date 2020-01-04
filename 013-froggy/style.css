@@ -4,6 +4,11 @@
 	background-color: white;
 }
 
+body {
+	text-align: center;
+}
+
 canvas {
+	display: inline;
 	background-color: black;
 }

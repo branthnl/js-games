@@ -1,33 +1,8 @@
-class Background extends BranthObject {
-	render() {
-		Draw.setColor(C.lightSkyBlue);
-		Draw.rect(0, 0, Room.w, Room.h);
-	}
-}
-
-class LandOrigin extends BranthObject {
-	render() {
-		Draw.setColor(C.darkOrange);
-		Draw.roundrect(0, -20, Room.w, 70, 20);
-		Draw.setColor(C.brown);
-		Draw.roundrect(0, -20, Room.w, 70, 20, true);
-	}
-}
-
-class LandEnd extends BranthObject {
-	render() {
-		Draw.setColor(C.limeGreen);
-		Draw.roundrect(0, Room.h - 50, Room.w, 70, 20);
-		Draw.setColor(C.seaGreen);
-		Draw.roundrect(0, Room.h - 50, Room.w, 70, 20, true);
-	}
-}
-
-class Lotus extends BranthObject {
+class Lotus extends BranthBasicObject {
 	start() {
 		this.r = Math.range(28, 32);
 		this.d = Math.range(0, 360);
-		this.spd = Math.range(2, 2.5);
+		this.spd = Math.range(0.8, 1.7);
 		this.dinc = Math.range(-0.5, 0.5);
 		this.move = Math.randneg();
 		this.off = {
@@ -42,7 +17,7 @@ class Lotus extends BranthObject {
 		if (this.x - this.r <= 0) {
 			this.move = 1;
 		}
-		this.x += this.spd * this.move * Time.scaledDeltaTime;
+		this.x = Math.clamp(this.x + this.spd * this.move * Time.scaledDeltaTime, 0, Room.w);
 		this.d += this.dinc * Time.scaledDeltaTime;
 	}
 	render() {
@@ -92,10 +67,52 @@ class Lotus extends BranthObject {
 
 class Frog extends BranthObject {
 	start() {
+		this.yto = this.y;
+		this.xshift = 0;
 		this.jumpRange = 75;
-		this.alarm[0] = 1000;
+		this.isJumping = false;
+		this.currentLotus = -1;
+		this.canMove = false;
+		this.alarm[0] = 3000;
 	}
 	update() {
+		if (!this.canMove) {
+			if (Input.keyDown(KeyCode.Enter)) {
+				this.alarm[0] = 0;
+			}
+		}
+		if (!Game.over) {
+			if (this.canMove && !this.isJumping) {
+				if (Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space) || Input.keyDown(KeyCode.Up)) {
+					this.yto -= this.jumpRange;
+					this.isJumping = true;
+					this.currentLotus = -1;
+				}
+				if (this.yto - this.jumpRange < 0) {
+					Game.over = true;
+				}
+			}
+			if (this.isJumping && Math.dis(this.y, this.yto) < 10) {
+				let count = 0;
+				for (const l of OBJ.take(Lotus)) {
+					if (this.x >= l.x - l.r && this.x <= l.x + l.r
+					 && this.y >= l.y - l.r && this.y <= l.y + l.r) {
+					 	this.xshift = Math.dif(l.x, this.x);
+						this.currentLotus = l.id;
+						this.isJumping = false;
+						count++;
+						break;
+					}
+				}
+				if (count === 0) {
+					Game.over = true;
+				}
+			}
+			if (this.currentLotus > -1) {
+				this.x = OBJ.get(this.currentLotus).x + this.xshift;
+			}
+		}
+		this.y = Math.lerp(this.y, this.yto, 0.1);
 		this.alarmUpdate();
 	}
 	render() {
@@ -103,16 +120,31 @@ class Frog extends BranthObject {
 		Draw.star(this.x, this.y, 10);
 		Draw.setColor(C.black);
 		Draw.star(this.x, this.y, 10, true);
+		const n = OBJ.nearest(Lotus, this.x, this.y);
+		Draw.setAlpha(0.5);
+		Draw.setColor(C.yellow);
+		Draw.star(n.x + n.off.x, n.y + n.off.y, n.r * (1 + 0.2 * Math.sin(Time.time / 100)));
+		Draw.setAlpha(1);
+		Emitter.preset('sparkle');
+		Emitter.setArea(n.x, n.x, n.y, n.y);
+		Emitter.emit(1);
+	}
+	renderUI() {
+		if (this.alarm[0] > 0) {
+			Draw.setColor(C.red);
+			Draw.setHVAlign(Align.c, Align.m);
+			Draw.setFont(Font.largeBold);
+			Draw.text(Room.mid.w, Room.mid.h, `Start in ${Time.toSeconds(this.alarm[0])}s`);
+			Draw.setHVAlign(Align.c, Align.b);
+			Draw.setFont(Font.mediumBold);
+			Draw.text(Room.mid.w, Room.h - 20, 'Press enter to skip.');
+		}
 	}
 	alarm0() {
-		this.y -= this.jumpRange;
-		if (this.y - this.jumpRange > 0) this.alarm[0] = 1000;
+		this.canMove = true;
 	}
 }
 
-OBJ.add(Background);
-OBJ.add(LandOrigin);
-OBJ.add(LandEnd);
 OBJ.add(Lotus);
 OBJ.add(Frog);
 
@@ -121,18 +153,63 @@ const Game = new BranthRoom('Game', 360, 640);
 Room.add(Menu);
 Room.add(Game);
 
-Menu.start = () => {
-	Room.start('Game');
+Menu.renderUI = () => {
+	if (Input.keyDown(KeyCode.Enter)) {
+		Room.start('Game');
+	}
+	Draw.setColor(C.white);
+	Draw.setHVAlign(Align.c, Align.b);
+	Draw.setFont(Font.largeBold);
+	Draw.text(Room.mid.w, Room.mid.h - 20, 'Froggy');
+	Draw.setHVAlign(Align.c, Align.t);
+	Draw.setFont(Font.mediumBold);
+	Draw.text(Room.mid.w, Room.mid.h, 'How to play:');
+	Draw.text(Room.mid.w, Room.mid.h + Font.size * 1.5, 'Press Enter to jump.');
+	Draw.setHVAlign(Align.c, Align.b);
+	Draw.setFont(Font.smallBold);
+	Draw.text(Room.mid.w, Room.h - 20, 'Press Enter to start.');
 }
 
 Game.start = () => {
-	OBJ.create(Background);
-	OBJ.create(LandOrigin);
-	OBJ.create(LandEnd);
+	Game.over = false;
 	for (let i = 0; i < 7; i++) {
 		OBJ.create(Lotus, Math.range(0, Room.w), Room.h - 97 - 75 * i);
 	}
-	OBJ.create(Frog, Room.w.mid(), Room.h - 22);
+	OBJ.create(Frog, Room.mid.w, Room.h - 22);
+}
+Game.update = () => {
+	if (Input.keyDown(KeyCode.Escape)) {
+		Room.start('Menu');
+	}
+	if (Game.over) {
+		if (Input.keyDown(KeyCode.Enter)) {
+			Room.start('Game');
+		}
+	}
+}
+Game.render = () => {
+	Draw.setColor(C.lightSkyBlue);
+	Draw.rect(0, 0, Room.w, Room.h);
+	Draw.setColor(C.darkOrange);
+	Draw.roundrect(0, -20, Room.w, 70, 20);
+	Draw.setColor(C.brown);
+	Draw.roundrect(0, -20, Room.w, 70, 20, true);
+	Draw.setColor(C.limeGreen);
+	Draw.roundrect(0, Room.h - 50, Room.w, 70, 20);
+	Draw.setColor(C.seaGreen);
+	Draw.roundrect(0, Room.h - 50, Room.w, 70, 20, true);
+}
+Game.renderUI = () => {
+	if (Game.over) {
+		Draw.setColor(C.red);
+		Draw.setHVAlign(Align.c, Align.b);
+		Draw.setFont(Font.mediumBold);
+		Draw.text(Room.mid.w, Room.mid.h, 'Game Over');
+		Draw.setHVAlign(Align.c, Align.t);
+		Draw.setFont(Font.smallBold);
+		Draw.text(Room.mid.w, Room.mid.h, 'Press Enter to retry.');
+		Draw.text(Room.mid.w, Room.mid.h + Font.size, 'Press Escape to go back to menu.');
+	}
 }
 
 BRANTH.start();

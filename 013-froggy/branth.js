@@ -1,14 +1,20 @@
 Number.prototype.mid = function() { return this.valueOf() * 0.5; }
+Math.dif = (a, b) => b - a;
+Math.dis = (a, b) => Math.abs(b - a);
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
-Math.range = (min, max) => min + Math.random() * (max - min);
+Math.range = (min, max, t) => min + (t || (t === 0? 0 : Math.random())) * (max - min);
+Math.irange = (min, max) => Math.floor(Math.range(min, max));
 Math.degtorad = (d = 1) => d * Math.PI / 180;
 Math.radtodeg = (d = 1) => d * 180 / Math.PI;
 Math.lendirx = (l, d) => l * Math.cos(Math.degtorad(d));
 Math.lendiry = (l, d) => l * Math.sin(Math.degtorad(d));
 Math.lendir = (l, d) => ({ x: Math.lendirx(l, d), y: Math.lendiry(l, d) });
 Math.randneg = (t = 0.5) => Math.range(0, 1) > t? -1 : 1;
+Math.lerp = (from, to, t) => Math.range(from, to, t);
+Math.choose = (...args) => args[Math.irange(0, args.length)];
 
 const PARENT = document.body;
+const INPUT_PARENT = window;
 const CANVAS = document.createElement('canvas');
 const CTX = CANVAS.getContext('2d');
 const FRAME_RATE = 1000 / 60;
@@ -28,8 +34,211 @@ const Time = {
 		this.lastTime = this.time || 0;
 		this.time = t || 0;
 		this.deltaTime = this.time - this.lastTime || this.fixedDeltaTime;
+		if (this.deltaTime > 1000) {
+			console.log(`Big delta time: ${this.deltaTime} / ${this.fixedDeltaTime}`);
+		}
+	},
+	toSeconds(t) {
+		return Math.ceil(t / 1000);
+	},
+	toMinutes(t) {
+		return Math.ceil(t / 60000);
+	},
+	toClockSeconds(t) {
+		return Math.floor(t / 1000) % 60;
+	},
+	toClockMinutes(t) {
+		return Math.floor(t / 60000) % 60;
+	},
+	toClockSeconds0(t) {
+		let s = Math.abs(this.toClockSeconds(t));
+		return `${(s < 10? '0' : '')}${s}`;
+	},
+	toClockMinutes0(t) {
+		let m = Math.abs(this.toClockMinutes(t));
+		return `${(m < 10? '0' : '')}${m}`;
 	}
 };
+
+const KeyCode = {
+	Backspace: 8,
+	Tab: 9,
+	Enter: 13,
+	Shift: 16,
+	Ctrl: 17,
+	Alt: 18,
+	Pause: 19,
+	Break: 19,
+	CapsLock: 20,
+	Escape: 27,
+	PageUp: 33,
+	Space: 32,
+	PageDown: 34,
+	End: 35,
+	Home: 36,
+	Left: 37,
+	Up: 38,
+	Right: 39,
+	Down: 40,
+	PrintScreen: 44,
+	Insert: 45,
+	Delete: 46,
+	Digit0: 48,
+	Digit1: 49,
+	Digit2: 50,
+	Digit3: 51,
+	Digit4: 52,
+	Digit5: 53,
+	Digit6: 54,
+	Digit7: 55,
+	Digit8: 56,
+	Digit9: 57,
+	A: 65,
+	B: 66,
+	C: 67,
+	D: 68,
+	E: 69,
+	F: 70,
+	G: 71,
+	H: 72,
+	I: 73,
+	J: 74,
+	K: 75,
+	L: 76,
+	M: 77,
+	N: 78,
+	O: 79,
+	P: 80,
+	Q: 81,
+	R: 82,
+	S: 83,
+	T: 84,
+	U: 85,
+	V: 86,
+	W: 87,
+	X: 88,
+	Y: 89,
+	Z: 90,
+	LeftWindowKey: 91,
+	RightWindowKey: 92,
+	SelectKey: 93,
+	Numpad0: 96,
+	Numpad1: 97,
+	Numpad2: 98,
+	Numpad3: 99,
+	Numpad4: 100,
+	Numpad5: 101,
+	Numpad6: 102,
+	Numpad7: 103,
+	Numpad8: 104,
+	Numpad9: 105,
+	NumpadMultiply: 106,
+	NumpadAdd: 107,
+	NumpadSubtract: 109,
+	NumpadDecimal: 110,
+	NumpadDivide: 111,
+	F1: 112,
+	F2: 113,
+	F3: 114,
+	F4: 115,
+	F5: 116,
+	F6: 117,
+	F7: 118,
+	F8: 119,
+	F9: 120,
+	F10: 121,
+	F11: 122,
+	F12: 123,
+	NumLock: 144,
+	ScrollLock: 145,
+	Semicolon: 186,
+	Equal: 187,
+	Comma: 188,
+	Minus: 189,
+	Period: 190,
+	Slash: 191,
+	Backquote: 191,
+	LeftBracket: 219,
+	Backslash: 220,
+	RightBracket: 221,
+	Quote: 222
+};
+
+class BranthKey {
+	constructor(keyCode) {
+		this.keyCode = keyCode;
+		this.hold = false;
+		this.pressed = false;
+		this.released = false;
+	}
+	up() {
+		this.hold = false;
+		this.released = true;
+	}
+	down() {
+		this.hold = true;
+		this.pressed = true;
+	}
+	reset() {
+		this.pressed = false;
+		this.released = false;
+	}
+}
+
+const Input = {
+	list: [],
+	add(keyCode) {
+		this.list.push(new BranthKey(keyCode));
+	},
+	update() {},
+	reset() {
+		for (const k of this.list) {
+			k.reset();
+		}
+	},
+	keyUp(keyCode) {
+		for (const k of this.list) {
+			if (k.keyCode === keyCode) {
+				return k.released;
+			}
+		}
+	},
+	keyDown(keyCode) {
+		for (const k of this.list) {
+			if (k.keyCode === keyCode) {
+				return k.pressed;
+			}
+		}
+	},
+	keyHold(keyCode) {
+		for (const k of this.list) {
+			if (k.keyCode === keyCode) {
+				return k.hold;
+			}
+		}
+	},
+	eventup(e) {
+		for (const k of this.list) {
+			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+				k.up();
+			}
+		}
+	},
+	eventdown(e) {
+		for (const k of this.list) {
+			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+				if (!k.hold) k.down();
+			}
+		}
+	}
+};
+
+for (const keyCode of Object.values(KeyCode)) {
+	Input.add(keyCode);
+}
+
+INPUT_PARENT.addEventListener('keyup', (e) => Input.eventup(e));
+INPUT_PARENT.addEventListener('keydown', (e) => Input.eventdown(e));
 
 const C = {
 	aliceBlue: '#f0f8ff',
@@ -191,7 +400,10 @@ const Font = {
 	mediumItalic: 'italic 24px',
 	large: '36px',
 	largeBold: 'bold 36px',
-	largeItalic: 'italic 36px'
+	largeItalic: 'italic 36px',
+	get size() {
+		return +CTX.font.split(' ').filter(x => x.includes('px'))[0].split('px').shift();
+	}
 };
 
 const Align = {
@@ -420,20 +632,103 @@ const Draw = {
 	}
 };
 
-let ID = 0;
-class BranthObject {
-	constructor(x, y) {
-		this.x = x;
-		this.y = y;
-		this.id = ID++;
-		this.active = true;
-		this.visible = true;
+const OBJ = {
+	ID: 0,
+	list: [],
+	classes: [],
+	add(cls) {
+		this.list.push([]);
+		this.classes.push(cls);
+	},
+	get(id) {
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.id === id) {
+						return i;
+					}
+				}
+			}
+		}
+	},
+	take(cls) {
+		return this.list[this.classes.indexOf(cls)];
+	},
+	push(cls, i) {
+		if (this.classes.includes(cls)) {
+			this.list[this.classes.indexOf(cls)].push(i);
+		}
+		else console.log(`Class not found: ${cls.name}\n- Try add OBJ.add(${cls.name}); in your code.`);
+	},
+	create(cls, x = 0, y = 0) {
+		if (this.classes.includes(cls)) {
+			const i = new cls(x, y);
+			this.list[this.classes.indexOf(cls)].push(i);
+			i.start();
+			return i;
+		}
+		console.log(`Class not found: ${cls.name}\n- Try add OBJ.add(${cls.name}); in your code.`);
+	},
+	destroy(id) {
+		for (const o of this.list) {
+			for (const i in o) {
+				if (o[i].id === id) {
+					delete o[i];
+				}
+			}
+		}
+	},
+	clear(cls) {
+		this.list[this.classes.indexOf(cls)] = [];
+	},
+	clearAll(cls) {
+		for (const i in this.list) {
+			this.list[i] = [];
+		}
+	},
+	distance(a, b) {
+		return Math.hypot(b.x - a.x, b.y - a.y);
+	},
+	nearest(cls, x, y) {
+		let n = -1;
+		let nv = Infinity;
+		for (const i of this.list[this.classes.indexOf(cls)]) {
+			const v = this.distance({x, y}, i);
+			if (v < nv) {
+				n = i;
+				nv = v;
+			}
+		}
+		return n;
+	},
+	update() {
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.active) {
+						i.update();
+					}
+				}
+			}
+		}
+	},
+	render() {
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.visible) {
+						i.render();
+					}
+				}
+			}
+		}
+	}
+};
+
+class BranthAlarm {
+	constructor() {
 		this.alarm = [-1, -1, -1, -1, -1, -1];
 	}
-	start() {}
-	update() {}
-	render() {}
-	renderUI() {}
 	alarm0() {}
 	alarm1() {}
 	alarm2() {}
@@ -464,42 +759,243 @@ class BranthObject {
 	}
 }
 
-const OBJ = {
-	list: [],
-	classes: [],
-	add(cls) {
-		this.list.push([]);
-		this.classes.push(cls);
-	},
-	create(cls, x, y) {
-		if (this.classes.includes(cls)) {
-			const i = new cls(x, y); this.list[this.classes.indexOf(cls)].push(i); i.start();
-			return i;
-		}
-		console.log(`Class not found: ${cls.name}\n- Try add OBJ.add(${cls.name}); in your code.`);
-	},
-	update() {
-		for (const o of this.list) {
-			for (const i of o) {
-				if (i.active) {
-					i.update();
-				}
-				if (i.visible) {
-					i.render();
-				}
-			}
-		}
+class BranthObject extends BranthAlarm {
+	constructor(x, y) {
+		super();
+		this.x = x;
+		this.y = y;
+		this.id = OBJ.ID++;
+		this.active = true;
+		this.visible = true;
 	}
+	start() {}
+	update() {}
+	render() {}
+	renderUI() {}
+}
+
+class BranthBasicObject {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.id = OBJ.ID++;
+		this.active = true;
+		this.visible = true;
+	}
+	start() {}
+	update() {}
+	render() {}
+	renderUI() {}
+}
+
+const Shape = {
+	rect: 'rect',
+	star: 'star',
+	circle: 'circle'
 };
 
-const UI = {
+class BranthParticle extends BranthBasicObject {
+	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav) {
+		super(x, y);
+		this.spd = spd;
+		this.spdinc = spdinc;
+		this.size = size;
+		this.sizeinc = sizeinc;
+		this.d = d;
+		this.dinc = dinc;
+		this.r = r;
+		this.rinc = rinc;
+		this.a = a;
+		this.c = c;
+		this.life = life;
+		this.shape = shape;
+		this.grav = grav;
+		this.g = grav;
+	}
 	update() {
-		for (const o of OBJ.list) {
-			for (const i of o) {
-				if (i.visible) {
-					i.renderUI();
-				}
-			}
+		this.a = Math.max(0, this.a - Time.deltaTime / this.life);
+		if (this.a <= 0) {
+			OBJ.destroy(this.id);
+		}
+		this.x += Math.lendirx(this.spd, this.d);
+		this.y += Math.lendiry(this.spd, this.d) + Math.lendiry(this.g, 90);
+		this.size = Math.max(this.size + this.sizeinc, 0);
+		this.spd += this.spdinc;
+		this.g += this.grav;
+		this.d += this.dinc;
+		this.r += this.rinc;
+	}
+	render() {
+		Draw.setAlpha(this.a);
+		Draw.setColor(this.c);
+		switch (this.shape) {
+			case Shape.rect:
+				Draw.rectTransformed(this.x, this.y, this.size, this.size, this.r);
+				break;
+			case Shape.star:
+				Draw.starTransformed(this.x, this.y, this.size, this.r);
+				break;
+			case Shape.circle:
+				Draw.circle(this.x, this.y, this.size);
+				break;
+			default: break;
+		}
+		Draw.setAlpha(1);
+	}
+}
+
+OBJ.add(BranthParticle);
+
+const Emitter = {
+	x: {
+		min: 0,
+		max: 100
+	},
+	y: {
+		min: 0,
+		max: 100
+	},
+	spd: {
+		min: 1,
+		max: 2
+	},
+	spdinc: {
+		min: 0,
+		max: 0
+	},
+	size: {
+		min: 2,
+		max: 8
+	},
+	sizeinc: {
+		min: 0,
+		max: 0
+	},
+	d: {
+		min: 0,
+		max: 360
+	},
+	dinc: {
+		min: 5,
+		max: 10
+	},
+	r: {
+		min: 0,
+		max: 360
+	},
+	rinc: {
+		min: 5,
+		max: 10
+	},
+	a: {
+		min: 1,
+		max: 1
+	},
+	c: C.yellow,
+	life: {
+		min: 3000,
+		max: 4000
+	},
+	shape: Shape.rect,
+	grav: {
+		min: 0.01,
+		max: 0.01
+	},
+	setArea(xmin, xmax, ymin, ymax) {
+		this.x.min = xmin;
+		this.x.max = xmax;
+		this.y.min = ymin;
+		this.y.max = ymax;
+	},
+	setSpeed(min, max) {
+		this.spd.min = min;
+		this.spd.max = max;
+	},
+	setSpeedInc(min, max) {
+		this.spdinc.min = min;
+		this.spdinc.max = max;
+	},
+	setSize(min, max) {
+		this.size.min = min;
+		this.size.max = max;
+	},
+	setSizeInc(min, max) {
+		this.sizeinc.min = min;
+		this.sizeinc.max = max;
+	},
+	setDirection(min, max) {
+		this.d.min = min;
+		this.d.max = max;
+	},
+	setDirectionInc(min, max) {
+		this.dinc.min = min;
+		this.dinc.max = max;
+	},
+	setRotation(min, max) {
+		this.r.min = min;
+		this.r.max = max;
+	},
+	setRotationInc(min, max) {
+		this.rinc.min = min;
+		this.rinc.max = max;
+	},
+	setAlpha(min, max) {
+		this.a.min = min;
+		this.a.max = max;
+	},
+	setColor(c) {
+		this.c = c;
+	},
+	setLife(min, max) {
+		this.life.min = min;
+		this.life.max = max;
+	},
+	setShape(s) {
+		this.shape = s;
+	},
+	setGravity(min, max) {
+		this.grav.min = min;
+		this.grav.max = max;
+	},
+	preset(s) {
+		switch (s) {
+			case 'sparkle':
+				this.setSpeed(2, 5);
+				this.setSpeedInc(-0.1, -0.1);
+				this.setSize(5, 10);
+				this.setSizeInc(-0.1, -0.1);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
+				this.setColor(C.blueViolet);
+				this.setLife(1000, 2000);
+				this.setShape(Shape.star);
+				this.setGravity(0, 0);
+				break;
+		}
+	},
+	emit(n) {
+		for (let i = 0; i < n; i++) {
+			OBJ.push(BranthParticle,
+				new BranthParticle(
+				Math.range(this.x.min, this.x.max),
+				Math.range(this.y.min, this.y.max),
+				Math.range(this.spd.min, this.spd.max),
+				Math.range(this.spdinc.min, this.spdinc.max),
+				Math.range(this.size.min, this.size.max),
+				Math.range(this.sizeinc.min, this.sizeinc.max),
+				Math.range(this.d.min, this.d.max),
+				Math.range(this.dinc.min, this.dinc.max),
+				Math.range(this.r.min, this.r.max),
+				Math.range(this.rinc.min, this.rinc.max),
+				Math.range(this.a.min, this.a.max),
+				this.c,
+				Math.range(this.life.min, this.life.max),
+				this.shape,
+				Math.range(this.grav.min, this.grav.max)
+			));
 		}
 	}
 };
@@ -511,6 +1007,9 @@ class BranthRoom {
 		this.h = h;
 	}
 	start() {}
+	update() {}
+	render() {}
+	renderUI() {}
 }
 
 const Room = {
@@ -534,6 +1033,12 @@ const Room = {
 	get h() {
 		return this.current.h;
 	},
+	get mid() {
+		return {
+			w: this.current.w * 0.5,
+			h: this.current.h * 0.5
+		}
+	},
 	add(room) {
 		this.list.push(room);
 	},
@@ -542,11 +1047,34 @@ const Room = {
 			this._name = name;
 			CANVAS.width = this.w;
 			CANVAS.height = this.h;
+			OBJ.clearAll();
+			Input.reset();
 			this.current.start();
 		}
 		else {
 			console.log(`Room not found: ${name}`);
 		}
+	},
+	update() {
+		this.current.update();
+	},
+	render() {
+		this.current.render();
+	}
+};
+
+const UI = {
+	render() {
+		for (const o of OBJ.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.visible) {
+						i.renderUI();
+					}
+				}
+			}
+		}
+		Room.current.renderUI();
 	}
 };
 
@@ -562,9 +1090,14 @@ const BRANTH = {
 	},
 	update: function(t) {
 		Time.update(t);
-		Draw.clearRect(0, 0, Room.w, Room.h);
+		Input.update();
+		Room.update();
 		OBJ.update();
-		UI.update();
+		Draw.clearRect(0, 0, Room.w, Room.h);
+		Room.render();
+		OBJ.render();
+		UI.render();
+		Input.reset();
 		RAF(BRANTH.update);
 	}
 };

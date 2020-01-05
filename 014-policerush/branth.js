@@ -350,6 +350,13 @@ const Input = {
 			}
 		}
 	},
+	screenToWorldPoint(p) {
+		const b = CANVAS.getBoundingClientRect();
+		return {
+			x: p.x * (CANVAS.width / b.width),
+			y: p.y * (CANVAS.height / b.height)
+		}
+	},
 	mousePosition: {
 		x: 0,
 		y: 0
@@ -835,7 +842,7 @@ const Draw = {
 		CTX.closePath();
 		this.draw(outline);
 	},
-	roundrect(x, y, w, h, r, outline) {
+	roundRect(x, y, w, h, r, outline) {
 		r = Math.clamp(r, 0, Math.min(w * 0.5, h * 0.5)) || 0;
 		CTX.beginPath();
 		CTX.moveTo(x, y + r);
@@ -848,6 +855,9 @@ const Draw = {
 		CTX.quadraticCurveTo(x, y + h, x, y + h - r);
 		CTX.closePath();
 		this.draw(outline);
+	},
+	roundrect(x, y, w, h, r, outline) {
+		this.roundRect(x, y, w, h, r, outline);
 	},
 	polyType: '',
 	vertices: [],
@@ -887,7 +897,10 @@ const Draw = {
 			count++;
 		}
 		if (closePath) CTX.closePath();
-		this.draw(outline);
+		if (quantity === 1) {
+			this.draw(outline, Cap.round);
+		}
+		else this.draw(outline);
 	},
 	rectTransformed(x, y, w, h, d, outline) {
 		const r = Math.hypot(w * 0.5, h * 0.5);
@@ -1423,6 +1436,7 @@ class BranthRoom {
 
 const Room = {
 	_name: '',
+	_prevName: '',
 	list: [],
 	get names() {
 		return this.list.map(x => x.name);
@@ -1435,6 +1449,9 @@ const Room = {
 	},
 	get current() {
 		return this.list[this.id] || new BranthRoom(this._name, CANVAS.width, CANVAS.height);
+	},
+	get previous() {
+		return this.list[this.names.indexOf(this._prevName)] || this.current;
 	},
 	get w() {
 		return this.current.w;
@@ -1453,6 +1470,7 @@ const Room = {
 	},
 	start(name) {
 		if (this.names.includes(name)) {
+			this._prevName = this._name;
 			this._name = name;
 			CANVAS.width = this.w;
 			CANVAS.height = this.h;
@@ -1474,6 +1492,7 @@ const Room = {
 
 const UI = {
 	render() {
+		Room.current.renderUI();
 		for (const o of OBJ.list) {
 			for (const i of o) {
 				if (i) {
@@ -1483,7 +1502,6 @@ const UI = {
 				}
 			}
 		}
-		Room.current.renderUI();
 	}
 };
 

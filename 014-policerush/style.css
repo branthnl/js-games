@@ -1,0 +1,14 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	height: 100vh;
+	text-align: center;
+}
+
+canvas {
+	height: 100%;
+	background-color: black;
+}

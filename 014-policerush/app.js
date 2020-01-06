@@ -18,6 +18,9 @@ Draw.add('PageTutorials', 'assets/images/PageTutorials.png', 3, 3, 796, 840);
 
 Audio.add('Pop1', 'assets/sounds/Pop1.mp3', 'assets/sounds/Pop1.ogg');
 Audio.add('Pop2', 'assets/sounds/Pop2.mp3', 'assets/sounds/Pop2.ogg');
+Audio.add('Miss', 'assets/sounds/Miss.mp3', 'assets/sounds/Miss.ogg');
+Audio.add('EngineLoop', 'assets/sounds/EngineLoop.wav', 'assets/sounds/EngineLoop.mp3', 'assets/sounds/EngineLoop.ogg');
+Audio.add('EngineStart', 'assets/sounds/EngineStart.mp3', 'assets/sounds/EngineStart.ogg');
 
 class Button extends BranthGameObject {
 	constructor(x, y) {
@@ -197,6 +200,9 @@ class Player extends BranthGameObject {
 	}
 	changeLane(i) {
 		this.lane += i;
+		if (this.lane >= -1 && this.lane <= 1) {
+			Audio.play('Miss');
+		}
 		this.lane = Math.clamp(this.lane, -1, 1);
 	}
 	update() {
@@ -295,7 +301,7 @@ Menu.start = () => {
 	OBJ.create(ButtonTuts, Room.mid.w, Room.h - 300);
 	OBJ.create(Transition);
 	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${BGGRAY} 50%)`;
-	Audio.play('Pop2');
+	if (!SHOW_TUTORIAL) Audio.play('Pop2');
 }
 
 Menu.render = () => {
@@ -463,6 +469,8 @@ Game.start = () => {
 	this.tm = OBJ.create(TouchManager);
 	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${DKGRAY} 50%)`;
 	Audio.play('Pop2');
+	Audio.play('EngineStart');
+	Audio.loop('EngineLoop');
 }
 
 Game.update = () => {

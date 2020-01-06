@@ -80,7 +80,7 @@ class BranthAudio {
 		const a = document.createElement('audio');
 		for (const p of paths) {
 			const ext = p.split('.').pop();
-			const type = ext === 'ogg'? 'ogg' : (ext === 'mp3'? 'mpeg' : null);
+			const type = ext === 'ogg'? 'ogg' : (ext === 'mp3'? 'mpeg' : (ext === 'wav'? 'wav' : null));
 			if (type === null) {
 				console.log(`Audio file extension not supported: .${ext}`);
 				return;
@@ -100,7 +100,7 @@ const Audio = {
 	add(name, ...paths) {
 		for (const p of paths) {
 			const ext = p.split('.').pop();
-			if (ext !== 'ogg' && ext != 'mp3') {
+			if (ext !== 'ogg' && ext != 'mp3' && ext != 'wav') {
 				console.log(`Audio file extension not supported: .${ext}`);
 				return;
 			}

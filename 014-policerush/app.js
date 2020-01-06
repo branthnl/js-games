@@ -16,6 +16,9 @@ Draw.add('ButtonRetry', 'assets/images/ButtonRetry.png', 2, 2, 236, 117);
 Draw.add('ButtonRight', 'assets/images/ButtonRight.png', 2, 2, 117, 117);
 Draw.add('PageTutorials', 'assets/images/PageTutorials.png', 3, 3, 796, 840);
 
+Audio.add('Pop1', 'assets/sounds/Pop1.mp3', 'assets/sounds/Pop1.ogg');
+Audio.add('Pop2', 'assets/sounds/Pop2.mp3', 'assets/sounds/Pop2.ogg');
+
 class Button extends BranthGameObject {
 	constructor(x, y) {
 		super(x, y);
@@ -54,11 +57,15 @@ class Button extends BranthGameObject {
 			if (Input.mouseDown(Mouse.Left) && this.hover(m) || Input.touchDown(0) && this.hover(t)) {
 				this.spriteIndex = 1;
 				this.pressed = true;
+				Audio.play('Pop1');
 			}
 		}
 		if (Input.touchUp(0) || Input.mouseUp(Mouse.Left)) {
-			this.pressed = false;
-			this.spriteIndex = 0;
+			if (this.pressed) {
+				this.spriteIndex = 0;
+				this.pressed = false;
+				Audio.play('Pop2');
+			}
 		}
 		this.x = Math.lerp(this.x, this.xto, 0.2);
 		this.y = Math.lerp(this.y, this.yto, 0.2);
@@ -288,6 +295,7 @@ Menu.start = () => {
 	OBJ.create(ButtonTuts, Room.mid.w, Room.h - 300);
 	OBJ.create(Transition);
 	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${BGGRAY} 50%)`;
+	Audio.play('Pop2');
 }
 
 Menu.render = () => {
@@ -306,6 +314,7 @@ Prep.start = () => {
 	OBJ.create(ButtonNext, Room.mid.w, Room.h - 300);
 	OBJ.create(Transition);
 	document.body.style.backgroundImage = `linear-gradient(${DKBLUE} 50%, ${DKBLUE} 50%)`;
+	Audio.play('Pop2');
 }
 
 Prep.changeIndex = (i) => {
@@ -319,6 +328,7 @@ Prep.changeIndex = (i) => {
 Prep.render = () => {
 	if (Input.keyDown(KeyCode.Enter)) {
 		OBJ.take(ButtonNext)[0].click();
+		Audio.play('Pop2');
 	}
 	if (Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace)) {
 		OBJ.take(ButtonBack)[0].click();
@@ -352,6 +362,7 @@ Tuts.start = () => {
 	this.scale = 1.15;
 	this.tm = OBJ.create(TouchManager);
 	document.body.style.backgroundImage = `linear-gradient(${DKBLUE} 50%, ${DKBLUE} 50%)`;
+	Audio.play('Pop2');
 }
 
 Tuts.changeIndex = (i) => {
@@ -374,9 +385,11 @@ Tuts.changeIndex = (i) => {
 Tuts.render = () => {
 	if (Input.keyDown(KeyCode.Left)) {
 		Tuts.changeIndex(-1);
+		Audio.play('Pop2');
 	}
 	if (Input.keyDown(KeyCode.Right)) {
 		Tuts.changeIndex(1);
+		Audio.play('Pop2');
 	}
 	if (Input.keyDown(KeyCode.Enter)) {
 		OBJ.take(ButtonPlay)[0].click();
@@ -449,6 +462,7 @@ Game.start = () => {
 	this.speedoAlpha = 1;
 	this.tm = OBJ.create(TouchManager);
 	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${DKGRAY} 50%)`;
+	Audio.play('Pop2');
 }
 
 Game.update = () => {
@@ -475,6 +489,7 @@ Game.update = () => {
 	}
 	if (Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace)) {
 		OBJ.take(ButtonBack)[0].click();
+		Audio.play('Pop2');
 	}
 	if (Game.paused || Game.over) {
 		this.buttonExit.active = true;

@@ -968,16 +968,31 @@ const Draw = {
 		CTX.closePath();
 	},
 	moveTo(x, y) {
-		CTX.moveTo(x, y);
+		if (y) {
+			CTX.moveTo(x, y);
+		}
+		else {
+			CTX.moveTo(x.x, x.y);
+		}
 	},
 	lineTo(x, y) {
-		CTX.lineTo(x, y);
+		if (y) {
+			CTX.lineTo(x, y);
+		}
+		else {
+			CTX.lineTo(x.x, x.y);
+		}
 	},
 	curveTo(cpx, cpy, x, y) {
 		CTX.quadraticCurveTo(cpx, cpy, x, y);
 	},
 	bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
-		CTX.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
+		if (cp2y) {
+			CTX.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
+		}
+		else {
+			CTX.bezierCurveTo(cp1x.x, cp1x.y, cp1y.x, cp1y.y, cp2x.x, cp2x.y);
+		}
 	},
 	fill() {
 		CTX.fill();
@@ -989,15 +1004,12 @@ const Draw = {
 		CTX.save();
 	},
 	scale(x, y) {
-		CTX.save();
-		CTX.scale(x, y);
+		CTX.scale(x, y || x);
 	},
 	rotate(d) {
-		CTX.save();
 		CTX.rotate(Math.degtorad(d));
 	},
 	translate(x, y) {
-		CTX.save();
 		CTX.translate(x, y);
 	},
 	restore() {

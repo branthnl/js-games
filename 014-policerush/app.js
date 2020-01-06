@@ -4,6 +4,7 @@ Draw.add('BG3', 'assets/images/BG3.png');
 Draw.add('Road', 'assets/images/Road.png');
 Draw.add('Dot', 'assets/images/Dot.png', 2, 2, 23, 23);
 Draw.add('PageDialog', 'assets/images/PageDialog.png');
+Draw.add('Speedometer', 'assets/images/Speedometer.png');
 Draw.add('Player', 'assets/images/Player.png', 2, 2, 291, 230);
 Draw.add('ButtonBack', 'assets/images/ButtonBack.png', 2, 2, 76, 68);
 Draw.add('ButtonNext', 'assets/images/ButtonNext.png', 2, 2, 236, 117);
@@ -42,30 +43,22 @@ class Button extends BranthGameObject {
 		return (m.x >= this.bound.l && m.x <= this.bound.r && m.y >= this.bound.t && m.y <= this.bound.b);
 	}
 	lateUpdate() {
-		if (Input.touchCount > 0) {
-			const m = Input.screenToWorldPoint(Input.getTouch(0).position);
+		const m = Input.screenToWorldPoint(Input.mousePosition);
+		const t = Input.screenToWorldPoint(Input.getTouch(0).position);
+		if (this.pressed) {
+			if (Input.mouseUp(Mouse.Left) && this.hover(m) || Input.touchUp(0) && this.hover(t)) {
+				this.click();
+			}
 		}
 		else {
-			const m = Input.screenToWorldPoint(Input.mousePosition);
-			if (this.pressed) {
-				if (this.hover(m)) {
-					if (Input.mouseUp(Mouse.Left)) {
-						this.click();
-					}
-				}
+			if (Input.mouseDown(Mouse.Left) && this.hover(m) || Input.touchDown(0) && this.hover(t)) {
+				this.spriteIndex = 1;
+				this.pressed = true;
 			}
-			else {
-				if (this.hover(m)) {
-					if (Input.mouseDown(Mouse.Left)) {
-						this.spriteIndex = 1;
-						this.pressed = true;
-					}
-				}
-			}
-			if (Input.mouseUp(Mouse.Left)) {
-				this.pressed = false;
-				this.spriteIndex = 0;
-			}
+		}
+		if (Input.touchUp(0) || Input.mouseUp(Mouse.Left)) {
+			this.pressed = false;
+			this.spriteIndex = 0;
 		}
 		this.x = Math.lerp(this.x, this.xto, 0.2);
 		this.y = Math.lerp(this.y, this.yto, 0.2);
@@ -231,6 +224,14 @@ class Transition extends BranthObject {
 	}
 }
 
+class TouchManager extends BranthObject {
+	awake() {
+		this.touchPressed = false;
+		this.touchStartPos = new Vector(0, 0);
+		this.touchDistanceThreshold = Room.w * 0.1;
+	}
+}
+
 OBJ.add(ButtonBack);
 OBJ.add(ButtonNext);
 OBJ.add(ButtonPlay);
@@ -241,6 +242,7 @@ OBJ.add(ButtonRetry);
 OBJ.add(ButtonRight);
 OBJ.add(Player);
 OBJ.add(Transition);
+OBJ.add(TouchManager);
 
 let SHOW_TUTORIAL = true;
 const GOLD = '#ffb020';
@@ -249,6 +251,9 @@ const DKBLUE = '#2e2a3e';
 const GRAY = '#727272';
 const DKGRAY = '#545454';
 const LTGRAY = '#afafaf';
+const SKYBLUE = '#acdeed';
+const DKGREEN = '#72b20d';
+const GREEN = '#7ac70c';
 const TUTS_TEXT = [
 	`Move using your finger to swipe left\nor right to dodge the obstacles.\n\nThe more obstacle you dodge,\nthe faster you will get to the\ninauguration.`,
 	`Sign means that the lane there will\nbe an obstacle.\n\nAvoid the obstacle as best as you\ncan to get the best score.`,
@@ -262,6 +267,8 @@ const FONT_SMALL = '46px';
 const FONT_NORMAL = '54px';
 const FONT_MEDIUM = '72px';
 const FONT_LARGE = '96px';
+
+let DEBUG = false;
 
 const Menu = new BranthRoom('Menu', 1080, 1920);
 const Tuts = new BranthRoom('Tuts', 1080, 1920);
@@ -281,6 +288,9 @@ Menu.start = () => {
 Menu.render = () => {
 	if (Input.keyDown(KeyCode.Enter)) {
 		OBJ.take(ButtonPlay)[0].click();
+	}
+	if (Input.keyDown(KeyCode.Backslash)) {
+		OBJ.take(ButtonTuts)[0].click();
 	}
 	Draw.image('BG1', 0, 0);
 }
@@ -304,7 +314,7 @@ Prep.render = () => {
 	if (Input.keyDown(KeyCode.Enter)) {
 		OBJ.take(ButtonNext)[0].click();
 	}
-	if (Input.keyDown(KeyCode.Escape)) {
+	if (Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace)) {
 		OBJ.take(ButtonBack)[0].click();
 	}
 	Draw.setColor(DKBLUE);
@@ -333,6 +343,8 @@ Tuts.start = () => {
 	OBJ.create(ButtonBack);
 	Tuts.changeIndex(0);
 	OBJ.create(Transition);
+	this.scale = 1.15;
+	this.tm = OBJ.create(TouchManager);
 }
 
 Tuts.changeIndex = (i) => {
@@ -349,6 +361,7 @@ Tuts.changeIndex = (i) => {
 		this.buttonRight.active = false;
 		this.buttonRight.visible = false;
 	}
+	this.scale = 1.15;
 }
 
 Tuts.render = () => {
@@ -361,8 +374,27 @@ Tuts.render = () => {
 	if (Input.keyDown(KeyCode.Enter)) {
 		OBJ.take(ButtonPlay)[0].click();
 	}
-	if (Input.keyDown(KeyCode.Escape)) {
+	if (Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace)) {
 		OBJ.take(ButtonBack)[0].click();
+	}
+	if (this.tm.touchPressed) {
+		if (Input.touchUp(0)) {
+			const dif = Math.dif(Input.screenToWorldPoint(Input.getTouch(0).position).x, this.tm.touchStartPos.x);
+			console.log(dif);
+			if (dif > this.tm.touchDistanceThreshold) {
+				Tuts.changeIndex(1);
+			}
+			if (dif < -this.tm.touchDistanceThreshold) {
+				Tuts.changeIndex(-1);
+			}
+			this.tm.touchPressed = false;
+		}
+	}
+	else {
+		if (Input.touchDown(0)) {
+			this.tm.touchPressed = true;
+			this.tm.touchStartPos = Input.screenToWorldPoint(Input.getTouch(0).position);
+		}
 	}
 	Draw.setColor(DKBLUE);
 	Draw.rect(0, 0, Room.w, Room.h);
@@ -370,7 +402,13 @@ Tuts.render = () => {
 	Draw.setHVAlign(Align.c, Align.t);
 	Draw.setFont(FONT_LARGE);
 	Draw.text(Room.mid.w, 80, 'TUTORIAL');
-	Draw.sprite('PageTutorials', this.index, Room.mid.w, Room.mid.h - 300, true);
+	Draw.setAlpha(1 - 0.4 * (this.scale - 1) / 0.15);
+	Draw.save();
+	Draw.translate(Room.mid.w, Room.mid.h - 300);
+	Draw.scale(this.scale);
+	Draw.sprite('PageTutorials', this.index, 0, 0, true);
+	Draw.restore();
+	Draw.setAlpha(1);
 	Draw.setColor(BLUE);
 	Draw.roundRect(100, Room.mid.h + 230, Room.w - 200, 400, 20);
 	Draw.setColor(GOLD);
@@ -388,22 +426,48 @@ Tuts.render = () => {
 	for (const i of [0, 1, 2]) {
 		Draw.sprite('Dot', i === this.index? 1 : 0, Room.mid.w - 70 + 70 * i, Room.mid.h + 160);
 	}
+	this.scale = Math.lerp(this.scale, 1, 0.2);
 }
 
 Game.start = () => {
 	Game.paused = false;
 	OBJ.create(ButtonBack);
-	OBJ.create(Player, Room.mid.w, Room.h + Draw.getSprite('Player').h);
+	this.player = OBJ.create(Player, Room.mid.w, Room.h + Draw.getSprite('Player').h);
 	this.buttonExit = OBJ.create(ButtonExit, Room.mid.w - 236, Room.mid.h);
 	this.buttonRetry = OBJ.create(ButtonRetry, Room.mid.w + 236, Room.mid.h);
 	const n = OBJ.create(Transition);
 	n.a = 1.2;
 	n.c = C.white;
 	this.roadX = Room.mid.w;
+	this.targetTime = Time.time + 300000;
+	this.speedoAlpha = 1;
+	this.tm = OBJ.create(TouchManager);
 }
 
 Game.update = () => {
-	if (Input.keyDown(KeyCode.Escape)) {
+	if (this.tm.touchPressed) {
+		if (Input.touchUp(0)) {
+			const dif = Math.dif(Input.screenToWorldPoint(Input.getTouch(0).position).x, this.tm.touchStartPos.x);
+			console.log(dif);
+			if (dif > this.tm.touchDistanceThreshold) {
+				this.player.changeLane(-1);
+			}
+			if (dif < -this.tm.touchDistanceThreshold) {
+				this.player.changeLane(1);
+			}
+			this.tm.touchPressed = false;
+		}
+	}
+	else {
+		if (Input.touchDown(0)) {
+			this.tm.touchPressed = true;
+			this.tm.touchStartPos = Input.screenToWorldPoint(Input.getTouch(0).position);
+		}
+	}
+	if (Input.keyDown(KeyCode.U)) {
+		DEBUG = !DEBUG;
+	}
+	if (Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace)) {
 		OBJ.take(ButtonBack)[0].click();
 	}
 	if (Game.paused || Game.over) {
@@ -424,14 +488,19 @@ Game.update = () => {
 }
 
 Game.render = () => {
-	this.roadX = Math.lerp(this.roadX, Input.screenToWorldPoint(Input.mousePosition).x, 0.1);
-	Draw.image('BG2', 0, 0);
-	Draw.image('BG3', 0, 0);
+	let y = Math.sin(Math.PI * (Time.time / 8700));
+	y += Math.cos(1.87 * Math.PI * (2 * Time.time / 5600)) / 2;
+	y *= 2 / 3;
+	this.roadX = Math.lerp(this.roadX, Room.mid.w + Room.mid.w * y * (Time.time / this.targetTime), 0.1);
+	Draw.setColor(SKYBLUE);
+	Draw.rect(0, 0, Room.w, Room.h);
+	Draw.image('BG2', 0, Math.max(50, 300 - 300 * (Time.time / this.targetTime)));
+	// Draw.image('BG3', 0, 0);
 	// Draw.image('Road', 0, Room.h - Draw.getImage('Road').height);
 	const rh = Draw.getImage('Road').height;
-	const rw = 315;
+	const rw = 315 / 4;
 	const rx = this.roadX;
-	const ry = Room.h - rh;
+	const ry = Room.h - rh + Math.sin(Time.time / 1400) * 10;
 	const rbw = Room.w + 400;
 	Draw.polyBegin();
 	let x1 = Room.mid.w - rbw * 0.5;
@@ -442,23 +511,83 @@ Game.render = () => {
 	Draw.vertex(x1 + ld.x * 0.5, y1 + ld.y * 0.5);
 	Draw.vertex(x1 + ld.x * 0.77, y1 + ld.y * 0.77);
 	Draw.vertex(rx - rw * 0.5, ry);
+	Draw.vertex(rx, ry);
 	Draw.vertex(rx + rw * 0.5, ry);
-	let x4 = Room.mid.w + rw * 0.5;
-	pd = Math.pointdis(x4, Draw.vertices[4].y, Room.mid.w + rbw * 0.5, Room.h);
-	ld = Math.lendir(pd, Math.pointdir(x4, Draw.vertices[4].y, Room.mid.w + rbw * 0.5, Room.h));
-	Draw.vertex(x4 + ld.x * 0.23, Draw.vertices[4].y + ld.y * 0.23);
-	Draw.vertex(x4 + ld.x * 0.5, Draw.vertices[4].y + ld.y * 0.5);
+	let x5 = Room.mid.w + rw * 0.5;
+	pd = Math.pointdis(x5, Draw.vertices[5].y, Room.mid.w + rbw * 0.5, Room.h);
+	ld = Math.lendir(pd, Math.pointdir(x5, Draw.vertices[5].y, Room.mid.w + rbw * 0.5, Room.h));
+	Draw.vertex(x5 + ld.x * 0.23, Draw.vertices[5].y + ld.y * 0.23);
+	Draw.vertex(x5 + ld.x * 0.5, Draw.vertices[5].y + ld.y * 0.5);
 	Draw.vertex(Room.mid.w + rbw * 0.5, Room.h);
 
 	Draw.beginPath();
 	Draw.moveTo(Draw.vertices[0].x, Draw.vertices[0].y);
+	Draw.lineTo(-200, ry + 150);
+	Draw.curveTo(-100, ry, Draw.vertices[3].x, Draw.vertices[3].y);
+	Draw.lineTo(Draw.vertices[5].x, Draw.vertices[5].y);
+	Draw.curveTo(Room.w + 100, ry, Room.w + 200, ry + 150);
+	Draw.lineTo(Draw.vertices[8].x, Draw.vertices[8].y);
+	Draw.setColor(GREEN);
+	Draw.fill();
+
+	Draw.beginPath();
+	Draw.moveTo(Draw.vertices[0].x, Draw.vertices[0].y);
 	Draw.bezierCurveTo(Draw.vertices[1].x, Draw.vertices[1].y, Draw.vertices[2].x, Draw.vertices[2].y, Draw.vertices[3].x, Draw.vertices[3].y);
-	Draw.lineTo(Draw.vertices[4].x, Draw.vertices[4].y);
-	Draw.bezierCurveTo(Draw.vertices[5].x, Draw.vertices[5].y, Draw.vertices[6].x, Draw.vertices[6].y, Draw.vertices[7].x, Draw.vertices[7].y);
+	Draw.lineTo(Draw.vertices[5].x, Draw.vertices[5].y);
+	Draw.bezierCurveTo(Draw.vertices[6].x, Draw.vertices[6].y, Draw.vertices[7].x, Draw.vertices[7].y, Draw.vertices[8].x, Draw.vertices[8].y);
 	Draw.setColor(DKGRAY);
 	Draw.fill();
 
-	if (false) {
+	const v = Draw.vertices;
+	let w = 76;
+	for (const i of [20, 0]) {
+		Draw.beginPath();
+		Draw.moveTo(
+			i + v[0].x - w, 	  v[0].y);
+		Draw.bezierCurveTo(
+			i + v[1].x - w, 	  v[1].y,
+			i + v[2].x - w * 0.2, v[2].y,
+			i + v[3].x - w * (0.1 + (i / 20 / 5)), v[3].y);
+		Draw.lineTo(
+			i + v[3].x + w * (0.1 - (i / 20 / 5)), v[3].y);
+		Draw.bezierCurveTo(
+			i + v[2].x + w * 0.2, v[2].y,
+			i + v[1].x + w, 	  v[1].y,
+			i + v[0].x + w, 	  v[0].y);
+		Draw.setColor(i > 0? GRAY : LTGRAY);
+		Draw.fill();
+	}
+
+	for (const i of [-20, 0]) {
+		Draw.beginPath();
+		Draw.moveTo(
+			i + v[8].x - w, 	  v[8].y);
+		Draw.bezierCurveTo(
+			i + v[7].x - w, 	  v[7].y,
+			i + v[6].x - w * 0.2, v[6].y,
+			i + v[5].x - w * (0.1 - (Math.abs(i) / 20 / 5)), v[5].y);
+		Draw.lineTo(
+			i + v[5].x + w * (0.1 + (Math.abs(i) / 20 / 5)), v[5].y);
+		Draw.bezierCurveTo(
+			i + v[6].x + w * 0.2, v[6].y,
+			i + v[7].x + w, 	  v[7].y,
+			i + v[8].x + w, 	  v[8].y);
+		Draw.setColor(i < 0? GRAY : LTGRAY);
+		Draw.fill();
+	}
+
+	/* DASHED LINE
+	Draw.beginPath();
+	Draw.moveTo(Room.mid.w, Room.h);
+	Draw.bezierCurveTo(Room.mid.w, Room.h - rh * 0.5, Room.mid.w, Room.h - rh * 0.77, rx, ry);
+	Draw.setColor(LTGRAY);
+	Draw.setLineWidth(10);
+	CTX.setLineDash([80, 80]);
+	Draw.stroke();
+	Draw.resetLineWidth();*/
+
+	if (DEBUG) {
+		// DEBUG
 		Draw.setLineWidth(5);
 		Draw.setColor(C.yellow);
 		Draw.polyEnd(Poly.stroke);
@@ -482,6 +611,29 @@ Game.renderUI = () => {
 		Draw.setFont(FONT_LARGE);
 		Draw.text(Room.mid.w, Room.mid.h - 200, 'Paused');
 	}
+	const p = OBJ.take(Player)[0];
+	if (p.lane === -1) {
+		this.speedoAlpha = Math.lerp(this.speedoAlpha, 0.5, 0.1);
+	}
+	else {
+		this.speedoAlpha = Math.lerp(this.speedoAlpha, 1, 0.1);
+	}
+	Draw.setAlpha(this.speedoAlpha);
+	Draw.save();
+	Draw.translate(125, Room.h - 125);
+	Draw.scale(0.7 + 0.3 * this.speedoAlpha);
+	const ox = Math.sin(Time.time / 1350) * 5;
+	const oy = Math.cos(Time.time / 2340) * 5;
+	Draw.image('Speedometer', ox + 4, oy - 4, true);
+	Draw.setHVAlign(Align.c, Align.m);
+	Draw.setFont(FONT_LARGE);
+	Draw.setColor(C.gray);
+	Draw.text(ox, oy + 4, 31 + Math.floor(Time.time / 100 % 69));
+	Draw.text(ox, oy + 2, 31 + Math.floor(Time.time / 100 % 69));
+	Draw.setColor(C.black);
+	Draw.text(ox, oy, 31 + Math.floor(Time.time / 100 % 69));
+	Draw.restore();
+	Draw.setAlpha(1);
 }
 
 BRANTH.start();

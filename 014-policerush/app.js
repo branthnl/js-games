@@ -211,16 +211,19 @@ class Transition extends BranthObject {
 	awake() {
 		this.a = 1;
 		this.c = C.black;
+		this.e = document.querySelector('.transitionBox');
+		this.e.style.backgroundColor = this.c;
 	}
 	renderUI() {
 		this.a -= Time.deltaTime / 200;
 		if (this.a <= 0) {
 			OBJ.destroy(this.id);
 		}
-		Draw.setAlpha(Math.clamp(this.a, 0, 1));
-		Draw.setColor(this.c);
-		Draw.rect(0, 0, Room.w, Room.h);
-		Draw.setAlpha(1);
+		this.e.style.opacity = `${Math.clamp(this.a, 0, 1)}`;
+		// Draw.setAlpha(Math.clamp(this.a, 0, 1));
+		// Draw.setColor(this.c);
+		// Draw.rect(0, 0, Room.w, Room.h);
+		// Draw.setAlpha(1);
 	}
 }
 
@@ -249,6 +252,7 @@ const GOLD = '#ffb020';
 const BLUE = '#3a3653';
 const DKBLUE = '#2e2a3e';
 const GRAY = '#727272';
+const BGGRAY = '#4d4d4d';
 const DKGRAY = '#545454';
 const LTGRAY = '#afafaf';
 const SKYBLUE = '#acdeed';
@@ -283,6 +287,7 @@ Menu.start = () => {
 	OBJ.create(ButtonPlay, Room.mid.w, Room.h - 500);
 	OBJ.create(ButtonTuts, Room.mid.w, Room.h - 300);
 	OBJ.create(Transition);
+	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${BGGRAY} 50%)`;
 }
 
 Menu.render = () => {
@@ -300,6 +305,7 @@ Prep.start = () => {
 	OBJ.create(ButtonBack);
 	OBJ.create(ButtonNext, Room.mid.w, Room.h - 300);
 	OBJ.create(Transition);
+	document.body.style.backgroundImage = `linear-gradient(${DKBLUE} 50%, ${DKBLUE} 50%)`;
 }
 
 Prep.changeIndex = (i) => {
@@ -345,6 +351,7 @@ Tuts.start = () => {
 	OBJ.create(Transition);
 	this.scale = 1.15;
 	this.tm = OBJ.create(TouchManager);
+	document.body.style.backgroundImage = `linear-gradient(${DKBLUE} 50%, ${DKBLUE} 50%)`;
 }
 
 Tuts.changeIndex = (i) => {
@@ -380,7 +387,6 @@ Tuts.render = () => {
 	if (this.tm.touchPressed) {
 		if (Input.touchUp(0)) {
 			const dif = Math.dif(Input.screenToWorldPoint(Input.getTouch(0).position).x, this.tm.touchStartPos.x);
-			console.log(dif);
 			if (dif > this.tm.touchDistanceThreshold) {
 				Tuts.changeIndex(1);
 			}
@@ -442,13 +448,13 @@ Game.start = () => {
 	this.targetTime = Time.time + 300000;
 	this.speedoAlpha = 1;
 	this.tm = OBJ.create(TouchManager);
+	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${DKGRAY} 50%)`;
 }
 
 Game.update = () => {
 	if (this.tm.touchPressed) {
 		if (Input.touchUp(0)) {
 			const dif = Math.dif(Input.screenToWorldPoint(Input.getTouch(0).position).x, this.tm.touchStartPos.x);
-			console.log(dif);
 			if (dif > this.tm.touchDistanceThreshold) {
 				this.player.changeLane(-1);
 			}

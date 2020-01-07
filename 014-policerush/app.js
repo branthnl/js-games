@@ -68,14 +68,18 @@ class Button extends BranthGameObject {
 				if (Input.touchDown(0) && this.hover(t)) {
 					this.spriteIndex = 1;
 					this.pressed = true;
-					Audio.play('Pop1');
+					if (!SHOW_TUTORIAL) {
+						Audio.play('Pop1');
+					}
 				}
 			}
 			else {
 				if (Input.mouseDown(Mouse.Left) && this.hover(m)) {
 					this.spriteIndex = 1;
 					this.pressed = true;
-					Audio.play('Pop1');
+					if (!SHOW_TUTORIAL) {
+						Audio.play('Pop1');
+					}
 				}
 			}
 		}
@@ -83,7 +87,9 @@ class Button extends BranthGameObject {
 			if (this.pressed) {
 				this.spriteIndex = 0;
 				this.pressed = false;
-				Audio.play('Pop2');
+				if (!SHOW_TUTORIAL) {
+					Audio.play('Pop2');
+				}
 			}
 		}
 		this.x = Math.lerp(this.x, this.xto, 0.2);

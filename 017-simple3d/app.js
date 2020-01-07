@@ -93,6 +93,7 @@ Game.start = () => {
 	matProj.m[3][3] = 0;
 }
 
+let DP = 0;
 Game.render = () => {
 
 	const Theta = Time.time * 0.001;
@@ -163,16 +164,34 @@ Game.render = () => {
 			line1.x * line2.y - line1.y * line2.x
 		]);
 
-		const l = Math.sqrt(normal.x ** 2 + normal.y ** 2 + normal.z ** 2);
+		let l = Math.sqrt(normal.x ** 2 + normal.y ** 2 + normal.z ** 2);
 		normal.x /= l;
 		normal.y /= l;
 		normal.z /= l;
 
-		// Project triangles from 3D to 2D
 		// if (normal.z < 0) {
 		if (normal.x * (triTranslated.p[0].x - CAMERA.x) +
 			normal.y * (triTranslated.p[0].y - CAMERA.y) +
 			normal.z * (triTranslated.p[0].z - CAMERA.z) < 0) {
+
+
+
+
+
+			// Illumination
+
+			const light_direction = new vec3d([0, 0, -1]);
+			l = Math.sqrt(light_direction.x ** 2 + light_direction.y ** 2 + light_direction.z ** 2);
+			light_direction.x /= l;
+			light_direction.y /= l;
+			light_direction.z /= l;
+
+			const dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z + light_direction.z;
+
+			DP = dp;
+
+			// Project triangles from 3D to 2D
+
 			o0 = multiplyMatrix(triTranslated.p[0], matProj);
 			o1 = multiplyMatrix(triTranslated.p[1], matProj);
 			o2 = multiplyMatrix(triTranslated.p[2], matProj);
@@ -195,15 +214,16 @@ Game.render = () => {
 			triProjected.p[2].x *= 0.5 * Room.w;
 			triProjected.p[2].y *= 0.5 * Room.h;
 
-			Draw.setColor(C.darkGray);
+			const c = Math.abs(dp * 100);
+			Draw.setColor(`rgb(${c}, ${c}, ${c})`);
 			Draw.polyBegin(Poly.fill);
 			Draw.vertex(triProjected.p[0].x, triProjected.p[0].y);
 			Draw.vertex(triProjected.p[1].x, triProjected.p[1].y);
 			Draw.vertex(triProjected.p[2].x, triProjected.p[2].y);
 			Draw.polyEnd();
-			Draw.setColor(C.black);
-			Draw.polyEnd(Poly.stroke);
-			Draw.setLineWidth(7);
+			// Draw.setColor(C.black);
+			// Draw.polyEnd(Poly.stroke);
+			// Draw.setLineWidth(7);
 			Draw.polyEnd(Poly.pointList);
 			Draw.setLineWidth(5);
 			Draw.setColor(C.yellow);

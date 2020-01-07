@@ -430,9 +430,11 @@ Tuts.render = () => {
 			const dif = Math.dif(Input.screenToWorldPoint(Input.getTouch(0).position).x, this.tm.touchStartPos.x);
 			if (dif > this.tm.touchDistanceThreshold) {
 				Tuts.changeIndex(1);
+				Audio.play('Pop2');
 			}
 			if (dif < -this.tm.touchDistanceThreshold) {
 				Tuts.changeIndex(-1);
+				Audio.play('Pop2');
 			}
 			this.tm.touchPressed = false;
 		}

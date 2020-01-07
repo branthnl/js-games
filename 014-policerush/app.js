@@ -6,6 +6,7 @@ Draw.add('Dot', 'assets/images/Dot.png', 2, 2, 23, 23);
 Draw.add('PageDialog', 'assets/images/PageDialog.png');
 Draw.add('Speedometer', 'assets/images/Speedometer.png');
 Draw.add('Player', 'assets/images/Player.png', 2, 2, 291, 230);
+Draw.add('Clouds', 'assets/images/Clouds.png', 3, 3, 684 / 3, 59);
 Draw.add('ButtonBack', 'assets/images/ButtonBack.png', 2, 2, 76, 68);
 Draw.add('ButtonNext', 'assets/images/ButtonNext.png', 2, 2, 236, 117);
 Draw.add('ButtonPlay', 'assets/images/ButtonPlay.png', 2, 2, 493, 117);
@@ -270,6 +271,32 @@ class TouchManager extends BranthObject {
 	}
 }
 
+class Clouds extends BranthGameObject {
+	awake() {
+		this.depth = 1;
+		this.spriteName = 'Clouds';
+		this.spriteIndex = Math.irange(0, Draw.getSprite(this.spriteName).amount);
+		this.spd = 0;
+		this.w = Draw.getSprite(this.spriteName).w;
+	}
+	update() {
+		this.x += this.spd;
+		if (this.x > Room.w + this.w) {
+			this.x = -this.w;
+			this.spriteIndex = Math.irange(0, Draw.getSprite(this.spriteName).amount);
+		}
+		else if (this.x < -this.w) {
+			this.x = Room.w + this.w;
+			this.spriteIndex = Math.irange(0, Draw.getSprite(this.spriteName).amount);
+		}
+	}
+	render() {
+		Draw.setAlpha(0.5);
+		this.drawSelf();
+		Draw.setAlpha(1);
+	}
+}
+
 OBJ.add(ButtonBack);
 OBJ.add(ButtonNext);
 OBJ.add(ButtonPlay);
@@ -278,6 +305,7 @@ OBJ.add(ButtonLeft);
 OBJ.add(ButtonExit);
 OBJ.add(ButtonRetry);
 OBJ.add(ButtonRight);
+OBJ.add(Clouds);
 OBJ.add(Player);
 OBJ.add(Transition);
 OBJ.add(TouchManager);
@@ -491,6 +519,10 @@ Game.start = () => {
 	this.targetTime = Time.time + 300000;
 	this.speedoAlpha = 1;
 	this.tm = OBJ.create(TouchManager);
+	for (const i in [0, 1, 2, 3, 4]) {
+		const n = OBJ.create(Clouds, Math.range(0, Room.w), Math.range(0, 400));
+		n.spd = Math.range(0.5, 2) * Math.randneg();
+	}
 	document.body.style.backgroundImage = `linear-gradient(${SKYBLUE} 50%, ${DKGRAY} 50%)`;
 	Audio.play('Pop2');
 	Audio.play('EngineStart');

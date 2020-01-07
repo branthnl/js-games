@@ -52,15 +52,31 @@ class Button extends BranthGameObject {
 		const m = Input.screenToWorldPoint(Input.mousePosition);
 		const t = Input.screenToWorldPoint(Input.getTouch(0).position);
 		if (this.pressed) {
-			if (Input.mouseUp(Mouse.Left) && this.hover(m) || Input.touchUp(0) && this.hover(t)) {
-				this.click();
+			if (Input.touchCount > 0) {
+				if (Input.touchUp(0) && this.hover(t)) {
+					this.click();
+				}
+			}
+			else {
+				if (Input.mouseUp(Mouse.Left) && this.hover(m)) {
+					this.click();
+				}
 			}
 		}
 		else {
-			if (Input.mouseDown(Mouse.Left) && this.hover(m) || Input.touchDown(0) && this.hover(t)) {
-				this.spriteIndex = 1;
-				this.pressed = true;
-				Audio.play('Pop1');
+			if (Input.touchCount > 0) {
+				if (Input.touchDown(0) && this.hover(t)) {
+					this.spriteIndex = 1;
+					this.pressed = true;
+					Audio.play('Pop1');
+				}
+			}
+			else {
+				if (Input.mouseDown(Mouse.Left) && this.hover(m)) {
+					this.spriteIndex = 1;
+					this.pressed = true;
+					Audio.play('Pop1');
+				}
 			}
 		}
 		if (Input.touchUp(0) || Input.mouseUp(Mouse.Left)) {

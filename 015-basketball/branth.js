@@ -1201,6 +1201,47 @@ class BranthBehaviour extends BranthObject {
 	}
 }
 
+const Mask = {
+	rect: 'rect',
+	circle: 'circle'
+};
+
+class BranthMask {
+	constructor(...args) {
+		this.name = args[0];
+		this.x = args[1];
+		this.y = args[2];
+		this.xs = this.x;
+		this.ys = this.y;
+		this.w = 0;
+		this.h = 0;
+		this.r = 0;
+		if (this.name === Mask.rect) {
+			this.w = args[3];
+			this.h = args[4];
+		}
+		else if (this.name === Mask.circle) {
+			this.r = args[3];
+		}
+	}
+	hover(x, y) {
+		let p = { x, y };
+		if (y === undefined) {
+			p = {
+				x: x.x,
+				y: x.y
+			};
+		}
+		if (this.name === Mask.rect) {
+			return p.x >= this.x && p.x <= this.x + this.w && p.y >= this.y && p.y <= this.y + this.h;
+		}
+		else if (this.name === Mask.circle) {
+			return Math.pointdis(p.x, p.y, this.x, this.y) <= this.r;
+		}
+		return false;
+	}
+}
+
 class BranthGameObject extends BranthBehaviour {
 	constructor(x, y) {
 		super(x, y);
@@ -1210,10 +1251,52 @@ class BranthGameObject extends BranthBehaviour {
 		this.spriteIndex = 0;
 		this.spriteAngle = 0;
 		this.spriteCenter = true;
+		this.mask = [];
+		this.drawMask = true;
+		this.drawMaskAlpha = 1;
+		this.drawMaskColor = C.magenta;
+	}
+	addMask(...args) {
+		if (args[0] === Mask.rect) {
+			const n = new BranthMask(args[0], args[1], args[2], args[3], args[4]);
+			this.mask.push(n);
+		}
+		else if (args[0] === Mask.circle) {
+			const n = new BranthMask(args[0], args[1], args[2], args[3]);
+			this.mask.push(n);
+		}
+	}
+	hover(x, y) {
+		if (y === undefined) {
+			for (const m of this.mask) {
+				if (m.hover(x)) {
+					return true;
+				}
+			}
+		}
+		else {
+			for (const m of this.mask) {
+				if (m.hover(x, y)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	maskUpdate() {
+		for (const i in this.mask) {
+			const m = this.mask[i];
+			m.x = this.x + m.xs;
+			m.y = this.y + m.ys;
+		}
 	}
 	earlyUpdate() {
 		this.xp = this.x;
 		this.yp = this.y;
+	}
+	lateUpdate() {
+		this.maskUpdate();
+		this.alarmUpdate();
 	}
 	drawSelf() {
 		if (Draw.hasName(this.spriteName)) {
@@ -1225,11 +1308,24 @@ class BranthGameObject extends BranthBehaviour {
 			}
 		}
 	}
-	lateUpdate() {
-		this.alarmUpdate();
+	drawMasks() {
+		Draw.setAlpha(this.drawMaskAlpha);
+		Draw.setColor(this.drawMaskColor);
+		for (const m of this.mask) {
+			if (m.name === Mask.rect) {
+				Draw.rect(m.x, m.y, m.w, m.h);
+			}
+			else if (m.name === Mask.circle) {
+				Draw.circle(m.x, m.y, m.r);
+			}
+		}
+		Draw.setAlpha(1);
 	}
 	render() {
 		this.drawSelf();
+		if (this.drawMask) {
+			this.drawMasks();
+		}
 	}
 }
 

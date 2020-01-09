@@ -286,26 +286,65 @@ Game.start = () => {
 
 let vecTrianglesToRaster = [];
 let DP = 0;
+let Theta = 150;
+let ThetaTo = 0, yrotTo = 0, yrot = 0;
+let xrot = 0, xrotTo = 0;
 Game.render = () => {
 
-	const Theta = Time.time * 0.001;
+	if (Input.keyHold(KeyCode.Left)) {
+		ThetaTo -= Time.deltaTime * 0.2;
+		yrotTo -= Time.deltaTime * 0.2;
+	}
+	if (Input.keyHold(KeyCode.Right)) {
+		ThetaTo += Time.deltaTime * 0.2;
+		yrotTo += Time.deltaTime * 0.2;
+	}
+	if (Input.keyHold(KeyCode.Up)) {
+		xrotTo -= Time.deltaTime * 0.2;
+	}
+	if (Input.keyHold(KeyCode.Down)) {
+		xrotTo += Time.deltaTime * 0.2;
+	}
+	if (!Input.keyHold(KeyCode.Up) && !Input.keyHold(KeyCode.Down)) {
+		xrotTo = 0;
+	}
 
-	const matRotZ = new mat4x4();
+	ThetaTo *= 0.96;
+	Theta = Math.lerp(Theta, ThetaTo + 180, 0.2);
+
 	const matRotX = new mat4x4();
+	const matRotY = new mat4x4();
+	const matRotZ = new mat4x4();
 
-	matRotZ.m[0][0] = Math.cos(Theta);
-	matRotZ.m[0][1] = Math.sin(Theta);
-	matRotZ.m[1][0] = -Math.sin(Theta);
-	matRotZ.m[1][1] = Math.cos(Theta);
-	matRotZ.m[2][2] = 1;
-	matRotZ.m[3][3] = 1;
+	const tt = 2 * Math.sin(Time.time * 0.001);
+	xrotTo *= 0.96;
+	xrotTo = Math.clamp(xrotTo, -35, 15);
+	xrot = Math.lerp(xrot, xrotTo, 0.05);
+
+	yrotTo *= 0.96;
+	yrotTo = Math.clamp(yrotTo, -40, 40);
+	yrot = Math.lerp(yrot, yrotTo, 0.1);
 
 	matRotX.m[0][0] = 1;
-	matRotX.m[1][1] = Math.cos(Theta * 0.5);
-	matRotX.m[1][2] = Math.sin(Theta * 0.5);
-	matRotX.m[2][1] = -Math.sin(Theta * 0.5);
-	matRotX.m[2][2] = Math.cos(Theta * 0.5);
+	matRotX.m[1][1] = Math.cos(Math.degtorad(xrot + tt));
+	matRotX.m[1][2] = Math.sin(Math.degtorad(xrot + tt));
+	matRotX.m[2][1] = -Math.sin(Math.degtorad(xrot + tt));
+	matRotX.m[2][2] = Math.cos(Math.degtorad(xrot + tt));
 	matRotX.m[3][3] = 1;
+
+	matRotY.m[0][0] = Math.cos(Math.degtorad(yrot));
+	matRotY.m[0][2] = -Math.sin(Math.degtorad(yrot));
+	matRotY.m[1][1] = 1;
+	matRotY.m[2][0] = Math.sin(Math.degtorad(yrot));
+	matRotY.m[2][2] = Math.cos(Math.degtorad(yrot));
+	matRotY.m[3][3] = 1;
+
+	matRotZ.m[0][0] = Math.cos(Math.degtorad(Theta));
+	matRotZ.m[0][1] = Math.sin(Math.degtorad(Theta));
+	matRotZ.m[1][0] = -Math.sin(Math.degtorad(Theta));
+	matRotZ.m[1][1] = Math.cos(Math.degtorad(Theta));
+	matRotZ.m[2][2] = 1;
+	matRotZ.m[3][3] = 1;
 
 	vecTrianglesToRaster = [];
 	DP = [];
@@ -333,12 +372,25 @@ Game.render = () => {
 			[o2.x, o2.y, o2.z]
 		]);
 
+		// Rotate in Y axis
+		o0 = multiplyMatrix(triRotatedZX.p[0], matRotY);
+		o1 = multiplyMatrix(triRotatedZX.p[1], matRotY);
+		o2 = multiplyMatrix(triRotatedZX.p[2], matRotY);
+
+		let triRotatedZXY = new triangle([
+			[o0.x, o0.y, o0.z],
+			[o1.x, o1.y, o1.z],
+			[o2.x, o2.y, o2.z]
+		]);
 
 		// Offset into the scene
-		let triTranslated = triRotatedZX;
-		triTranslated.p[0].z = triRotatedZX.p[0].z + 8;
-		triTranslated.p[1].z = triRotatedZX.p[1].z + 8;
-		triTranslated.p[2].z = triRotatedZX.p[2].z + 8;
+		let triTranslated = triRotatedZXY;
+		triTranslated.p[0].y = triRotatedZXY.p[0].y + 3;
+		triTranslated.p[1].y = triRotatedZXY.p[1].y + 3;
+		triTranslated.p[2].y = triRotatedZXY.p[2].y + 3;
+		triTranslated.p[0].z = triRotatedZXY.p[0].z + 8 + 0.05 * tt;
+		triTranslated.p[1].z = triRotatedZXY.p[1].z + 8 + 0.05 * tt;
+		triTranslated.p[2].z = triRotatedZXY.p[2].z + 8 + 0.05 * tt;
 
 		const line1 = new vec3d([
 			triTranslated.p[1].x - triTranslated.p[0].x,

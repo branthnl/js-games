@@ -1,27 +1,138 @@
+class Mat4x4 {
+	constructor() {
+		this.m = [
+			[0, 0, 0, 0],
+			[0, 0, 0, 0],
+			[0, 0, 0, 0],
+			[0, 0, 0, 0]
+		];
+	}
+	static makeIdentity() {
+		const m = new Mat4x4();
+		m.m[0][0] = 1;
+		m.m[1][1] = 1;
+		m.m[2][2] = 1;
+		m.m[3][3] = 1;
+		return m;
+	}
+	static multiplyVector(m, v) {
+		return new Vector3(
+			v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0],
+			v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + m.m[3][1],
+			v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2],
+			v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3] + m.m[3][3]
+		);
+	}
+	static multiplyMatrix(m1, m2) {
+		const m = new Mat4x4();
+		for (let c = 0; c < 4; c++) {
+			for (let r = 0; r < 4; r++) {
+				m.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][r] * m2.m[1][c] + m1.m[r][0];
+			}
+		}
+		return m;
+	}
+	static makeRotationX(angleRad) {
+		const m = new Mat4x4();
+		m.m[0][0] = 1;
+		m.m[1][1] = Math.cos(angleRad);
+		m.m[1][2] = Math.sin(angleRad);
+		m.m[2][1] = -Math.sin(angleRad);
+		m.m[2][2] = Math.cos(angleRad);
+		m.m[3][3] = 1;
+		return m;
+	}
+	static makeRotationY(angleRad) {
+		const m = new Mat4x4();
+		m.m[0][0] = Math.cos(angleRad);
+		m.m[0][2] = -Math.sin(angleRad);
+		m.m[1][1] = 1;
+		m.m[2][0] = Math.sin(angleRad);
+		m.m[2][2] = Math.cos(angleRad);
+		m.m[3][3] = 1;
+		return m;
+	}
+	static makeRotationZ(angleRad) {
+		const m = new Mat4x4();
+		m.m[0][0] = Math.cos(angleRad);
+		m.m[0][1] = Math.sin(angleRad);
+		m.m[1][0] = -Math.sin(angleRad);
+		m.m[1][1] = Math.cos(angleRad);
+		m.m[2][2] = 1;
+		m.m[3][3] = 1;
+		return m;
+	}
+	static makeTranslation(x, y, z) {
+		const m = new Mat4x4();
+		m.m[0][0] = 1;
+		m.m[1][1] = 1;
+		m.m[2][2] = 1;
+		m.m[3][3] = 1;
+		m.m[3][0] = x;
+		m.m[3][1] = y;
+		m.m[3][2] = z;
+		return m;
+	}
+	static makeProjection(fovDeg, aspectRatio, near, far) {
+		const fovRad = 1 / Math.tan(Math.degtorad(fovDeg * 0.5));
+		const m = new Mat4x4();
+		m.m[0][0] = aspectRatio * fovRad;
+		m.m[1][1] = fovRad;
+		m.m[2][2] = far / (far - near);
+		m.m[3][2] = (-far * near) / (far - near);
+		m.m[2][3] = 1;
+		m.m[3][3] = 0;
+		return m;
+	}
+}
+
 class Vector3 {
-	constructor(x, y, z) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
+	constructor(x, y, z, w) {
+		this.x = x || 0;
+		this.y = y || 0;
+		this.z = z || 0;
+		this.w = w || 1;
 	}
 	normalize() {
-		const l = Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+		const l = Vector3.len(this);
 		this.x /= l;
 		this.y /= l;
 		this.z /= l;
 	}
 	static add(v1, v2) {
-		return v1.x + v2.x;
+		return new Vector3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+	}
+	static sub(v1, v2) {
+		return new Vector3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+	}
+	static mul(v1, k) {
+		return new Vector3(v1.x * k, v1.y * k, v1.z * k);
+	}
+	static div(v1, k) {
+		return new Vector3(v1.x / k, v1.y / k, v1.z / k);
+	}
+	static dot(v1, v2) {
+		return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+	}
+	static len(v) {
+		return Math.sqrt(Vector3.dot(v, v));
+	}
+	static cross(v1, v2) {
+		return new Vector3(
+			v1.y * v2.z - v1.z * v2.y,
+			v1.z * v2.x - v1.x * v2.z,
+			v1.x * v2.y - v1.y * v2.x
+		);
 	}
 }
 
 class Triangle {
-	constructor(...points) {
+	constructor(...v) {
 		this.p = [];
-		if (points.length >= 3) {
-			this.p.push(new Vector3(points[0].x, points[0].y, points[0].z));
-			this.p.push(new Vector3(points[1].x, points[1].y, points[1].z));
-			this.p.push(new Vector3(points[2].x, points[2].y, points[2].z));
+		if (v.length >= 3) {
+			this.p.push(new Vector3(v[0].x, v[0].y, v[0].z));
+			this.p.push(new Vector3(v[1].x, v[1].y, v[1].z));
+			this.p.push(new Vector3(v[2].x, v[2].y, v[2].z));
 		}
 		else {
 			this.p = [
@@ -57,49 +168,8 @@ class Mesh {
 	}
 }
 
-class mat4x4 {
-	constructor() {
-		this.m = [
-			[0, 0, 0, 0],
-			[0, 0, 0, 0],
-			[0, 0, 0, 0],
-			[0, 0, 0, 0]
-		];
-	}
-}
-
-const multiplyMatrix = (m1, m2) => {
-	let o = new Vector3(0, 0, 0);
-	o.x = m1.x * m2.m[0][0] + m1.y * m2.m[1][0] + m1.z * m2.m[2][0] + m2.m[3][0];
-	o.y = m1.x * m2.m[0][1] + m1.y * m2.m[1][1] + m1.z * m2.m[2][1] + m2.m[3][1];
-	o.z = m1.x * m2.m[0][2] + m1.y * m2.m[1][2] + m1.z * m2.m[2][2] + m2.m[3][2];
-	const w = m1.x * m2.m[0][3] + m1.y * m2.m[1][3] + m1.z * m2.m[2][3] + m2.m[3][3];
-
-	if (w != 0) {
-		o.x /= w;
-		o.y /= w;
-		o.z /= w;
-	}
-
-	return o;
-};
-
-let NEAR = 0.1;
-let FAR = 1000;
-let FOV = 90;
-const ASPECT_RATIO = () => Room.h / Room.w;
-const FOV_RAD = () => 1 / Math.tan(Math.degtorad(FOV * 0.5));
-const MAT_PROJ = () => {
-	m = new mat4x4();
-	m.m[0][0] = ASPECT_RATIO() * FOV_RAD();
-	m.m[1][1] = FOV_RAD();
-	m.m[2][2] = FAR / (FAR - NEAR);
-	m.m[3][2] = (-FAR * NEAR) / (FAR - NEAR);
-	m.m[2][3] = 1;
-	m.m[3][3] = 0;
-	return m;
-};
 const CAMERA = new Vector3(0, 0, 0);
+const MAT_PROJ = Mat4x4.makeProjection(90, Room.h / Room.w, 0.1, 1000);
 
 class BranthObject3D extends BranthObject {
 	constructor() {
@@ -117,88 +187,44 @@ class BranthObject3D extends BranthObject {
 		this.mesh = new Mesh();
 	}
 	get matRx() {
-		const m = new mat4x4();
-		m.m[0][0] = 1;
-		m.m[1][1] = Math.cos(Math.degtorad(this.rx));
-		m.m[1][2] = Math.sin(Math.degtorad(this.rx));
-		m.m[2][1] = -Math.sin(Math.degtorad(this.rx));
-		m.m[2][2] = Math.cos(Math.degtorad(this.rx));
-		m.m[3][3] = 1;
-		return m;
+		return Mat4x4.makeRotationX(this.rx);
 	}
 	get matRy() {
-		const m = new mat4x4();
-		m.m[0][0] = Math.cos(Math.degtorad(this.ry));
-		m.m[0][2] = -Math.sin(Math.degtorad(this.ry));
-		m.m[1][1] = 1;
-		m.m[2][0] = Math.sin(Math.degtorad(this.ry));
-		m.m[2][2] = Math.cos(Math.degtorad(this.ry));
-		m.m[3][3] = 1;
-		return m;
+		return Mat4x4.makeRotationY(this.ry);
 	}
 	get matRz() {
-		const m = new mat4x4();
-		m.m[0][0] = Math.cos(Math.degtorad(this.rz));
-		m.m[0][1] = Math.sin(Math.degtorad(this.rz));
-		m.m[1][0] = -Math.sin(Math.degtorad(this.rz));
-		m.m[1][1] = Math.cos(Math.degtorad(this.rz));
-		m.m[2][2] = 1;
-		m.m[3][3] = 1;
-		return m;
+		return Mat4x4.makeRotationZ(this.rz);
+	}
+	get matTrans() {
+		return Mat4x4.makeTranslation(this.x, this.y, this.z);
 	}
 	render() {
+		let matWorld = Mat4x4.makeIdentity();
+		matWorld = Mat4x4.multiplyMatrix(this.matRz, this.matRx);
+		matWorld = Mat4x4.multiplyMatrix(matWorld, this.matTrans);
 		for (const tri of this.mesh.tris) {
-			const triRotatedX = new Triangle();
-			const triRotatedY = new Triangle();
-			const triRotatedZ = new Triangle();
-			triRotatedX.p[0] = multiplyMatrix(tri.p[0], this.matRx);
-			triRotatedX.p[1] = multiplyMatrix(tri.p[1], this.matRx);
-			triRotatedX.p[2] = multiplyMatrix(tri.p[2], this.matRx);
-			triRotatedY.p[0] = multiplyMatrix(triRotatedX.p[0], this.matRy);
-			triRotatedY.p[1] = multiplyMatrix(triRotatedX.p[1], this.matRy);
-			triRotatedY.p[2] = multiplyMatrix(triRotatedX.p[2], this.matRy);
-			triRotatedZ.p[0] = multiplyMatrix(triRotatedY.p[0], this.matRz);
-			triRotatedZ.p[1] = multiplyMatrix(triRotatedY.p[1], this.matRz);
-			triRotatedZ.p[2] = multiplyMatrix(triRotatedY.p[2], this.matRz);
-			const triTranslated = triRotatedZ;
-			triTranslated.p[0].x += this.x;
-			triTranslated.p[0].y += this.y;
-			triTranslated.p[0].z += this.z;
-			triTranslated.p[1].x += this.x;
-			triTranslated.p[1].y += this.y;
-			triTranslated.p[1].z += this.z;
-			triTranslated.p[2].x += this.x;
-			triTranslated.p[2].y += this.y;
-			triTranslated.p[2].z += this.z;
-			const line = [];
-			line.push(new Vector3(
-				triTranslated.p[1].x - triTranslated.p[0].x,
-				triTranslated.p[1].y - triTranslated.p[0].y,
-				triTranslated.p[1].z - triTranslated.p[0].z
-			));
-			line.push(new Vector3(
-				triTranslated.p[2].x - triTranslated.p[0].x,
-				triTranslated.p[2].y - triTranslated.p[0].y,
-				triTranslated.p[2].z - triTranslated.p[0].z
-			));
-			const normal = new Vector3(
-				line[0].y * line[1].z - line[0].z * line[1].y,
-				line[0].z * line[1].x - line[0].x * line[1].z,
-				line[0].x * line[1].y - line[0].y * line[1].x
+			const triTransformed = new Triangle(
+				new Vector3(Mat4x4.multiplyVector(matWorld, tri.p[0])),
+				new Vector3(Mat4x4.multiplyVector(matWorld, tri.p[1])),
+				new Vector3(Mat4x4.multiplyVector(matWorld, tri.p[2]))
 			);
+			const line1 = Vector3.sub(triTransformed.p[1], triTransformed.p[0]);
+			const line2 = Vector3.sub(triTransformed.p[2], triTransformed.p[0]);
+			const normal = Vector3.cross(line1, line2);
 			normal.normalize();
-			if (normal.x * (triTranslated.p[0].x - CAMERA.x) +
-				normal.y * (triTranslated.p[0].y - CAMERA.y) +
-				normal.z * (triTranslated.p[0].z - CAMERA.z) < 0) {
-				const light = new Vector3(0, 0, -1); light.normalize();
-				const dp = normal.x * light.x + normal.y * light.y + normal.z * light.z;
-				const triProjected = new Triangle();
-				triProjected.p[0] = multiplyMatrix(triTranslated.p[0], MAT_PROJ());
-				triProjected.p[1] = multiplyMatrix(triTranslated.p[1], MAT_PROJ());
-				triProjected.p[2] = multiplyMatrix(triTranslated.p[2], MAT_PROJ());
-				triProjected.p[0].x += 1; triProjected.p[0].y += 1;
-				triProjected.p[1].x += 1; triProjected.p[1].y += 1;
-				triProjected.p[2].x += 1; triProjected.p[2].y += 1;
+			const cameraRay = Vector3.sub(triTransformed.p[0], CAMERA);
+			if (Vector3.dot(normal, cameraRay) < 0) {
+				const light = new Vector3(0, 0, -1);
+				light.normalize();
+				const dp = Math.max(0.1, Vector3.dot(light, normal));
+				const triProjected = new Triangle(
+					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[0]),
+					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[1]),
+					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[2])
+				);
+				triProjected.p.map(v => v = Vector3.div(v, v.w));
+				const offsetView = new Vector3(1, 1, 0);
+				triProjected.p.map(v => v = Vector3.add(v, offsetView));
 				triProjected.p[0].x *= 0.5 * Room.w;
 				triProjected.p[0].y *= 0.5 * Room.h;
 				triProjected.p[1].x *= 0.5 * Room.w;

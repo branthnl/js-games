@@ -340,6 +340,7 @@ class BranthTouch extends BranthKey {
 
 const Input = {
 	list: [[], [], []],
+	mouseMove: false,
 	add(keyCode) {
 		this.list[0].push(new BranthKey(keyCode));
 	},
@@ -349,6 +350,7 @@ const Input = {
 				j.reset();
 			}
 		}
+		this.mouseMove = false;
 	},
 	getKey(keyCode) {
 		for (const k of this.list[0]) {
@@ -406,6 +408,7 @@ const Input = {
 		const b = CANVAS.getBoundingClientRect();
 		this.mousePosition.x = e.clientX - b.x;
 		this.mousePosition.y = e.clientY - b.y;
+		this.mouseMove = true;
 	},
 	eventmouseup(e) {
 		this.updateMousePosition(e);

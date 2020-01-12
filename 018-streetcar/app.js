@@ -261,26 +261,7 @@ class Cube extends BranthObject3D {
 		this.mpd = 0.2;
 		this.spd = 0;
 		this.acc = 0.05;
-		this.mesh.tris = [
-			// SOUTH
-			new Triangle(new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)),
-			new Triangle(new Vector3(0, 0, 0), new Vector3(1, 1, 0), new Vector3(1, 0, 0)),
-			// EAST
-			new Triangle(new Vector3(1, 0, 0), new Vector3(1, 1, 0), new Vector3(1, 1, 1)),
-			new Triangle(new Vector3(1, 0, 0), new Vector3(1, 1, 1), new Vector3(1, 0, 1)),
-			// NORTH
-			new Triangle(new Vector3(1, 0, 1), new Vector3(1, 1, 1), new Vector3(0, 1, 1)),
-			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 1, 1), new Vector3(0, 0, 1)),
-			// WEST
-			new Triangle(new Vector3(0, 0, 1), new Vector3(0, 1, 1), new Vector3(0, 1, 0)),
-			new Triangle(new Vector3(0, 0, 1), new Vector3(0, 1, 0), new Vector3(0, 0, 0)),
-			// TOP
-			new Triangle(new Vector3(0, 1, 0), new Vector3(0, 1, 1), new Vector3(1, 1, 1)),
-			new Triangle(new Vector3(0, 1, 0), new Vector3(1, 1, 1), new Vector3(1, 1, 0)),
-			// BOTTOM
-			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 0, 1), new Vector3(0, 0, 0)),
-			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 0, 0), new Vector3(1, 0, 0))
-		];
+		this.mesh.loadFromFile(OBJ_TRUCK);
 	}
 	update() {
 		const keyW = Input.keyHold(KeyCode.Up);
@@ -383,7 +364,7 @@ document.body.appendChild(file);
 
 BRANTH.start();
 Room.start('Menu');
-const scaler = 8;
+const scaler = 4;
 CANVAS.width *= scaler;
 CANVAS.height *= scaler;
 CTX.scale(scaler, scaler);

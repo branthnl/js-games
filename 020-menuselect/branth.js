@@ -39,7 +39,7 @@ const INPUT_KEY_PREVENT_DEFAULT = true;
 const INPUT_MOUSE_PARENT = window;
 const INPUT_TOUCH_PARENT = window;
 const INPUT_TOUCH_PREVENT_DEFAULT = false;
-const DEFAULT_FONT = 'Fresca, sans-serif';
+const DEFAULT_FONT = 'Shadows Into Light, cursive';
 const FRAME_RATE = 1000 / 60;
 const OBJ_DEPTH_RENDER = true;
 const DEBUG_MODE = true;
@@ -688,6 +688,15 @@ const Font = {
 	},
 	get l() {
 		return `${36 * CanvasScaler.auto}px`;
+	},
+	get sb() {
+		return `bold ${16 * CanvasScaler.auto}px`;
+	},
+	get mb() {
+		return `bold ${24 * CanvasScaler.auto}px`;
+	},
+	get lb() {
+		return `bold ${36 * CanvasScaler.auto}px`;
 	},
 	get size() {
 		return +CTX.font.split(' ').filter(x => x.includes('px'))[0].split('px').shift();

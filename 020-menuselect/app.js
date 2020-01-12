@@ -33,12 +33,27 @@ class Choice extends BranthObject {
 		}
 	}
 	renderUI() {
+		const gap = Room.w * 0.05;
+		const rs = Math.sin(Time.time * 0.08) * 0.32;
+		const ss = Math.sin(Time.time * 0.015) * 0.02;
 		for (let y = this.items.length - 1, i = 0; y >= 0; y--, i++) {
+			const s = this.cursor === i;
 			Draw.setHVAlign(Align.r, Align.b);
-			Draw.setFont(Font.l);
-			const gap = Room.w * 0.05;
-			Draw.setColor(this.cursor === i? C.red : C.black);
-			Draw.text(Room.w - gap, Room.h - gap - y * Font.size, this.items[i]);
+			Draw.setFont(Font.lb);
+			Draw.setColor(s? C.red : C.black);
+			const tx = Room.w - gap;
+			const ty = Room.h - gap - y * Font.size * 1.2;
+			if (s) {
+				Draw.save();
+				Draw.translate(tx, ty);
+				Draw.rotate(rs);
+				Draw.scale(1 + ss);
+				Draw.text(0, 0, this.items[i]);
+				Draw.restore();
+			}
+			else {
+				Draw.text(tx, ty, this.items[i]);
+			}
 		}
 		Draw.setHVAlign(Align.l, Align.t);
 		Draw.setFont(Font.m);

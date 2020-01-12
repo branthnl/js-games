@@ -1,9 +1,9 @@
 class Vector3 {
-	constructor(x = 0, y = 0, z = 0, w = 1) {
+	constructor(x = 0, y = 0, z = 0, w) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
-		this.w = w;
+		this.w = w || 1;
 	}
 	normalize() {
 		const l = Vector3.len(this);
@@ -106,6 +106,11 @@ class Mat4x4 {
 		}
 		return m;
 	}
+	static multiplyVectorNormalized(m, v) {
+		let o = Mat4x4.multiplyVector(m, v);
+		o = Vector3.div(o, o.w);
+		return o;
+	}
 	static makeProjection(fovDeg, aspectRatio, near, far) {
 		const fovRad = 1 / Math.tan(Math.degtorad(fovDeg * 0.5));
 		const m = new Mat4x4();
@@ -149,12 +154,10 @@ class Mat4x4 {
 	}
 }
 
-const multiplyMatrix = (m1, m2) => {
-	let v = Mat4x4.multiplyVector(m2, m1);
-	if (v.w != 0) {
-		v = Vector3.div(v, v.w);
-	}
-	return v;
+const multiplyMatVec = (m, v) => {
+	let vc = Mat4x4.multiplyVector(m, v);
+	vc = Vector3.div(vc, vc.w);
+	return vc;
 };
 
 const CAMERA = new Vector3();
@@ -186,12 +189,13 @@ class BranthObject3D extends BranthObject {
 	}
 	render() {
 		const trisToRaster = [];
-		let matWorld = Mat4x4.multiplyMatrix(Mat4x4.multiplyMatrix(this.matRx, this.matRy), this.matRz);
+		const matRot = Mat4x4.multiplyMatrix(Mat4x4.multiplyMatrix(this.matRx, this.matRy), this.matRz);
+		const matWorld = matRot;
 		for (const tri of this.mesh.tris) {
 			const triTransformed = new Triangle(
-				multiplyMatrix(tri.p[0], matWorld),
-				multiplyMatrix(tri.p[1], matWorld),
-				multiplyMatrix(tri.p[2], matWorld)
+				Mat4x4.multiplyVector(matWorld, tri.p[0]),
+				Mat4x4.multiplyVector(matWorld, tri.p[1]),
+				Mat4x4.multiplyVector(matWorld, tri.p[2])
 			);
 			triTransformed.p[0].x += this.x;
 			triTransformed.p[0].y += this.y;
@@ -204,25 +208,21 @@ class BranthObject3D extends BranthObject {
 			triTransformed.p[2].z += this.z;
 			const line1 = Vector3.sub(triTransformed.p[1], triTransformed.p[0]);
 			const line2 = Vector3.sub(triTransformed.p[2], triTransformed.p[0]);
-			const normal = Vector3.cross(line1, line2);
-			normal.normalize();
+			const normal = Vector3.cross(line1, line2); normal.normalize();
 			const cameraRay = Vector3.sub(triTransformed.p[0], CAMERA);
 			if (Vector3.dot(normal, cameraRay) < 0) {
 				const light = new Vector3(0, 0, -1); light.normalize();
 				const dp = Vector3.dot(normal, light);
-				const triProjected = new Triangle();
-				triProjected.p[0] = multiplyMatrix(triTransformed.p[0], MAT_PROJ);
-				triProjected.p[1] = multiplyMatrix(triTransformed.p[1], MAT_PROJ);
-				triProjected.p[2] = multiplyMatrix(triTransformed.p[2], MAT_PROJ);
-				triProjected.p[0].x += 1; triProjected.p[0].y += 1;
-				triProjected.p[1].x += 1; triProjected.p[1].y += 1;
-				triProjected.p[2].x += 1; triProjected.p[2].y += 1;
-				triProjected.p[0].x *= 0.5 * Room.w;
-				triProjected.p[0].y *= 0.5 * Room.h;
-				triProjected.p[1].x *= 0.5 * Room.w;
-				triProjected.p[1].y *= 0.5 * Room.h;
-				triProjected.p[2].x *= 0.5 * Room.w;
-				triProjected.p[2].y *= 0.5 * Room.h;
+				const triProjected = new Triangle(
+					Mat4x4.multiplyVectorNormalized(MAT_PROJ, triTransformed.p[0]),
+					Mat4x4.multiplyVectorNormalized(MAT_PROJ, triTransformed.p[1]),
+					Mat4x4.multiplyVectorNormalized(MAT_PROJ, triTransformed.p[2])
+				);
+				const offsetView = new Vector3(1, 1, 0);
+				triProjected.p = triProjected.p.map(v => {
+					v = Vector3.add(v, offsetView);
+					return new Vector3(v.x * 0.5 * Room.w, v.y * 0.5 * Room.h, v.z);
+				});
 				triProjected.dp = dp;
 				trisToRaster.push(triProjected);
 			}
@@ -324,8 +324,8 @@ class Cube extends BranthObject3D {
 				this.yto = -2;
 			}
 		}
-		this.rxto += Time.deltaTime * 0.07;
-		this.rzto += Time.deltaTime * 0.058;
+		// this.rxto += Time.deltaTime * 0.07;
+		// this.rzto += Time.deltaTime * 0.058;
 		this.x = Math.lerp(this.x, this.xto, 0.2);
 		this.y = Math.lerp(this.y, this.yto, 0.2);
 		this.z = Math.lerp(this.z, this.zto, 0.2);

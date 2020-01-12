@@ -27,7 +27,11 @@ class Mat4x4 {
 		const m = new Mat4x4();
 		for (let c = 0; c < 4; c++) {
 			for (let r = 0; r < 4; r++) {
-				m.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][r] * m2.m[1][c] + m1.m[r][0];
+				m.m[r][c] =
+					m1.m[r][0] * m2.m[0][c] +
+					m1.m[r][1] * m2.m[1][c] +
+					m1.m[r][2] * m2.m[2][c] +
+					m1.m[r][3] * m2.m[3][c];
 			}
 		}
 		return m;
@@ -87,17 +91,11 @@ class Mat4x4 {
 }
 
 class Vector3 {
-	constructor(x, y, z, w) {
-		this.x = x || 0;
-		this.y = y || 0;
-		this.z = z || 0;
-		this.w = w || 1;
-	}
-	normalize() {
-		const l = Vector3.len(this);
-		this.x /= l;
-		this.y /= l;
-		this.z /= l;
+	constructor(x = 0, y = 0, z = 0, w = 1) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
 	}
 	static add(v1, v2) {
 		return new Vector3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
@@ -114,9 +112,6 @@ class Vector3 {
 	static dot(v1, v2) {
 		return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 	}
-	static len(v) {
-		return Math.sqrt(Vector3.dot(v, v));
-	}
 	static cross(v1, v2) {
 		return new Vector3(
 			v1.y * v2.z - v1.z * v2.y,
@@ -124,21 +119,28 @@ class Vector3 {
 			v1.x * v2.y - v1.y * v2.x
 		);
 	}
+	static len(v) {
+		return Math.sqrt(Vector3.dot(v, v));
+	}
+	static normalize(v) {
+		const l = Vector3.len(v);
+		return Vector3.div(v, l);
+	}
 }
 
 class Triangle {
 	constructor(...v) {
 		this.p = [];
-		if (v.length >= 3) {
+		if (v.length > 2) {
 			this.p.push(new Vector3(v[0].x, v[0].y, v[0].z));
 			this.p.push(new Vector3(v[1].x, v[1].y, v[1].z));
 			this.p.push(new Vector3(v[2].x, v[2].y, v[2].z));
 		}
 		else {
 			this.p = [
-				new Vector3(0, 0, 0),
-				new Vector3(0, 0, 0),
-				new Vector3(0, 0, 0)
+				new Vector3(),
+				new Vector3(),
+				new Vector3()
 			];
 		}
 	}
@@ -168,7 +170,7 @@ class Mesh {
 	}
 }
 
-const CAMERA = new Vector3(0, 0, 0);
+const CAMERA = new Vector3();
 const MAT_PROJ = Mat4x4.makeProjection(90, Room.h / Room.w, 0.1, 1000);
 
 class BranthObject3D extends BranthObject {
@@ -199,9 +201,11 @@ class BranthObject3D extends BranthObject {
 		return Mat4x4.makeTranslation(this.x, this.y, this.z);
 	}
 	render() {
-		let matWorld = Mat4x4.makeIdentity();
-		matWorld = Mat4x4.multiplyMatrix(this.matRz, this.matRx);
+		let matWorld;
+		matWorld = Mat4x4.multiplyMatrix(this.matRx, this.matRy);
+		matWorld = Mat4x4.multiplyMatrix(matWorld, this.matRz);
 		matWorld = Mat4x4.multiplyMatrix(matWorld, this.matTrans);
+		const trisToRaster = [];
 		for (const tri of this.mesh.tris) {
 			const triTransformed = new Triangle(
 				new Vector3(Mat4x4.multiplyVector(matWorld, tri.p[0])),
@@ -210,35 +214,43 @@ class BranthObject3D extends BranthObject {
 			);
 			const line1 = Vector3.sub(triTransformed.p[1], triTransformed.p[0]);
 			const line2 = Vector3.sub(triTransformed.p[2], triTransformed.p[0]);
-			const normal = Vector3.cross(line1, line2);
-			normal.normalize();
+			const normal = Vector3.normalize(Vector3.cross(line1, line2));
 			const cameraRay = Vector3.sub(triTransformed.p[0], CAMERA);
 			if (Vector3.dot(normal, cameraRay) < 0) {
-				const light = new Vector3(0, 0, -1);
-				light.normalize();
+				const light = Vector3.normalize(new Vector3(0, 0, -1));
 				const dp = Math.max(0.1, Vector3.dot(light, normal));
 				const triProjected = new Triangle(
 					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[0]),
 					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[1]),
 					Mat4x4.multiplyVector(MAT_PROJ, triTransformed.p[2])
 				);
-				triProjected.p.map(v => v = Vector3.div(v, v.w));
+				triProjected.p.map(v => Vector3.div(v, v.w));
 				const offsetView = new Vector3(1, 1, 0);
-				triProjected.p.map(v => v = Vector3.add(v, offsetView));
+				triProjected.p.map(v => Vector3.add(v, offsetView));
 				triProjected.p[0].x *= 0.5 * Room.w;
 				triProjected.p[0].y *= 0.5 * Room.h;
 				triProjected.p[1].x *= 0.5 * Room.w;
 				triProjected.p[1].y *= 0.5 * Room.h;
 				triProjected.p[2].x *= 0.5 * Room.w;
 				triProjected.p[2].y *= 0.5 * Room.h;
-				const c = Math.abs(dp) * 200;
-				Draw.setColor(`rgb(${c}, ${c}, ${c})`);
-				Draw.polyBegin(Poly.fill);
-				Draw.vertex(triProjected.p[0].x, triProjected.p[0].y);
-				Draw.vertex(triProjected.p[1].x, triProjected.p[1].y);
-				Draw.vertex(triProjected.p[2].x, triProjected.p[2].y);
-				Draw.polyEnd();
+				triProjected.dp = dp;
+				if (Time.time < 1000) console.log(triProjected);
+				trisToRaster.push(triProjected);
 			}
+		}
+		trisToRaster.sort((t1, t2) => {
+			const z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3;
+			const z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3;
+			return z1 > z2? -1 : 1;
+		});
+		for (const tri of trisToRaster) {
+			const c = Math.abs(tri.dp) * 200;
+			Draw.setColor(`rgb(${c}, ${c}, ${c})`);
+			Draw.polyBegin(Poly.fill);
+			Draw.vertex(tri.p[0].x, tri.p[0].y);
+			Draw.vertex(tri.p[1].x, tri.p[1].y);
+			Draw.vertex(tri.p[2].x, tri.p[2].y);
+			Draw.polyEnd();
 		}
 	}
 }
@@ -262,20 +274,20 @@ class Cube extends BranthObject3D {
 		this.acc = 0.05;
 		this.mesh.tris = [
 			// SOUTH
-			new Triangle(new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)),
-			new Triangle(new Vector3(0, 0, 0), new Vector3(1, 1, 0), new Vector3(1, 0, 0)),
+			new Triangle(new Vector3(0, 0, 0), new Vector3(0, -1, 0), new Vector3(1, -1, 0)),
+			new Triangle(new Vector3(0, 0, 0), new Vector3(1, -1, 0), new Vector3(1, 0, 0)),
 			// EAST
-			new Triangle(new Vector3(1, 0, 0), new Vector3(1, 1, 0), new Vector3(1, 1, 1)),
-			new Triangle(new Vector3(1, 0, 0), new Vector3(1, 1, 1), new Vector3(1, 0, 1)),
+			new Triangle(new Vector3(1, 0, 0), new Vector3(1, -1, 0), new Vector3(1, -1, 1)),
+			new Triangle(new Vector3(1, 0, 0), new Vector3(1, -1, 1), new Vector3(1, 0, 1)),
 			// NORTH
-			new Triangle(new Vector3(1, 0, 1), new Vector3(1, 1, 1), new Vector3(0, 1, 1)),
-			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 1, 1), new Vector3(0, 0, 1)),
+			new Triangle(new Vector3(1, 0, 1), new Vector3(1, -1, 1), new Vector3(0, -1, 1)),
+			new Triangle(new Vector3(1, 0, 1), new Vector3(0, -1, 1), new Vector3(0, 0, 1)),
 			// WEST
-			new Triangle(new Vector3(0, 0, 1), new Vector3(0, 1, 1), new Vector3(0, 1, 0)),
-			new Triangle(new Vector3(0, 0, 1), new Vector3(0, 1, 0), new Vector3(0, 0, 0)),
+			new Triangle(new Vector3(0, 0, 1), new Vector3(0, -1, 1), new Vector3(0, -1, 0)),
+			new Triangle(new Vector3(0, 0, 1), new Vector3(0, -1, 0), new Vector3(0, 0, 0)),
 			// TOP
-			new Triangle(new Vector3(0, 1, 0), new Vector3(0, 1, 1), new Vector3(1, 1, 1)),
-			new Triangle(new Vector3(0, 1, 0), new Vector3(1, 1, 1), new Vector3(1, 1, 0)),
+			new Triangle(new Vector3(0, -1, 0), new Vector3(0, -1, 1), new Vector3(1, -1, 1)),
+			new Triangle(new Vector3(0, -1, 0), new Vector3(1, -1, 1), new Vector3(1, -1, 0)),
 			// BOTTOM
 			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 0, 1), new Vector3(0, 0, 0)),
 			new Triangle(new Vector3(1, 0, 1), new Vector3(0, 0, 0), new Vector3(1, 0, 0))
@@ -382,7 +394,7 @@ document.body.appendChild(file);
 
 BRANTH.start();
 Room.start('Menu');
-const scaler = 8;
+const scaler = 2;
 CANVAS.width *= scaler;
 CANVAS.height *= scaler;
 CTX.scale(scaler, scaler);

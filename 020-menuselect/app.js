@@ -34,31 +34,45 @@ class Choice extends BranthObject {
 	}
 	renderUI() {
 		const gap = Room.w * 0.05;
-		const rs = Math.sin(Time.time * 0.08) * 0.32;
-		const ss = Math.sin(Time.time * 0.015) * 0.02;
+		const rs = Math.sin(Time.time * 0.08) * 0.48;
+		const ss = Math.sin(Time.time * 0.015) * 0.034;
 		for (let y = this.items.length - 1, i = 0; y >= 0; y--, i++) {
 			const s = this.cursor === i;
-			Draw.setHVAlign(Align.r, Align.b);
-			Draw.setFont(Font.lb);
-			Draw.setColor(s? C.red : C.black);
-			const tx = Room.w - gap;
-			const ty = Room.h - gap - y * Font.size * 1.2;
+			Draw.setFont(Font.xlb);
+			Draw.setHVAlign(Align.c, Align.m);
+			const tt = this.items[i];
+			const tw = Draw.textWidth(tt);
+			const th = Draw.textHeight(tt);
+			const tx = Room.w - gap - tw * 0.5;
+			const ty = Room.h - gap - y * Font.size * 1.2 - th * 0.5;
 			if (s) {
+				const c = CTX.createLinearGradient(Room.w - gap * 0.5, ty - th * 0.65, -Room.w * 0.25, th);
+				c.addColorStop(0, `rgba(0, 0, 0, 0.5)`);
+				c.addColorStop(0.3, `rgba(255, 255, 255, 0)`);
+				Draw.setColor(c);
+				Draw.rect(Room.w - gap * 0.5, ty - th * 0.8, -Room.w * 0.25, th * 1.4);
+				Draw.setColor(C.white);
+				Draw.setShadow(0, 4, 5, `rgba(255, 0, 0, 0.5)`);
 				Draw.save();
 				Draw.translate(tx, ty);
 				Draw.rotate(rs);
 				Draw.scale(1 + ss);
-				Draw.text(0, 0, this.items[i]);
+				Draw.text(0, 0, tt);
 				Draw.restore();
+				Draw.resetShadow();
 			}
 			else {
-				Draw.text(tx, ty, this.items[i]);
+				Draw.setColor(C.black);
+				Draw.text(tx, ty, tt);
 			}
 		}
 		Draw.setHVAlign(Align.l, Align.t);
 		Draw.setFont(Font.m);
 		Draw.setColor(C.black);
 		Draw.text(32, 32, `Cursor: ${this.cursor}`);
+		Draw.setHVAlign(Align.c, Align.t);
+		Draw.setFont(Font.xxlb);
+		Draw.text(Room.mid.w, 32, 'Menu Select');
 	}
 }
 

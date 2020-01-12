@@ -681,22 +681,34 @@ const C = {
 
 const Font = {
 	get s() {
-		return `${16 * CanvasScaler.auto}px`;
+		return `${16}px`;
 	},
 	get m() {
-		return `${24 * CanvasScaler.auto}px`;
+		return `${24}px`;
 	},
 	get l() {
-		return `${36 * CanvasScaler.auto}px`;
+		return `${36}px`;
+	},
+	get xl() {
+		return `${52}px`;
+	},
+	get xxl() {
+		return `${80}px`;
 	},
 	get sb() {
-		return `bold ${16 * CanvasScaler.auto}px`;
+		return `bold ${16}px`;
 	},
 	get mb() {
-		return `bold ${24 * CanvasScaler.auto}px`;
+		return `bold ${24}px`;
 	},
 	get lb() {
-		return `bold ${36 * CanvasScaler.auto}px`;
+		return `bold ${36}px`;
+	},
+	get xlb() {
+		return `bold ${52}px`;
+	},
+	get xxlb() {
+		return `bold ${80}px`;
 	},
 	get size() {
 		return +CTX.font.split(' ').filter(x => x.includes('px'))[0].split('px').shift();
@@ -854,8 +866,23 @@ const Draw = {
 	setFont(font) {
 		CTX.font = `${font} ${DEFAULT_FONT}`;
 	},
+	setShadow(x, y, b, c) {
+		CTX.shadowBlur = b || 0;
+		CTX.shadowColor = c || C.black;
+		CTX.shadowOffsetX = x;
+		CTX.shadowOffsetY = y;
+	},
+	resetShadow() {
+		this.setShadow(0, 0, 0, C.black);
+	},
 	text(x, y, text) {
 		CTX.fillText(text, x, y);
+	},
+	textWidth(text) {
+		return CTX.measureText(text).width;
+	},
+	textHeight(text) {
+		return Font.size;
 	},
 	draw(outline, cap) {
 		if (outline) {

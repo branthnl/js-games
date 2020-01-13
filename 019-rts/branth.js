@@ -45,7 +45,7 @@ const OBJ_DEPTH_RENDER = true;
 const DEBUG_MODE = true;
 if (!DEBUG_MODE) console.log = () => {};
 
-CANVAS.style.backgroundImage = `radial-gradient(white 33%, gainsboro, lightgray)`;
+CANVAS.style.backgroundImage = `radial-gradient(white 33%, gainsboro, lightGray)`;
 
 const CanvasScaler = {
 	get w() {
@@ -110,7 +110,7 @@ class BranthAudio {
 		const a = document.createElement('audio');
 		for (const p of paths) {
 			const ext = p.split('.').pop();
-			const type = ext === 'ogg'? 'ogg' : (ext === 'mp3'? 'mpeg' : null);
+			const type = ext === 'ogg'? 'ogg' : (ext === 'mp3'? 'mpeg' : (ext === 'wav'? 'wav' : null));
 			if (type === null) {
 				console.log(`Audio file extension not supported: .${ext}`);
 				return;
@@ -130,7 +130,7 @@ const Audio = {
 	add(name, ...paths) {
 		for (const p of paths) {
 			const ext = p.split('.').pop();
-			if (ext !== 'ogg' && ext != 'mp3') {
+			if (ext !== 'ogg' && ext != 'mp3' && ext != 'wav') {
 				console.log(`Audio file extension not supported: .${ext}`);
 				return;
 			}
@@ -340,6 +340,7 @@ class BranthTouch extends BranthKey {
 
 const Input = {
 	list: [[], [], []],
+	mouseMove: false,
 	add(keyCode) {
 		this.list[0].push(new BranthKey(keyCode));
 	},
@@ -349,6 +350,7 @@ const Input = {
 				j.reset();
 			}
 		}
+		this.mouseMove = false;
 	},
 	getKey(keyCode) {
 		for (const k of this.list[0]) {
@@ -406,6 +408,7 @@ const Input = {
 		const b = CANVAS.getBoundingClientRect();
 		this.mousePosition.x = e.clientX - b.x;
 		this.mousePosition.y = e.clientY - b.y;
+		this.mouseMove = true;
 	},
 	eventmouseup(e) {
 		this.updateMousePosition(e);
@@ -681,13 +684,34 @@ const C = {
 
 const Font = {
 	get s() {
-		return `${16 * CanvasScaler.auto}px`;
+		return `${16}px`;
 	},
 	get m() {
-		return `${24 * CanvasScaler.auto}px`;
+		return `${24}px`;
 	},
 	get l() {
-		return `${36 * CanvasScaler.auto}px`;
+		return `${36}px`;
+	},
+	get xl() {
+		return `${52}px`;
+	},
+	get xxl() {
+		return `${80}px`;
+	},
+	get sb() {
+		return `bold ${16}px`;
+	},
+	get mb() {
+		return `bold ${24}px`;
+	},
+	get lb() {
+		return `bold ${36}px`;
+	},
+	get xlb() {
+		return `bold ${52}px`;
+	},
+	get xxlb() {
+		return `bold ${80}px`;
 	},
 	get size() {
 		return +CTX.font.split(' ').filter(x => x.includes('px'))[0].split('px').shift();
@@ -845,8 +869,23 @@ const Draw = {
 	setFont(font) {
 		CTX.font = `${font} ${DEFAULT_FONT}`;
 	},
+	setShadow(x, y, b, c) {
+		CTX.shadowBlur = b || 0;
+		CTX.shadowColor = c || C.black;
+		CTX.shadowOffsetX = x;
+		CTX.shadowOffsetY = y;
+	},
+	resetShadow() {
+		this.setShadow(0, 0, 0, C.black);
+	},
 	text(x, y, text) {
 		CTX.fillText(text, x, y);
+	},
+	textWidth(text) {
+		return CTX.measureText(text).width;
+	},
+	textHeight(text) {
+		return Font.size;
 	},
 	draw(outline, cap) {
 		if (outline) {
@@ -1585,10 +1624,17 @@ const Emitter = {
 };
 
 class BranthRoom {
-	constructor(name, w, h) {
+	constructor(name) {
 		this.name = name;
-		this.w = w;
-		this.h = h;
+		this.w = 300;
+		this.h = 150;
+	}
+	resize() {
+		const b = CANVAS.getBoundingClientRect();
+		this.w = b.width;
+		this.h = b.height;
+		CANVAS.width = this.w;
+		CANVAS.height = this.h;
 	}
 	start() {}
 	update() {}
@@ -1610,7 +1656,7 @@ const Room = {
 		return this._name;
 	},
 	get current() {
-		return this.list[this.id] || new BranthRoom(this._name, CANVAS.width, CANVAS.height);
+		return this.list[this.id] || new BranthRoom(this._name);
 	},
 	get previous() {
 		return this.list[this.names.indexOf(this._prevName)] || this.current;
@@ -1630,12 +1676,14 @@ const Room = {
 	add(room) {
 		this.list.push(room);
 	},
+	resize() {
+		this.current.resize();
+	},
 	start(name) {
 		if (this.names.includes(name)) {
 			this._prevName = this._name;
 			this._name = name;
-			CANVAS.width = this.w;
-			CANVAS.height = this.h;
+			this.resize();
 			OBJ.clearAll();
 			Input.reset();
 			this.current.start();
@@ -1705,6 +1753,9 @@ const BRANTH = {
 			Input.eventtouchstart(e);
 		});
 		PARENT.appendChild(CANVAS);
+		window.addEventListener('resize', () => {
+			Room.resize();
+		});
 		this.update();
 	},
 	update: function(t) {

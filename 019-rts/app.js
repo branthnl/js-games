@@ -1,81 +1,242 @@
-Draw.add('isoDemo', 'iso_demo.png', 8, 8, 40, 40);
+const Game = new BranthRoom('Game');
+Room.add(Game);
 
-class Vector2 {
-	constructor(x, y) {
+class Point {
+	constructor(x = 0, y = 0) {
 		this.x = x;
 		this.y = y;
 	}
 }
 
-const WorldSprite = [];
-const WorldSize = new Vector2(14, 13);
-const TileSize = new Vector2(40, 20);
-const Origin = new Vector2(7, 6);
-
-const Menu = new BranthRoom('Menu', 640, 640);
-const Game = new BranthRoom('Game', 640, 640);
-Room.add(Menu);
-Room.add(Game);
-
-Menu.update = () => {
-	if (Input.keyDown(KeyCode.Enter)) {
-		Room.start('Game');
+class Line {
+	constructor(p1, p2) {
+		this.p = [p1, p2];
+	}
+	intersect(line) {
+		const p1 = this.p[0], p2 = this.p[1], p3 = line.p[0], p4 = line.p[1];
+		const s1 = new Point(p2.x - p1.x, p2.y - p1.y);
+		const s2 = new Point(p4.x - p3.x, p4.y - p3.y);
+		const s = (-s1.y * (p1.x - p3.x) + s1.x * (p1.y - p3.y)) / (-s2.x * s1.y + s1.x * s2.y);
+		const t = (s2.x * (p1.y - p3.y) - s2.y * (p1.x - p3.x)) / (-s2.x * s1.y + s1.x * s2.y);
+		if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+			return new Point(p1.x + (t * s1.x), p1.y + (t * s1.y));
+		}
+		return null;
 	}
 }
 
-const ToScreen = (x, y) => new Vector2(
-	(Origin.x * TileSize.x) + (x - y) * (TileSize.x * 0.5),
-	(Origin.y * TileSize.y) + (x + y) * (TileSize.y * 0.5)
-);
-
-Game.start = () => {
-	for (let y = 0; y < WorldSize.y; y++) {
-		for (let x = 0; x < WorldSize.x; x++) {
-			WorldSprite.push(Math.irange(4, 8));
-		}
+const World = {
+	x: 0,
+	y: 0,
+	ws: 2400,
+	get hs() {
+		return this.ws;
+	},
+	scale: 1,
+	get w() {
+		return Math.floor(this.ws * this.scale);
+	},
+	get h() {
+		return Math.floor(this.hs * this.scale);
+	},
+	xto: 0,
+	yto: 0,
+	scaleTo: 1,
+	scaleMin: 0.8,
+	scaleMax: 2,
+	update() {
+		this.x += 0.2 * (this.xto - this.x);
+		this.y += 0.2 * (this.yto - this.y);
+		this.scale += 0.2 * (Math.clamp(this.scaleTo, this.scaleMin, this.scaleMax) - this.scale);
 	}
-}
+};
 
-Game.render = () => {
-	for (let y = 0; y < WorldSize.y; y++) {
-		for (let x = 0; x < WorldSize.x; x++) {
-			const World = ToScreen(x, y);
-			Draw.sprite('isoDemo', WorldSprite[y * WorldSize.x + x], World.x, World.y, Draw.origin(TileSize.x * 0.5, TileSize.y));
-		}
+const Tile = {
+	ws: 40,
+	get hs() {
+		return this.ws * 0.5;
+	},
+	get w() {
+		return this.ws * World.scale;
+	},
+	get h() {
+		return this.hs * World.scale;
 	}
-	Draw.setColor(C.black);
-	Draw.circle(Origin.x * TileSize.x, Origin.y * TileSize.y, 4);
-	const m = Input.screenToWorldPoint(Input.mousePosition);
-	const Mouse = new Vector2(m.x, m.y);
-	const Cell = new Vector2(Math.floor((Mouse.x + TileSize.x * 0.5) / TileSize.x), Math.floor(Mouse.y / TileSize.y));
-	const Offset = new Vector2(Mouse.x % TileSize.x, Mouse.y % TileSize.y);
-	const Selected = new Vector2(
-		(Cell.y - Origin.y) + (Cell.x - Origin.x),
-		(Cell.y - Origin.y) - (Cell.x - Origin.x)
-	);
+};
+
+const MapUI = {
+	x: 5,
+	w: 200,
+	get h() {
+		return this.w;
+	},
+	get y() {
+		return Room.h - 5 - this.h;
+	},
+	get smallRectW() {
+		return Room.w / World.w * this.w;
+	},
+	get smallRectH() {
+		return Room.h / World.h * this.h;
+	},
+	get smallRectX() {
+		return this.x + (-World.x / (World.w - Room.w)) * (this.w - this.smallRectW);
+	},
+	get smallRectY() {
+		return this.y + (-World.y / (World.h - Room.h)) * (this.h - this.smallRectH);
+	}
+};
+
+Game.update = () => {
+	const spd = Tile.ws;
 	if (Input.keyHold(KeyCode.Up)) {
-		Selected.y--;
+		World.yto -= spd;
 	}
 	if (Input.keyHold(KeyCode.Left)) {
-		Selected.x--;
+		World.xto -= spd;
 	}
 	if (Input.keyHold(KeyCode.Down)) {
-		Selected.y++;
+		World.yto += spd;
 	}
 	if (Input.keyHold(KeyCode.Right)) {
-		Selected.x++;
+		World.xto += spd;
 	}
-	const SelectedWorld = ToScreen(Selected.x, Selected.y);
-	Draw.sprite('isoDemo', 0, SelectedWorld.x, SelectedWorld.y, Draw.origin(TileSize.x * 0.5, TileSize.y));
-	Draw.setColor(C.red);
-	Draw.rect(Cell.x * TileSize.x - TileSize.x * 0.5, Cell.y * TileSize.y, TileSize.x, TileSize.y, true);
+	if (Input.keyHold(KeyCode.Z)) {
+		World.scaleTo = Math.min(World.scaleMax, World.scaleTo + 0.1);
+	}
+	if (Input.keyHold(KeyCode.X)) {
+		World.scaleTo = Math.max(World.scaleMin, World.scaleTo - 0.1);
+	}
+	World.update();
+};
+
+Game.render = () => {
+	const w = {
+		x: World.x,
+		y: World.y,
+		w: World.w,
+		h: World.h
+	};
+	const t = {
+		w: Tile.w,
+		h: Tile.h
+	};
+	for (let x = 0; x < w.w; x += t.w) {
+		for (let y = 0; y < w.h; y += t.h) {
+			const b = {
+				x: w.x + x,
+				y: w.y + y
+			};
+			CTX.beginPath();
+			CTX.moveTo(b.x + t.w * 0.5, b.y);
+			CTX.lineTo(b.x + t.w, b.y + t.h * 0.5);
+			CTX.lineTo(b.x + t.w * 0.5, b.y + t.h);
+			CTX.lineTo(b.x, b.y + t.h * 0.5);
+			CTX.closePath();
+			Draw.setColor(C.black);
+			CTX.stroke();
+		}
+	}
+	const m = Input.screenToWorldPoint(Input.mousePosition);
+	m.x -= World.x;
+	m.y -= World.y;
+	const c = {
+		wr: Math.floor(m.x / Tile.w),
+		wc: Math.floor(m.y / Tile.h),
+		or: 0,
+		oc: 0,
+		get r() {
+			return this.wr + this.wc + this.or;
+		},
+		get c() {
+			return this.wc - this.wr + this.oc;
+		},
+		get x() {
+			return this.r * t.w * 0.5 - this.c * t.w * 0.5;
+		},
+		get y() {
+			return this.c * t.h * 0.5 + this.r * t.h * 0.5;
+		}
+	};
+	const b = {
+		get x() {
+			return w.x + c.x;
+		},
+		get y() {
+			return w.y + c.y;
+		}
+	};
+	// Cell point
+	const cp = [
+		new Point(b.x + t.w * 0.5, b.y),
+		new Point(b.x + t.w, b.y + t.h * 0.5),
+		new Point(b.x + t.w * 0.5, b.y + t.h),
+		new Point(b.x, b.y + t.h * 0.5)
+	];
+	// Mouse line
+	const ml = new Line(
+		new Point(b.x + t.w * 0.5, b.y + t.h * 0.5),
+		new Point(w.x + m.x, w.y + m.y)
+	);
+	// Intersect top right?
+	if (ml.intersect(new Line(cp[0], cp[1]))) {
+		c.oc--;
+	}
+	// Intersect bottom right?
+	else if (ml.intersect(new Line(cp[1], cp[2]))) {
+		c.or++;
+	}
+	// Intersect bottom left?
+	else if (ml.intersect(new Line(cp[2], cp[3]))) {
+		c.oc++;
+	}
+	// Intersect top left?
+	else if (ml.intersect(new Line(cp[3], cp[0]))) {
+		c.or--;
+	}
+	CTX.beginPath();
+	CTX.moveTo(b.x + t.w * 0.5, b.y);
+	CTX.lineTo(b.x + t.w, b.y + t.h * 0.5);
+	CTX.lineTo(b.x + t.w * 0.5, b.y + t.h);
+	CTX.lineTo(b.x, b.y + t.h * 0.5);
+	CTX.closePath();
+	Draw.setColor(C.yellow);
+	CTX.fill();
+	Draw.setFont(Font.sb);
 	Draw.setColor(C.black);
 	Draw.setHVAlign(Align.l, Align.t);
-	Draw.setFont(Font.s);
-	Draw.text(4, 4, `Mouse: ${Math.floor(Mouse.x)}, ${Math.floor(Mouse.y)}`);
-	Draw.text(4, 4 + Font.size, `Cell: ${Cell.x}, ${Cell.y}`);
-	Draw.text(4, 4 + Font.size * 2, `Selected: ${Selected.x}, ${Selected.y}`);
-}
+	Draw.text(16, 16, `Cell: ${c.r}, ${c.c}`);
+	// Draw line intersection
+	Draw.setColor(C.blue);
+	Draw.line(cp[0].x, cp[0].y, cp[1].x, cp[1].y);
+	Draw.setColor(C.green);
+	Draw.line(cp[1].x, cp[1].y, cp[2].x, cp[2].y);
+	Draw.setColor(C.blue);
+	Draw.line(cp[2].x, cp[2].y, cp[3].x, cp[3].y);
+	Draw.setColor(C.green);
+	Draw.line(cp[3].x, cp[3].y, cp[0].x, cp[0].y);
+	Draw.setColor(C.red);
+	Draw.circle(ml.p[0].x, ml.p[0].y, 2);
+	Draw.line(ml.p[0].x, ml.p[0].y, ml.p[1].x, ml.p[1].y);
+};
+
+Game.renderUI = () => {
+	Draw.setColor(C.brown);
+	Draw.setLineWidth(10);
+	Draw.rect(MapUI.x, MapUI.y, MapUI.w, MapUI.h, true);
+	Draw.resetLineWidth();
+	Draw.setColor(C.gray);
+	Draw.draw();
+	Draw.setColor(C.black);
+	Draw.rect(MapUI.smallRectX, MapUI.smallRectY, MapUI.smallRectW, MapUI.smallRectH);
+	Draw.setFont(Font.sb);
+	Draw.setColor(C.black);
+	Draw.setHVAlign(Align.r, Align.b);
+	Draw.text(Room.w - 16, Room.h - 16, `(${Math.floor(Room.w)}, ${Math.floor(Room.h)})`);
+	Draw.setHVAlign(Align.c, Align.m);
+	Draw.text(World.x, World.y, `(${Math.floor(World.x)}, ${Math.floor(World.y)})`);
+	Draw.text(World.x + World.w * 0.5, World.y, `(${Math.floor(World.w)})`);
+};
 
 BRANTH.start();
 Room.start('Game');

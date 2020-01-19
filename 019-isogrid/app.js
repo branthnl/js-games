@@ -148,6 +148,8 @@ Game.render = () => {
 	const m = Input.screenToWorldPoint(Input.mousePosition);
 	m.x -= World.x;
 	m.y -= World.y;
+	m.x = Math.clamp(m.x, Tile.w * 0.5, World.w - Tile.w * 0.5);
+	m.y = Math.clamp(m.y, Tile.h * 0.5, World.h - Tile.h * 0.5);
 	const c = {
 		wr: Math.floor(m.x / Tile.w),
 		wc: Math.floor(m.y / Tile.h),

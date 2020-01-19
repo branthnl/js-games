@@ -231,14 +231,32 @@ Game.render = () => {
 };
 
 Game.renderUI = () => {
-	Draw.setColor(C.brown);
-	Draw.setLineWidth(10);
-	Draw.rect(MapUI.x, MapUI.y, MapUI.w, MapUI.h, true);
-	Draw.resetLineWidth();
 	Draw.setColor(C.gray);
-	Draw.draw();
+	Draw.rect(MapUI.x, MapUI.y, MapUI.w, MapUI.h);
+	const smRectPoints = [{
+		x: Math.clamp(MapUI.smallRectX, MapUI.x, MapUI.x + MapUI.w),
+		y: Math.clamp(MapUI.smallRectY, MapUI.y, MapUI.y + MapUI.h)
+	}];
+	smRectPoints.push({
+		x: Math.clamp(MapUI.smallRectX + MapUI.smallRectW, MapUI.x, MapUI.x + MapUI.w),
+		y: Math.clamp(MapUI.smallRectY, MapUI.y, MapUI.y + MapUI.h)
+	});
+	smRectPoints.push({
+		x: Math.clamp(MapUI.smallRectX + MapUI.smallRectW, MapUI.x, MapUI.x + MapUI.w),
+		y: Math.clamp(MapUI.smallRectY + MapUI.smallRectH, MapUI.y, MapUI.y + MapUI.h)
+	});
+	smRectPoints.push({
+		x: Math.clamp(MapUI.smallRectX, MapUI.x, MapUI.x + MapUI.w),
+		y: Math.clamp(MapUI.smallRectY + MapUI.smallRectH, MapUI.y, MapUI.y + MapUI.h)
+	});
 	Draw.setColor(C.black);
-	Draw.rect(MapUI.smallRectX, MapUI.smallRectY, MapUI.smallRectW, MapUI.smallRectH);
+	CTX.beginPath();
+	CTX.moveTo(smRectPoints[0].x, smRectPoints[0].y);
+	CTX.lineTo(smRectPoints[1].x, smRectPoints[1].y);
+	CTX.lineTo(smRectPoints[2].x, smRectPoints[2].y);
+	CTX.lineTo(smRectPoints[3].x, smRectPoints[3].y);
+	CTX.closePath();
+	CTX.stroke();
 	Draw.setFont(Font.sb);
 	Draw.setColor(C.black);
 	Draw.setHVAlign(Align.r, Align.b);

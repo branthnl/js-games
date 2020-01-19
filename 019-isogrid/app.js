@@ -90,16 +90,16 @@ const MapUI = {
 Game.update = () => {
 	const spd = Tile.ws;
 	if (Input.keyHold(KeyCode.Up)) {
-		World.yto -= spd;
-	}
-	if (Input.keyHold(KeyCode.Left)) {
-		World.xto -= spd;
-	}
-	if (Input.keyHold(KeyCode.Down)) {
 		World.yto += spd;
 	}
-	if (Input.keyHold(KeyCode.Right)) {
+	if (Input.keyHold(KeyCode.Left)) {
 		World.xto += spd;
+	}
+	if (Input.keyHold(KeyCode.Down)) {
+		World.yto -= spd;
+	}
+	if (Input.keyHold(KeyCode.Right)) {
+		World.xto -= spd;
 	}
 	if (Input.keyHold(KeyCode.Z)) {
 		World.scaleTo = Math.min(World.scaleMax, World.scaleTo + 0.1);

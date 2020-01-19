@@ -89,16 +89,20 @@ const MapUI = {
 
 Game.update = () => {
 	const spd = Tile.ws;
-	if (Input.keyHold(KeyCode.Up)) {
+	const keyUp = Input.keyHold(KeyCode.Up);
+	const keyDown = Input.keyHold(KeyCode.Down);
+	const keyLeft = Input.keyHold(KeyCode.Left);
+	const keyRight = Input.keyHold(KeyCode.Right);
+	if (keyUp) {
 		World.yto += spd;
 	}
-	if (Input.keyHold(KeyCode.Left)) {
-		World.xto += spd;
-	}
-	if (Input.keyHold(KeyCode.Down)) {
+	if (keyDown) {
 		World.yto -= spd;
 	}
-	if (Input.keyHold(KeyCode.Right)) {
+	if (keyLeft) {
+		World.xto += spd;
+	}
+	if (keyRight) {
 		World.xto -= spd;
 	}
 	if (Input.keyHold(KeyCode.Z)) {
@@ -107,6 +111,10 @@ Game.update = () => {
 	if (Input.keyHold(KeyCode.X)) {
 		World.scaleTo = Math.max(World.scaleMin, World.scaleTo - 0.1);
 	}
+	const isHold = keyUp || keyDown || keyLeft || keyRight;
+	const gap = isHold? 180 : 150;
+	World.xto = Math.clamp(World.xto, -World.w + Room.w - gap, gap);
+	World.yto = Math.clamp(World.yto, -World.h + Room.h - gap, gap);
 	World.update();
 };
 

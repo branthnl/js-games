@@ -9,7 +9,7 @@ const Tile = {
 const Grid = {
 	g: [],
 	r: 40,
-	c: 40,
+	c: 25,
 	get mid() {
 		return {
 			r: this.r * 0.5,
@@ -74,6 +74,16 @@ OBJ.add(Barbarian);
 Game.start = () => {
 	const n = new TownHall(Grid.mid.r, Grid.mid.c);
 	OBJ.push(TownHall, n);
+};
+
+Game.render = () => {
+	for (let r = 0; r < Grid.r; r++) {
+		for (let c = 0; c < Grid.c; c++) {
+			const b = getTileFromGrid(r, c);
+			Draw.setColor(C.black);
+			Draw.rect(b.x, b.y, Tile.w, Tile.h, true);
+		}
+	}
 };
 
 BRANTH.start();

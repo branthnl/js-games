@@ -1,0 +1,21 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	position: relative;
+	width: 100vw;
+	height: 100vh;
+}
+
+canvas {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 56.25vh;
+	height: 100%;
+	max-width: 100%;
+	max-height: 177.78vw;
+}

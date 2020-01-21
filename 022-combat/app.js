@@ -42,11 +42,17 @@ const getTileFromGrid = (r, c) => {
 	};
 };
 
-const getTileFromScreen = (x, y) => {
+const getTileFromScreen = (x, y, round) => {
+	if (round === false) {
+		return {
+			r: (x - World.x) / Tile.w,
+			c: (y - World.y) / Tile.h
+		};
+	}
 	return {
 		r: Math.floor((x - World.x) / Tile.w),
 		c: Math.floor((y - World.y) / Tile.h)
-	}
+	};
 };
 
 for (let i = 0; i < Grid.r; i++) {
@@ -78,14 +84,40 @@ OBJ.add(TownHall);
 class Barbarian extends BranthBehaviour {
 	constructor(r, c) {
 		super(0, 0);
+		this._target = null;
 		this.r = r;
 		this.c = c;
+		this.spd = 0.05;
+		this.range = 1;
 		this.update();
+	}
+	set target(value) {
+		if (value instanceof TownHall) {
+			const o = Math.lendir(this.range * Math.hypot(Tile.w, Tile.h), Math.pointdir(value.x, value.y, this.x, this.y));
+			const b = getTileFromScreen(value.x + o.x, value.y + o.y, false);
+			console.log(b);
+			this._target = {
+				r: b.r,
+				c: b.c
+			};
+		}
+	}
+	get target() {
+		return this._target;
 	}
 	update() {
 		const b = getTileFromGrid(this.r, this.c);
 		this.x = b.x;
 		this.y = b.y;
+		if (this.target !== null) {
+			const rdif = this.target.r - this.r;
+			const cdif = this.target.c - this.c;
+			this.r += Math.min(Math.abs(rdif), this.spd) * Math.sign(rdif);
+			this.c += Math.min(Math.abs(cdif), this.spd) * Math.sign(cdif);
+		}
+		else {
+			this.target = OBJ.take(TownHall)[0];
+		}
 	}
 	render() {
 		Draw.setColor(C.blue);

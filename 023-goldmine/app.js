@@ -36,13 +36,27 @@ const World = {
 	get y() {
 		return 4 * Tile.h;
 	},
+	get w() {
+		return Grid.c * Tile.w;
+	},
+	get h() {
+		return Grid.r * Tile.h;
+	},
 	fromGrid(c, r) {
 		return {
 			x: this.x + c * Tile.w,
 			y: this.y + r * Tile.h
 		};
 	},
-	fromScreen(x, y) {
+	fromScreen(x, y, round) {
+		x -= this.x;
+		y -= this.y;
+		if (round === true) {
+			return {
+				c: Math.floor(x / Tile.w),
+				r: Math.floor(y / Tile.h)
+			};
+		}
 		return {
 			c: x / Tile.w,
 			r: y / Tile.h
@@ -62,9 +76,35 @@ const World = {
 class Gold extends BranthObject {
 	render() {
 		Draw.setColor(C.gold);
-		Draw.roundRect(this.x, this.y, Tile.w, Tile.h, );
+		Draw.roundRect(this.x + 1, this.y + 1, Tile.w - 2, Tile.h - 2, 4);
 	}
 }
+OBJ.add(Gold);
+
+class Boom extends BranthBehaviour {
+	start() {
+		const b = World.fromScreen(this.x, this.y, true);
+		if (b.c >= 0 && b.c < Grid.c && b.r >= 0 && b.r < Grid.r) {
+			if (Grid.g[b.c][b.r] instanceof Gold) {
+				Game.gold++;
+				OBJ.destroy(Grid.g[b.c][b.r].id);
+			}
+		}
+		this.alarm[0] = 60;
+	}
+	alarm0() {
+		OBJ.destroy(this.id);
+	}
+	render() {
+		Emitter.preset('sparkle');
+		Emitter.setArea(this.x - Tile.w * 0.5, this.x + Tile.w * 0.5, this.y - Tile.h * 0.5, this.y + Tile.h * 0.5);
+		Emitter.setColor(C.gold);
+		Emitter.emit(1);
+		Emitter.setColor(C.lemonChiffon);
+		Emitter.emit(1);
+	}
+}
+OBJ.add(Boom);
 
 class Pickaxe extends BranthObject {
 	constructor(x, y, target, rot) {
@@ -99,8 +139,8 @@ class Pickaxe extends BranthObject {
 			this.y += Math.lendiry(l, d);
 		}
 		else {
+			OBJ.create(Boom, this.x, this.y);
 			OBJ.destroy(this.id);
-			console.log('boom!');
 		}
 		this.rot += this.rotSpd;
 	}
@@ -204,8 +244,16 @@ Menu.renderUI = () => {
 	Draw.text(Room.mid.w, Room.mid.h, 'Tap anywhere to start');
 };
 
+Game.gold = 0;
 Game.start = () => {
+	Game.gold = 0;
 	Grid.start();
+	for (let c = 0; c < Grid.c; c++) {
+		for (let r = 0; r < Grid.r; r++) {
+			const b = World.fromGrid(c, r, true);
+			Grid.g[c][r] = OBJ.create(Gold, b.x, b.y);
+		}
+	}
 	OBJ.create(Miner, Room.mid.w, 32);
 };
 
@@ -214,7 +262,14 @@ Game.render = () => {
 };
 
 Game.renderUI = () => {
-	Draw.text(Room.w - 8, Room.h - 8, '8');
+	Draw.setFont(Font.lb);
+	Draw.setColor(C.gold);
+	Draw.setShadow(0, 2, 2, C.black);
+	Draw.setHVAlign(Align.l, Align.t);
+	Draw.text(16, 16, Game.gold);
+	Draw.resetShadow();
+	Draw.setColor(C.white);
+	Draw.text(16, 14, Game.gold);
 };
 
 BRANTH.start();

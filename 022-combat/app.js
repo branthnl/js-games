@@ -148,14 +148,16 @@ OBJ.add(Barbarian);
 Game.start = () => {
 	const n = new TownHall(Grid.mid.r, Grid.mid.c);
 	OBJ.push(TownHall, n);
+	this.unitAmount = 8;
 };
 
 Game.update = () => {
-	if (Input.mouseDown(0)) {
+	if (Input.mouseDown(0) && this.unitAmount > 0) {
 		const m = Input.screenToWorldPoint(Input.mousePosition);
 		const b = getTileFromScreen(m.x, m.y);
 		const n = new Barbarian(b.r + 0.5, b.c + 0.5);
 		OBJ.push(Barbarian, n);
+		this.unitAmount--;
 	}
 };
 
@@ -167,6 +169,13 @@ Game.render = () => {
 			Draw.rect(b.x, b.y, Tile.w, Tile.h, true);
 		}
 	}
+};
+
+Game.renderUI = () => {
+	Draw.setFont(Font.m);
+	Draw.setColor(C.black);
+	Draw.setHVAlign(Align.c, Align.m);
+	Draw.text(32, Room.h - 32, this.unitAmount);
 };
 
 BRANTH.start();

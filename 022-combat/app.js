@@ -68,6 +68,7 @@ class TownHall extends BranthBehaviour {
 		this.r = r;
 		this.c = c;
 		this.hp = 1000;
+		this.fullHp = 1000;
 		this.update();
 	}
 	update() {
@@ -80,10 +81,17 @@ class TownHall extends BranthBehaviour {
 		Draw.circle(this.x, this.y, Math.max(Tile.w, Tile.h));
 	}
 	renderUI() {
-		Draw.setFont(Font.m);
+		const s = Math.max(0, this.hp / this.fullHp);
+		const bar = {
+			x: this.x,
+			y: this.y - 48,
+			w: 100,
+			h: 10
+		};
 		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.b);
-		Draw.text(this.x, this.y - 12, Math.floor(this.hp));
+		Draw.roundRect(bar.x - bar.w * 0.5 - 1, bar.y - 0.5, bar.w + 2, bar.h + 2, 2);
+		Draw.setColor(C.blueViolet);
+		Draw.roundRect(bar.x - bar.w * 0.5, bar.y, bar.w * s, bar.h, 2);
 	}
 }
 OBJ.add(TownHall);
@@ -172,10 +180,14 @@ Game.render = () => {
 };
 
 Game.renderUI = () => {
-	Draw.setFont(Font.m);
-	Draw.setColor(C.black);
+	Draw.setColor(C.dodgerBlue);
+	Draw.roundRect(0, Room.h - 64, 64, 64, 8);
+	Draw.setFont(Font.mb);
+	Draw.setColor(C.white);
 	Draw.setHVAlign(Align.c, Align.m);
-	Draw.text(32, Room.h - 32, this.unitAmount);
+	Draw.setShadow(0, 2, 2, C.black);
+	Draw.text(32, Room.h - 32, `x${this.unitAmount}`);
+	Draw.resetShadow();
 };
 
 BRANTH.start();

@@ -67,6 +67,7 @@ class TownHall extends BranthBehaviour {
 		super(0, 0);
 		this.r = r;
 		this.c = c;
+		this.hp = 1000;
 		this.update();
 	}
 	update() {
@@ -78,6 +79,12 @@ class TownHall extends BranthBehaviour {
 		Draw.setColor(C.orange);
 		Draw.circle(this.x, this.y, Math.max(Tile.w, Tile.h));
 	}
+	renderUI() {
+		Draw.setFont(Font.m);
+		Draw.setColor(C.black);
+		Draw.setHVAlign(Align.c, Align.b);
+		Draw.text(this.x, this.y - 12, Math.floor(this.hp));
+	}
 }
 OBJ.add(TownHall);
 
@@ -87,6 +94,7 @@ class Barbarian extends BranthBehaviour {
 		this._target = null;
 		this.r = r;
 		this.c = c;
+		this.atk = 0.1;
 		this.spd = 0.05;
 		this.range = 1;
 		this.update();
@@ -98,8 +106,12 @@ class Barbarian extends BranthBehaviour {
 			console.log(b);
 			this._target = {
 				r: b.r,
-				c: b.c
+				c: b.c,
+				v: value
 			};
+		}
+		else {
+			this._target = null;
 		}
 	}
 	get target() {
@@ -114,6 +126,13 @@ class Barbarian extends BranthBehaviour {
 			const cdif = this.target.c - this.c;
 			this.r += Math.min(Math.abs(rdif), this.spd) * Math.sign(rdif);
 			this.c += Math.min(Math.abs(cdif), this.spd) * Math.sign(cdif);
+			if (Math.abs(rdif) + Math.abs(cdif) <= this.spd) {
+				this.target.v.hp -= this.atk;
+				if (this.target.v.hp <= 0) {
+					OBJ.destroy(this.target.v.id);
+					this.target = null;
+				}
+			}
 		}
 		else {
 			this.target = OBJ.take(TownHall)[0];

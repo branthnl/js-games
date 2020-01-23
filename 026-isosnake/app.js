@@ -459,9 +459,28 @@ class Food extends BranthGrid {
 	start() {
 		this.respawn();
 	}
-	respawn() {
+	move() {
 		this.c = Math.floor(Math.random() * Grid.c);
 		this.r = Math.floor(Math.random() * Grid.r);
+	}
+	respawn() {
+		const s = OBJ.take(Snake)[0];
+		if (s) {
+			let isMeet = true;
+			while (isMeet) {
+				this.move();
+				isMeet = false;
+				for (let i = 0; i < s.tails.length; i++) {
+					const t = s.tails[i];
+					if (this.meet(t)) {
+						isMeet = true;
+					}
+				}
+			}
+		}
+		else {
+			this.move();
+		}
 	}
 }
 
@@ -470,7 +489,10 @@ class Snake extends BranthGrid {
 		this.dc = 0;
 		this.dr = 0;
 		this.idle = true;
-		this.tails = [];
+		this.tails = [{
+			c: this.c,
+			r: this.r
+		}];
 		this.tailCount = 3;
 		this.isPressed = false;
 		this.moveInterval = 100;
@@ -520,10 +542,12 @@ class Snake extends BranthGrid {
 						this.idle = true;
 					}
 				}
-				this.tails.push({
-					c: this.c,
-					r: this.r
-				});
+				if (this.tails.length < this.tailCount + 5) {
+					this.tails.push({
+						c: this.c,
+						r: this.r
+					});
+				}
 				if (!(this.dc === 0 && this.dr === 0)) {
 					while (this.tails.length > this.tailCount) {
 						this.tails.shift();
@@ -536,7 +560,9 @@ class Snake extends BranthGrid {
 				}
 			}
 			else {
-				this.idle = false;
+				if (this.isPressed) {
+					this.idle = false;
+				}
 			}
 			this.isPressed = false;
 			this.alarm = this.moveInterval;

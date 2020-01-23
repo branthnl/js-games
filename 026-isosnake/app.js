@@ -2,14 +2,14 @@ const CANVAS = document.createElement('canvas');
 const CTX = CANVAS.getContext('2d');
 const CANVAS_SCALER = 2;
 const SCALER = {
-	w() {
-		return CANVAS.width / 720;
+	get w() {
+		return CANVAS.width / 960;
 	},
-	h() {
-		return CANVAS.height / 1280;
+	get h() {
+		return CANVAS.height / 540;
 	}
 };
-CANVAS.style.backgroundImage = 'radial-gradient(white 33%, gainsboro, lightgray)';
+CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
 
 const Time = {
 	time: 0,
@@ -98,6 +98,7 @@ for (const keyCode of Object.values(KeyCode)) {
 
 const C = {
 	black: 'black',
+	darkGreen: 'darkgreen',
 	green: 'green',
 	red: 'red',
 	white: 'white'
@@ -212,6 +213,7 @@ const OBJ = {
 	push(cls, i) {
 		if (this.classes.includes(cls)) {
 			this.list[this.classes.indexOf(cls)].push(i);
+			i.start();
 		}
 	},
 	create(cls, x, y) {
@@ -338,11 +340,11 @@ const BRANTH = {
 };
 
 const Tile = {
-	w: 40,
+	w: 20,
 	get h() {
 		return this.w * 0.5;
 	},
-	mid() {
+	get mid() {
 		return {
 			w: this.w * 0.5,
 			h: this.h * 0.5
@@ -355,7 +357,19 @@ const World = {
 		return Room.mid.w;
 	},
 	get y() {
-		return Room.h * 0.1;
+		return Room.mid.h - this.mid.h;
+	},
+	get w() {
+		return Grid.c * Tile.w;
+	},
+	get h() {
+		return Grid.r * Tile.h;
+	},
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
 	}
 };
 
@@ -389,71 +403,10 @@ const Grid = {
 	r: 40,
 	get(c, r) {
 		const g = new Point(
-			this.r * Tile.mid.w - this.c * Tile.mid.w,
-			this.c * Tile.mid.h + this.r * Tile.mid.h
+			c * Tile.mid.w - r * Tile.mid.w,
+			r * Tile.mid.h + c * Tile.mid.h
 		);
 		return new Point(World.x + g.x, World.y + g.y);
-	},
-	grid(x, y, round) {
-		return 0;
-		const r = (n) => round? Math.floor(n) : n;
-		x -= World.x;
-		y -= World.y;
-		// const g = {
-		// 	sc: r(m.x / Tile.w),
-		// 	sr: r(m.y / Tile.h),
-		// 	oc: 0,
-		// 	or: 0,
-		// 	get c() {
-		// 		return this.sc + this.sr + this.oc;
-		// 	},
-		// 	get r() {
-		// 		return this.sr - this.sc + this.or;
-		// 	}
-		// };
-		// const b = {
-		// 	get x() {
-		// 		return w.x + g.x;
-		// 	},
-		// 	get y() {
-		// 		return w.y + g.y;
-		// 	}
-		// };
-		// const cp = [
-		// 	new Point(b.x)
-		// ];
-		// // Cell points
-		// const cp = [
-		// 	new Point(b.x + t.w * 0.5, b.y),
-		// 	new Point(b.x + t.w, b.y + t.h * 0.5),
-		// 	new Point(b.x + t.w * 0.5, b.y + t.h),
-		// 	new Point(b.x, b.y + t.h * 0.5)
-		// ];
-		// // Mouse line
-		// const ml = new Line(
-		// 	new Point(b.x + t.w * 0.5, b.y + t.h * 0.5),
-		// 	new Point(w.x + m.x, w.y + m.y)
-		// );
-		// // Intersect top right?
-		// if (ml.intersect(new Line(cp[0], cp[1]))) {
-		// 	c.oc--;
-		// }
-		// // Intersect bottom right?
-		// else if (ml.intersect(new Line(cp[1], cp[2]))) {
-		// 	c.or++;
-		// }
-		// // Intersect bottom left?
-		// else if (ml.intersect(new Line(cp[2], cp[3]))) {
-		// 	c.oc++;
-		// }
-		// // Intersect top left?
-		// else if (ml.intersect(new Line(cp[3], cp[0]))) {
-		// 	c.or--;
-		// }
-		return {
-			c: g.c,
-			r: g.r
-		};
 	},
 	tilePath(x, y) {
 		if (x instanceof Point) {
@@ -489,21 +442,111 @@ class BranthGrid extends BranthObject {
 	}
 }
 
-class Manager extends BranthObject {
+class Food extends BranthGrid {
+	start() {
+		this.respawn();
+	}
+	meet(c, r) {
+		return c === this.c && r === this.r;
+	}
+	respawn() {
+		this.c = Math.floor(Math.random() * Grid.c);
+		this.r = Math.floor(Math.random() * Grid.r);
+	}
 	render() {
+		const b = Grid.get(this.c, this.r);
+		for (let i = 0; i < Tile.mid.h; i++) {
+			Grid.tilePath(b.x, b.y - i);
+			Draw.setColor(i === Tile.mid.h - 1? C.red : C.darkgreen);
+			Draw.draw();
+		}
+	}
+}
+
+class Snake extends BranthGrid {
+	start() {
+		this.dc = 0;
+		this.dr = 0;
+		this.tails = [];
+		this.tailCount = 2;
+		this.moveInterval = 200;
+		this.alarm = this.moveInterval;
+	}
+	update() {
+		if (Input.keyDown(KeyCode.Up)) {
+			this.dc = 0;
+			this.dr = -1;
+		}
+		if (Input.keyDown(KeyCode.Left)) {
+			this.dc = -1;
+			this.dr = 0;
+		}
+		if (Input.keyDown(KeyCode.Down)) {
+			this.dc = 0;
+			this.dr = 1;
+		}
+		if (Input.keyDown(KeyCode.Right)) {
+			this.dc = 1;
+			this.dr = 0;
+		}
+		if (this.alarm <= 0 && this.alarm !== -1) {
+			this.c += this.dc;
+			this.r += this.dr;
+			if (this.c < 0) this.c = Grid.c - 1;
+			if (this.r < 0) this.r = Grid.r - 1;
+			if (this.c > Grid.c - 1) this.c = 0;
+			if (this.y > Grid.r - 1) this.y = 0;
+			this.tails.push({
+				c: this.c,
+				r: this.r
+			});
+			while (this.tails.length > this.tailCount) {
+				this.tails.shift();
+			}
+			const a = OBJ.take(Food)[0];
+			if (a.meet(this.c, this.r)) {
+				this.tailCount++;
+				a.respawn();
+			}
+			this.alarm = this.moveInterval;
+			console.log(this.c, this.r);
+		}
+		else {
+			this.alarm -= Time.deltaTime;
+		}
+	}
+	render() {
+		for (let i = 0; i < this.tails.length; i++) {
+			const b = Grid.get(this.tails[i].c, this.tails[i].r);
+			for (let j = 0; j < Tile.mid.h; j++) {
+				Grid.tilePath(b.x, b.y - j);
+				Draw.setColor(j === Tile.mid.h - 1? C.green : C.darkGreen);
+				Draw.draw();
+			}
+		}
+	}
+}
+
+class Manager extends BranthObject {
+	start() {
+		const n = new Snake(18, 18);
+		OBJ.push(Snake, n);
+		OBJ.create(Food);
+	}
+	render() {
+		Draw.setColor(C.black);
 		for (let c = 0; c < Grid.c; c++) {
 			for (let r = 0; r < Grid.r; r++) {
 				const b = Grid.get(c, r);
-				Draw.setColor(C.black);
 				Grid.tilePath(b);
 				Draw.draw(true);
 			}
 		}
-		Draw.setHVAlign(Align.r, Align.b);
-		Draw.text(Room.w - 8, Room.h - 8, `(${Math.floor(Room.w)}, ${Math.floor(Room.h)})`);
 	}
 }
 
 OBJ.add(Manager);
+OBJ.add(Snake);
+OBJ.add(Food);
 BRANTH.start();
 OBJ.create(Manager);

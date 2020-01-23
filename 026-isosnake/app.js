@@ -317,7 +317,13 @@ const BRANTH = {
 	start() {
 		document.body.appendChild(CANVAS);
 		window.onkeyup = (e) => Input.eventkeyup(e);
-		window.onkeydown = (e) => Input.eventkeydown(e);
+		window.onkeydown = (e) => {
+			const keyCodes = [32, 37, 38, 39, 40];
+			if (keyCodes.includes(e.keyCode)) {
+				e.preventDefault();
+			}
+			Input.eventkeydown(e);
+		}
 		window.onresize = () => BRANTH.resize();
 		BRANTH.resize();
 		BRANTH.update();
@@ -399,8 +405,8 @@ class Line {
 
 const Grid = {
 	g: [],
-	c: 40,
-	r: 40,
+	c: 20,
+	r: 20,
 	get(c, r) {
 		const g = new Point(
 			c * Tile.mid.w - r * Tile.mid.w,
@@ -435,6 +441,13 @@ class BranthGrid extends BranthObject {
 		this.c = c;
 		this.r = r;
 	}
+	meet(c, r) {
+		if (r === undefined) {
+			r = c.r;
+			c = c.c;
+		}
+		return c === this.c && r === this.r;
+	}
 	earlyUpdate() {
 		const b = Grid.get(this.c, this.r);
 		this.x = b.x;
@@ -446,20 +459,9 @@ class Food extends BranthGrid {
 	start() {
 		this.respawn();
 	}
-	meet(c, r) {
-		return c === this.c && r === this.r;
-	}
 	respawn() {
 		this.c = Math.floor(Math.random() * Grid.c);
 		this.r = Math.floor(Math.random() * Grid.r);
-	}
-	render() {
-		const b = Grid.get(this.c, this.r);
-		for (let i = 0; i < Tile.mid.h; i++) {
-			Grid.tilePath(b.x, b.y - i);
-			Draw.setColor(i === Tile.mid.h - 1? C.red : C.darkgreen);
-			Draw.draw();
-		}
 	}
 }
 
@@ -467,60 +469,97 @@ class Snake extends BranthGrid {
 	start() {
 		this.dc = 0;
 		this.dr = 0;
+		this.idle = true;
 		this.tails = [];
-		this.tailCount = 2;
-		this.moveInterval = 200;
+		this.tailCount = 3;
+		this.isPressed = false;
+		this.moveInterval = 100;
 		this.alarm = this.moveInterval;
 	}
 	update() {
-		if (Input.keyDown(KeyCode.Up)) {
-			this.dc = 0;
-			this.dr = -1;
-		}
-		if (Input.keyDown(KeyCode.Left)) {
-			this.dc = -1;
-			this.dr = 0;
-		}
-		if (Input.keyDown(KeyCode.Down)) {
-			this.dc = 0;
-			this.dr = 1;
-		}
-		if (Input.keyDown(KeyCode.Right)) {
-			this.dc = 1;
-			this.dr = 0;
+		const keyUp = Input.keyDown(KeyCode.Up);
+		const keyLeft = Input.keyDown(KeyCode.Left);
+		const keyDown = Input.keyDown(KeyCode.Down);
+		const keyRight = Input.keyDown(KeyCode.Right);
+		if (this.idle || !this.isPressed) {
+			if (keyUp && this.dr === 0) {
+				this.dc = 0;
+				this.dr = -1;
+				this.isPressed = true;
+			}
+			else if (keyLeft && this.dc === 0) {
+				this.dc = -1;
+				this.dr = 0;
+				this.isPressed = true;
+			}
+			else if (keyDown && this.dr === 0) {
+				this.dc = 0;
+				this.dr = 1;
+				this.isPressed = true;
+			}
+			else if (keyRight && this.dc === 0) {
+				this.dc = 1;
+				this.dr = 0;
+				this.isPressed = true;
+			}
 		}
 		if (this.alarm <= 0 && this.alarm !== -1) {
-			this.c += this.dc;
-			this.r += this.dr;
-			if (this.c < 0) this.c = Grid.c - 1;
-			if (this.r < 0) this.r = Grid.r - 1;
-			if (this.c > Grid.c - 1) this.c = 0;
-			if (this.y > Grid.r - 1) this.y = 0;
-			this.tails.push({
-				c: this.c,
-				r: this.r
-			});
-			while (this.tails.length > this.tailCount) {
-				this.tails.shift();
+			if (!this.idle) {
+				this.c += this.dc;
+				this.r += this.dr;
+				if (this.c < 0) this.c = Grid.c - 1;
+				if (this.r < 0) this.r = Grid.r - 1;
+				if (this.c > Grid.c - 1) this.c = 0;
+				if (this.r > Grid.r - 1) this.r = 0;
+				for (let i = 0; i < this.tails.length; i++) {
+					const t = this.tails[i];
+					if (this.meet(t)) {
+						this.dc = 0;
+						this.dr = 0;
+						this.tailCount = 3;
+						this.idle = true;
+					}
+				}
+				this.tails.push({
+					c: this.c,
+					r: this.r
+				});
+				if (!(this.dc === 0 && this.dr === 0)) {
+					while (this.tails.length > this.tailCount) {
+						this.tails.shift();
+					}
+				}
+				const a = OBJ.take(Food)[0];
+				if (a.meet(this.c, this.r)) {
+					this.tailCount++;
+					a.respawn();
+				}
 			}
-			const a = OBJ.take(Food)[0];
-			if (a.meet(this.c, this.r)) {
-				this.tailCount++;
-				a.respawn();
+			else {
+				this.idle = false;
 			}
+			this.isPressed = false;
 			this.alarm = this.moveInterval;
-			console.log(this.c, this.r);
 		}
 		else {
 			this.alarm -= Time.deltaTime;
 		}
 	}
 	render() {
-		for (let i = 0; i < this.tails.length; i++) {
-			const b = Grid.get(this.tails[i].c, this.tails[i].r);
+		const tailsSorted = this.tails.slice();
+		tailsSorted.push(OBJ.take(Food)[0]);
+		tailsSorted.sort((a, b) => a.r < b.r || (a.r === b.r && a.c < b.c)? -1 : 1);
+		for (let i = 0; i < tailsSorted.length; i++) {
+			const t = tailsSorted[i];
+			const b = Grid.get(t.c, t.r);
 			for (let j = 0; j < Tile.mid.h; j++) {
 				Grid.tilePath(b.x, b.y - j);
-				Draw.setColor(j === Tile.mid.h - 1? C.green : C.darkGreen);
+				if (t instanceof Food) {
+					Draw.setColor(j === Tile.mid.h - 1? 'indianred' : 'firebrick');
+				}
+				else {
+					Draw.setColor(j === Tile.mid.h - 1? (this.meet(t)? 'springgreen' : 'limegreen') : 'mediumseagreen');
+				}
 				Draw.draw();
 			}
 		}
@@ -546,7 +585,7 @@ class Manager extends BranthObject {
 }
 
 OBJ.add(Manager);
-OBJ.add(Snake);
 OBJ.add(Food);
+OBJ.add(Snake);
 BRANTH.start();
 OBJ.create(Manager);

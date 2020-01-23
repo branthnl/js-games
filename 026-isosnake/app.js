@@ -561,6 +561,10 @@ class Snake extends BranthGrid {
 			}
 			else {
 				if (this.isPressed) {
+					this.tails = [{
+						c: this.c,
+						r: this.r
+					}];
 					this.idle = false;
 				}
 			}

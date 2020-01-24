@@ -843,6 +843,7 @@ class Snake extends BranthGrid {
 					Emitter.preset('puff');
 					Emitter.setColor(C.limeGreen);
 					Emitter.emit(10);
+					View.shake(8, 300);
 				}
 			}
 			this.isPressed = false;

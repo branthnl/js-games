@@ -1,3 +1,8 @@
+Math.range = (min, max) => min + Math.random() * (max - min);
+Math.degtorad = (d) => d * Math.PI / 180;
+Math.lendirx = (l, d) => l * Math.cos(Math.degtorad(d));
+Math.lendiry = (l, d) => l * Math.sin(Math.degtorad(d));
+
 const CANVAS = document.createElement('canvas');
 const CTX = CANVAS.getContext('2d');
 const CANVAS_SCALER = 2;
@@ -99,7 +104,11 @@ for (const keyCode of Object.values(KeyCode)) {
 const C = {
 	black: 'black',
 	darkGreen: 'darkgreen',
+	fireBrick: 'firebrick',
 	green: 'green',
+	indianRed: 'indianred',
+	limeGreen: 'limegreen',
+	mediumSeaGreen: 'mediumseagreen',
 	red: 'red',
 	white: 'white'
 };
@@ -184,6 +193,11 @@ const Draw = {
 	rect(x, y, w, h, outline) {
 		CTX.beginPath();
 		CTX.rect(x, y, w, h);
+		this.draw(outline);
+	},
+	circle(x, y, r, outline) {
+		CTX.beginPath();
+		CTX.arc(x, y, r, 0, 2 * Math.PI);
 		this.draw(outline);
 	}
 };
@@ -278,6 +292,215 @@ class BranthObject {
 	render() {}
 	renderUI() {}
 }
+
+class BranthParticle extends BranthObject {
+	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, grav) {
+		super(x, y);
+		this.spd = spd;
+		this.spdinc = spdinc;
+		this.size = size;
+		this.sizeinc = sizeinc;
+		this.d = d;
+		this.dinc = dinc;
+		this.r = r;
+		this.rinc = rinc;
+		this.a = a;
+		this.c = c;
+		this.life = life;
+		this.grav = grav;
+		this.g = grav;
+	}
+	update() {
+		this.a = Math.max(0, this.a - Time.deltaTime / this.life);
+		if (this.a <= 0) {
+			OBJ.destroy(this.id);
+		}
+		this.x += Math.lendirx(this.spd, this.d);
+		this.y += Math.lendiry(this.spd, this.d) + Math.lendiry(this.g, 90);
+		this.size = Math.max(this.size + this.sizeinc, 0);
+		this.spd += this.spdinc;
+		this.g += this.grav;
+		this.d += this.dinc;
+		this.r += this.rinc;
+	}
+	render() {
+		Draw.setAlpha(this.a);
+		Draw.setColor(this.c);
+		Draw.circle(this.x, this.y, this.size);
+		Draw.setAlpha(1);
+	}
+}
+
+const Emitter = {
+	depth: 0,
+	x: {
+		min: 0,
+		max: 100
+	},
+	y: {
+		min: 0,
+		max: 100
+	},
+	spd: {
+		min: 1,
+		max: 2
+	},
+	spdinc: {
+		min: 0,
+		max: 0
+	},
+	size: {
+		min: 2,
+		max: 8
+	},
+	sizeinc: {
+		min: 0,
+		max: 0
+	},
+	d: {
+		min: 0,
+		max: 360
+	},
+	dinc: {
+		min: 5,
+		max: 10
+	},
+	r: {
+		min: 0,
+		max: 360
+	},
+	rinc: {
+		min: 5,
+		max: 10
+	},
+	a: {
+		min: 1,
+		max: 1
+	},
+	c: C.fireBrick,
+	life: {
+		min: 3000,
+		max: 4000
+	},
+	grav: {
+		min: 0.01,
+		max: 0.01
+	},
+	setDepth(depth) {
+		this.depth = depth;
+	},
+	setArea(xmin, xmax, ymin, ymax) {
+		this.x.min = xmin;
+		this.x.max = xmax;
+		this.y.min = ymin;
+		this.y.max = ymax;
+	},
+	setSpeed(min, max) {
+		this.spd.min = min * SCALER.w * 0.5;
+		this.spd.max = max * SCALER.w * 0.5;
+	},
+	setSpeedInc(min, max) {
+		this.spdinc.min = min * SCALER.w * 0.5;
+		this.spdinc.max = max * SCALER.w * 0.5;
+	},
+	setSize(min, max) {
+		this.size.min = min * SCALER.w * 0.5;
+		this.size.max = max * SCALER.w * 0.5;
+	},
+	setSizeInc(min, max) {
+		this.sizeinc.min = min * SCALER.w * 0.5;
+		this.sizeinc.max = max * SCALER.w * 0.5;
+	},
+	setDirection(min, max) {
+		this.d.min = min;
+		this.d.max = max;
+	},
+	setDirectionInc(min, max) {
+		this.dinc.min = min;
+		this.dinc.max = max;
+	},
+	setRotation(min, max) {
+		this.r.min = min;
+		this.r.max = max;
+	},
+	setRotationInc(min, max) {
+		this.rinc.min = min;
+		this.rinc.max = max;
+	},
+	setAlpha(min, max) {
+		this.a.min = min;
+		this.a.max = max;
+	},
+	setColor(c) {
+		this.c = c;
+	},
+	setLife(min, max) {
+		this.life.min = min;
+		this.life.max = max;
+	},
+	setGravity(min, max) {
+		this.grav.min = min;
+		this.grav.max = max;
+	},
+	preset(s) {
+		switch (s) {
+			case 'bigstar':
+				this.setSpeed(4, 7);
+				this.setSpeedInc(-0.05, -0.05);
+				this.setSize(15, 22);
+				this.setSizeInc(-0.1, -0.1);
+				this.setDirection(180, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.2, 0.2);
+				this.setColor(C.fireBrick);
+				this.setLife(3000, 4000);
+				this.setGravity(0, 0);
+				break;
+			case 'sparkle':
+				this.setSpeed(2, 5);
+				this.setSpeedInc(-0.1, -0.1);
+				this.setSize(5, 10);
+				this.setSizeInc(-0.1, -0.1);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
+				this.setColor(C.fireBrick);
+				this.setLife(1000, 2000);
+				this.setGravity(0, 0);
+				break;
+			case 'puff':
+				this.setSize(3, 5);
+				this.setColor(C.indianRed);
+				break;
+		}
+	},
+	emit(n) {
+		for (let i = 0; i < n; i++) {
+			const n = new BranthParticle(
+				Math.range(this.x.min, this.x.max),
+				Math.range(this.y.min, this.y.max),
+				Math.range(this.spd.min, this.spd.max),
+				Math.range(this.spdinc.min, this.spdinc.max),
+				Math.range(this.size.min, this.size.max),
+				Math.range(this.sizeinc.min, this.sizeinc.max),
+				Math.range(this.d.min, this.d.max),
+				Math.range(this.dinc.min, this.dinc.max),
+				Math.range(this.r.min, this.r.max),
+				Math.range(this.rinc.min, this.rinc.max),
+				Math.range(this.a.min, this.a.max),
+				this.c,
+				Math.range(this.life.min, this.life.max),
+				Math.range(this.grav.min, this.grav.max)
+			);
+			n.depth = this.depth;
+			OBJ.push(BranthParticle, n);
+		}
+	}
+};
 
 const Room = {
 	get w() {
@@ -533,6 +756,7 @@ class Snake extends BranthGrid {
 				if (this.r < 0) this.r = Grid.r - 1;
 				if (this.c > Grid.c - 1) this.c = 0;
 				if (this.r > Grid.r - 1) this.r = 0;
+				const b = Grid.get(this.c, this.r);
 				for (let i = 0; i < this.tails.length; i++) {
 					const t = this.tails[i];
 					if (this.meet(t)) {
@@ -540,6 +764,13 @@ class Snake extends BranthGrid {
 						this.dr = 0;
 						this.tailCount = 3;
 						this.idle = true;
+						Emitter.setArea(b.x, b.x, b.y, b.y);
+						Emitter.preset('sparkle');
+						Emitter.setColor(C.mediumSeaGreen);
+						Emitter.emit(10);
+						Emitter.preset('puff');
+						Emitter.setColor(C.limeGreen);
+						Emitter.emit(10);
 					}
 				}
 				if (this.tails.length < this.tailCount + 5) {
@@ -557,6 +788,11 @@ class Snake extends BranthGrid {
 				if (a.meet(this.c, this.r)) {
 					this.tailCount++;
 					a.respawn();
+					Emitter.setArea(b.x, b.x, b.y, b.y);
+					Emitter.preset('sparkle');
+					Emitter.emit(10);
+					Emitter.preset('puff');
+					Emitter.emit(10);
 				}
 			}
 			else {
@@ -566,6 +802,14 @@ class Snake extends BranthGrid {
 						r: this.r
 					}];
 					this.idle = false;
+					const b = Grid.get(this.c, this.r);
+					Emitter.setArea(b.x, b.x, b.y, b.y);
+					Emitter.preset('sparkle');
+					Emitter.setColor(C.mediumSeaGreen);
+					Emitter.emit(10);
+					Emitter.preset('puff');
+					Emitter.setColor(C.limeGreen);
+					Emitter.emit(10);
 				}
 			}
 			this.isPressed = false;
@@ -585,10 +829,10 @@ class Snake extends BranthGrid {
 			for (let j = 0; j < Tile.mid.h; j++) {
 				Grid.tilePath(b.x, b.y - j);
 				if (t instanceof Food) {
-					Draw.setColor(j === Tile.mid.h - 1? 'indianred' : 'firebrick');
+					Draw.setColor(j === Tile.mid.h - 1? C.indianRed : C.fireBrick);
 				}
 				else {
-					Draw.setColor(j === Tile.mid.h - 1? (this.meet(t)? 'springgreen' : 'limegreen') : 'mediumseagreen');
+					Draw.setColor(j === Tile.mid.h - 1? (this.meet(t)? 'springgreen' : C.limeGreen) : C.mediumSeaGreen);
 				}
 				Draw.draw();
 			}
@@ -617,5 +861,6 @@ class Manager extends BranthObject {
 OBJ.add(Manager);
 OBJ.add(Food);
 OBJ.add(Snake);
+OBJ.add(BranthParticle);
 BRANTH.start();
 OBJ.create(Manager);

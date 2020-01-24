@@ -29,6 +29,7 @@ const Time = {
 };
 
 const KeyCode = {
+	Space: 32,
 	Left: 37,
 	Up: 38,
 	Right: 39,
@@ -659,8 +660,14 @@ class Line {
 
 const Grid = {
 	g: [],
-	c: 20,
-	r: 20,
+	c: 30,
+	r: 30,
+	get mid() {
+		return {
+			c: this.c * 0.5,
+			r: this.r * 0.5
+		};
+	},
 	get(c, r) {
 		const g = new Point(
 			c * Tile.mid.w - r * Tile.mid.w,
@@ -720,6 +727,7 @@ class Food extends BranthGrid {
 	respawn() {
 		const s = OBJ.take(Snake)[0];
 		if (s) {
+			let i = 50;
 			let isMeet = true;
 			while (isMeet) {
 				this.move();
@@ -729,8 +737,22 @@ class Food extends BranthGrid {
 					if (this.meet(t)) {
 						isMeet = true;
 					}
+					for (let i = 0; i < OBJ.take(Food).length; i++) {
+						const a = OBJ.take(Food)[i];
+						this.meet(a.c, a.r);
+					}
+				}
+				i--;
+				if (i < 0) {
+					break;
 				}
 			}
+			if (isMeet) {
+				this.c = -3;
+				this.r = -3;
+				this.visible = false;
+			}
+			console.log(i);
 		}
 		else {
 			this.move();
@@ -816,16 +838,18 @@ class Snake extends BranthGrid {
 						this.tails.shift();
 					}
 				}
-				const a = OBJ.take(Food)[0];
-				if (a.meet(this.c, this.r)) {
-					this.tailCount++;
-					a.respawn();
-					Emitter.setArea(b.x, b.x, b.y, b.y);
-					Emitter.preset('sparkle');
-					Emitter.emit(10);
-					Emitter.preset('puff');
-					Emitter.emit(10);
-					View.shake(8, 300);
+				for (let i = 0; i < OBJ.take(Food).length; i++) {
+					const a = OBJ.take(Food)[i];
+					if (a.meet(this.c, this.r)) {
+						this.tailCount++;
+						a.respawn();
+						Emitter.setArea(b.x, b.x, b.y, b.y);
+						Emitter.preset('sparkle');
+						Emitter.emit(10);
+						Emitter.preset('puff');
+						Emitter.emit(10);
+						View.shake(8, 300);
+					}
 				}
 			}
 			else {
@@ -855,7 +879,9 @@ class Snake extends BranthGrid {
 	}
 	render() {
 		const tailsSorted = this.tails.slice();
-		tailsSorted.push(OBJ.take(Food)[0]);
+		for (let i = 0; i < OBJ.take(Food).length; i++) {
+			tailsSorted.push(OBJ.take(Food)[i]);
+		}
 		tailsSorted.sort((a, b) => a.r < b.r || (a.r === b.r && a.c < b.c)? -1 : 1);
 		for (let i = 0; i < tailsSorted.length; i++) {
 			const t = tailsSorted[i];
@@ -863,12 +889,15 @@ class Snake extends BranthGrid {
 			for (let j = 0; j < Tile.mid.h; j++) {
 				Grid.tilePath(b.x, b.y - j);
 				if (t instanceof Food) {
-					Draw.setColor(j === Tile.mid.h - 1? C.indianRed : C.fireBrick);
+					if (t.visible) {
+						Draw.setColor(j === Tile.mid.h - 1? C.indianRed : C.fireBrick);
+						Draw.draw();
+					}
 				}
 				else {
 					Draw.setColor(j === Tile.mid.h - 1? (this.meet(t)? 'springgreen' : C.limeGreen) : C.mediumSeaGreen);
+					Draw.draw();
 				}
-				Draw.draw();
 			}
 		}
 	}
@@ -876,9 +905,38 @@ class Snake extends BranthGrid {
 
 class Manager extends BranthObject {
 	start() {
-		const n = new Snake(18, 18);
+		const n = new Snake(Grid.mid.c, Grid.mid.r);
 		OBJ.push(Snake, n);
-		OBJ.create(Food);
+		for (let i = 0; i < 3; i++) {
+			OBJ.create(Food);
+		}
+		this.triggerTime = 0;
+	}
+	update() {
+		let keySpace = Input.keyDown(KeyCode.Space);
+		if (Input.keyUp(KeyCode.Space)) {
+			this.triggerTime = 0;
+		}
+		if (Input.keyHold(KeyCode.Space)) {
+			if (this.triggerTime > 600) {
+				keySpace = true;
+			}
+			else {
+				this.triggerTime += Time.deltaTime;
+			}
+		}
+		if (keySpace) {
+			if (OBJ.take(Food).length < Grid.mid.c * Grid.mid.r) {
+				const n = OBJ.create(Food);
+				const b = Grid.get(n.c, n.r);
+				Emitter.setArea(b.x, b.x, b.y, b.y);
+				Emitter.preset('sparkle');
+				Emitter.emit(10);
+				Emitter.preset('puff');
+				Emitter.emit(10);
+			}
+			View.shake(8, 300);
+		}
 	}
 	render() {
 		Draw.setColor(C.black);

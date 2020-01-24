@@ -517,6 +517,36 @@ const Room = {
 	}
 };
 
+const View = {
+	x: 0,
+	y: 0,
+	xto: 0,
+	yto: 0,
+	alarm: -1,
+	interval: 0,
+	magnitude: 0,
+	shake(mag, int) {
+		this.magnitude = mag;
+		this.interval = int;
+		this.alarm = this.interval;
+	},
+	update() {
+		if (this.alarm > 0) {
+			const mag = this.magnitude * this.alarm / this.interval;
+			this.xto = Math.range(mag * 0.5, mag * 0.6) * (Math.random() > 0.5? -1 : 1);
+			this.yto = Math.range(mag * 0.8, mag) * (Math.random() > 0.5? -1 : 1);
+			this.alarm -= Time.deltaTime;
+			if (this.alarm <= 0) {
+				this.xto = 0;
+				this.yto = 0;
+			}
+		}
+		const t = 0.2;
+		this.x += t * (this.xto - this.x);
+		this.y += t * (this.yto - this.y);
+	}
+};
+
 const UI = {
 	render() {
 		for (const o of OBJ.list) {
@@ -553,6 +583,7 @@ const BRANTH = {
 	},
 	update(t) {
 		Time.update(t);
+		View.update();
 		OBJ.update();
 		CTX.clearRect(0, 0, Room.w, Room.h);
 		OBJ.render();
@@ -635,7 +666,7 @@ const Grid = {
 			c * Tile.mid.w - r * Tile.mid.w,
 			r * Tile.mid.h + c * Tile.mid.h
 		);
-		return new Point(World.x + g.x, World.y + g.y);
+		return new Point(View.x + World.x + g.x, View.y + World.y + g.y);
 	},
 	tilePath(x, y) {
 		if (x instanceof Point) {
@@ -771,6 +802,7 @@ class Snake extends BranthGrid {
 						Emitter.preset('puff');
 						Emitter.setColor(C.limeGreen);
 						Emitter.emit(10);
+						View.shake(20, 1000);
 					}
 				}
 				if (this.tails.length < this.tailCount + 5) {
@@ -793,6 +825,7 @@ class Snake extends BranthGrid {
 					Emitter.emit(10);
 					Emitter.preset('puff');
 					Emitter.emit(10);
+					View.shake(8, 300);
 				}
 			}
 			else {

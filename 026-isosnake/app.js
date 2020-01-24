@@ -752,7 +752,6 @@ class Food extends BranthGrid {
 				this.r = -3;
 				this.visible = false;
 			}
-			console.log(i);
 		}
 		else {
 			this.move();

@@ -74,8 +74,12 @@ const World = {
 };
 
 class Gold extends BranthObject {
+	constructor(x, y, c) {
+		super(x, y);
+		this.c = c;
+	}
 	render() {
-		Draw.setColor(C.gold);
+		Draw.setColor(this.c);
 		Draw.roundRect(this.x + 1, this.y + 1, Tile.w - 2, Tile.h - 2, 4);
 	}
 }
@@ -248,10 +252,19 @@ Game.gold = 0;
 Game.start = () => {
 	Game.gold = 0;
 	Grid.start();
+	let count = 0;
+	const colors = [
+		C.gold,
+		C.black,
+		C.white
+	];
+	const colorsIndex = [];
 	for (let c = 0; c < Grid.c; c++) {
 		for (let r = 0; r < Grid.r; r++) {
 			const b = World.fromGrid(c, r, true);
-			Grid.g[c][r] = OBJ.create(Gold, b.x, b.y);
+			const n = new Gold(b.x, b.y, colors[0]);// colors[colorsIndex[count]]);
+			Grid.g[c][r] = OBJ.push(Gold, n);
+			count++;
 		}
 	}
 	OBJ.create(Miner, Room.mid.w, 32);

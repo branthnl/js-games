@@ -9,7 +9,7 @@ const Tile = {
 const Grid = {
 	g: [],
 	c: 18,
-	r: 29,
+	r: 28,
 	get mid() {
 		return {
 			c: this.c * 0.5,
@@ -61,24 +61,57 @@ const World = {
 		};
 	},
 	render() {
-		for (let c = 0; c < Grid.c; c++) {
-			for (let r = 0; r < Grid.r; r++) {
-				const b = this.fromGrid(c, r);
-				Draw.setColor(C.black);
-				Draw.roundRect(b.x, b.y, Tile.w, Tile.h, true);
-			}
-		}
+		// for (let c = 0; c < Grid.c; c++) {
+		// 	for (let r = 0; r < Grid.r; r++) {
+		// 		const b = this.fromGrid(c, r);
+		// 		Draw.setColor(C.black);
+		// 		Draw.rect(b.x, b.y, Tile.w, Tile.h, true);
+		// 	}
+		// }
 	}
 };
 
-class Gold extends BranthObject {
+class Gold extends BranthBehaviour {
 	constructor(x, y, c) {
 		super(x, y);
 		this.c = c;
+		this.xto = x;
+		this.yto = y;
+		this.y -= Room.h + Tile.h;
+		this.canMove = false;
+		this.alarm[0] = 0.2 * (Room.w - this.xto) + (Room.h - this.yto);
+	}
+	get hover() {
+		const m = Input.screenToWorldPoint(Input.mousePosition);
+		return m.x > this.x && m.x < this.x + Tile.w && m.y > this.y && m.y < this.y + Tile.h;
+	}
+	update() {
+		if (this.canMove) {
+			this.x += 0.2 * (this.xto - this.x);
+			this.y += 0.2 * (this.yto - this.y);
+		}
 	}
 	render() {
+		const t = 1 + Math.sin((Time.time + this.x) * 0.01) * (Math.max(0.5, Math.sin(Time.time * 0.0005)) - 0.5) * 0.1;
+		const d = {
+			w: Tile.w * t,
+			h: Tile.h * t,
+			x: this.x - (Tile.w * t - Tile.w) * 0.5,
+			y: this.y - (Tile.h * t - Tile.h) * 0.5
+		};
+		Draw.setColor(C.black);
+		Draw.roundRect(d.x, d.y, d.w, d.h, 8, true);
 		Draw.setColor(this.c);
-		Draw.roundRect(this.x + 1, this.y + 1, Tile.w - 2, Tile.h - 2, 4);
+		Draw.roundRect(d.x + 1, d.y + 1, d.w - 2, d.h - 2, 8);
+	}
+	renderUI() {
+		if (this.hover) {
+			Draw.setColor('rgba(0, 0, 0, 0.5)');
+			Draw.rect(this.x, this.y, Tile.w, Tile.h);
+		}
+	}
+	alarm0() {
+		this.canMove = true;
 	}
 }
 OBJ.add(Gold);
@@ -240,8 +273,8 @@ Game.start = () => {
 		C.sandyBrown,
 		C.lightSlateGray,
 		C.gold,
-		C.whiteSmoke,
-		C.slateBlue
+		C.slateBlue,
+		C.whiteSmoke
 	];
 	let colorsIndex = LEVEL.LVL1.map(x => x.split('')).flat();
 	for (let r = 0; r < Grid.r; r++) {

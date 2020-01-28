@@ -1,6 +1,4 @@
-const Menu = new BranthRoom('Menu', 720, 1280);
 const Game = new BranthRoom('Game', 720, 1280);
-Room.add(Menu);
 Room.add(Game);
 
 const Tile = {
@@ -67,7 +65,7 @@ const World = {
 			for (let r = 0; r < Grid.r; r++) {
 				const b = this.fromGrid(c, r);
 				Draw.setColor(C.black);
-				Draw.rect(b.x, b.y, Tile.w, Tile.h, true);
+				Draw.roundRect(b.x, b.y, Tile.w, Tile.h, true);
 			}
 		}
 	}
@@ -232,38 +230,26 @@ class Miner extends BranthObject {
 }
 OBJ.add(Miner);
 
-Menu.update = () => {
-	if (Input.mouseDown(0)) {
-		Room.start('Game');
-	}
-};
-
-Menu.renderUI = () => {
-	Draw.setFont(Font.xlb);
-	Draw.setColor(C.black);
-	Draw.setHVAlign(Align.c, Align.t);
-	Draw.text(Room.mid.w, 20, 'Gold Mine');
-	Draw.setFont(Font.l);
-	Draw.setHVAlign(Align.c, Align.m);
-	Draw.text(Room.mid.w, Room.mid.h, 'Tap anywhere to start');
-};
-
 Game.gold = 0;
 Game.start = () => {
 	Game.gold = 0;
 	Grid.start();
+	Emitter.setDepth(-1);
 	let count = 0;
 	const colors = [
+		C.sandyBrown,
+		C.lightSlateGray,
 		C.gold,
-		C.black,
-		C.white
+		C.whiteSmoke,
+		C.slateBlue
 	];
-	const colorsIndex = [];
-	for (let c = 0; c < Grid.c; c++) {
-		for (let r = 0; r < Grid.r; r++) {
+	let colorsIndex = LEVEL.LVL1.map(x => x.split('')).flat();
+	for (let r = 0; r < Grid.r; r++) {
+		for (let c = 0; c < Grid.c; c++) {
 			const b = World.fromGrid(c, r, true);
-			const n = new Gold(b.x, b.y, colors[0]);// colors[colorsIndex[count]]);
-			Grid.g[c][r] = OBJ.push(Gold, n);
+			const n = new Gold(b.x, b.y, colors[colorsIndex[count]]);
+			OBJ.push(Gold, n);
+			Grid.g[c][r] = n;
 			count++;
 		}
 	}

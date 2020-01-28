@@ -96,8 +96,8 @@ class Gold extends BranthBehaviour {
 		const d = {
 			w: Tile.w * t,
 			h: Tile.h * t,
-			x: this.x - (Tile.w * t - Tile.w) * 0.5,
-			y: this.y - (Tile.h * t - Tile.h) * 0.5
+			x: View.x + this.x - (Tile.w * t - Tile.w) * 0.5,
+			y: View.y + this.y - (Tile.h * t - Tile.h) * 0.5
 		};
 		Draw.setColor(C.black);
 		Draw.roundRect(d.x, d.y, d.w, d.h, 8, true);
@@ -176,6 +176,7 @@ class Pickaxe extends BranthObject {
 		else {
 			OBJ.create(Boom, this.x, this.y);
 			OBJ.destroy(this.id);
+			View.shake(20, 300);
 		}
 		this.rot += this.rotSpd;
 	}
@@ -290,18 +291,21 @@ Game.start = () => {
 };
 
 Game.render = () => {
-	World.render();
+	Draw.setColor(C.burlyWood);
+// CANVAS.style.backgroundImage = `radial-gradient(burlywood 33%, peru)`;
+	Draw.rect(0, 0, Room.w, Room.h);
 };
 
 Game.renderUI = () => {
+	const t = Math.sin(Time.time * 0.01) * 2;
 	Draw.setFont(Font.lb);
 	Draw.setColor(C.gold);
 	Draw.setShadow(0, 2, 2, C.black);
 	Draw.setHVAlign(Align.l, Align.t);
-	Draw.text(16, 16, Game.gold);
+	Draw.text(16, 16 + t, Game.gold);
 	Draw.resetShadow();
 	Draw.setColor(C.white);
-	Draw.text(16, 14, Game.gold);
+	Draw.text(16, 14 + t, Game.gold);
 };
 
 BRANTH.start();

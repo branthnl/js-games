@@ -53,7 +53,7 @@ const OBJ_DEPTH_RENDER = true;
 const DEBUG_MODE = true;
 if (!DEBUG_MODE) console.log = () => {};
 
-CANVAS.style.backgroundImage = `radial-gradient(burlywood 33%, peru)`;
+// CANVAS.style.backgroundImage = `radial-gradient(burlywood 33%, peru)`;
 
 const CanvasScaler = {
 	get w() {
@@ -1701,7 +1701,32 @@ const Room = {
 
 const View = {
 	x: 0,
-	y: 0
+	y: 0,
+	xto: 0,
+	yto: 0,
+	alarm: -1,
+	interval: 0,
+	magnitude: 0,
+	shake(mag, int) {
+		this.magnitude = mag;
+		this.interval = int;
+		this.alarm = this.interval;
+	},
+	update() {
+		if (this.alarm > 0) {
+			const mag = this.magnitude * this.alarm / this.interval;
+			this.xto = Math.range(mag * 0.5, mag * 0.6) * (Math.random() > 0.5? -1 : 1);
+			this.yto = Math.range(mag * 0.8, mag) * (Math.random() > 0.5? -1 : 1);
+			this.alarm -= Time.deltaTime;
+			if (this.alarm <= 0) {
+				this.xto = 0;
+				this.yto = 0;
+			}
+		}
+		const t = 0.2;
+		this.x += t * (this.xto - this.x);
+		this.y += t * (this.yto - this.y);
+	}
 };
 
 const UI = {
@@ -1756,6 +1781,7 @@ const BRANTH = {
 	},
 	update: function(t) {
 		Time.update(t);
+		View.update();
 		Room.update();
 		OBJ.update();
 		Draw.clearRect(0, 0, Room.w, Room.h);

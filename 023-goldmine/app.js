@@ -65,15 +65,6 @@ const World = {
 			c: x / Tile.w,
 			r: y / Tile.h
 		};
-	},
-	render() {
-		// for (let c = 0; c < Grid.c; c++) {
-		// 	for (let r = 0; r < Grid.r; r++) {
-		// 		const b = this.fromGrid(c, r);
-		// 		Draw.setColor(C.black);
-		// 		Draw.rect(b.x, b.y, Tile.w, Tile.h, true);
-		// 	}
-		// }
 	}
 };
 
@@ -85,7 +76,7 @@ class Gold extends BranthBehaviour {
 		this.yto = y;
 		this.y -= Room.h + Tile.h;
 		this.canMove = false;
-		this.alarm[0] = 0.2 * (Room.w - this.xto) + (Room.h - this.yto);
+		this.alarm[0] = 0.2 * (Room.w - this.xto) + (Room.h - this.yto) + Math.range(100, 200);
 	}
 	get hover() {
 		const m = Input.screenToWorldPoint(Input.mousePosition);
@@ -167,14 +158,13 @@ class Pickaxe extends BranthObject {
 		this.target = target;
 		this.rot = rot || 0;
 		this.rotSpd = Math.range(10, 20) * Math.randneg();
+		this.count = 0;
 		Emitter.preset('puff');
 		Emitter.setSize(2, 4);
 		Emitter.setSpeed(2, 3);
-		Emitter.setColor(C.brown);
+		Emitter.setColor('rgba(255, 255, 255, 0.5)');
 		Emitter.setArea(this.x, this.x, this.y, this.y);
-		Emitter.emit(Math.irange(2, 4));
-		Emitter.setColor(C.gray);
-		Emitter.emit(Math.irange(2, 4));
+		Emitter.emit(Math.irange(4, 8));
 	}
 	get target() {
 		if (!this._target instanceof Vector) {
@@ -205,92 +195,81 @@ class Pickaxe extends BranthObject {
 			View.shake(20, 300);
 		}
 		this.rot += this.rotSpd;
-		Emitter.preset('puff');
-		Emitter.setSize(2, 4);
-		Emitter.setColor('rgba(255, 255, 255, 0.5)');
-		Emitter.setArea(this.x, this.x, this.y, this.y);
-		Emitter.emit(1);
 	}
 	render() {
-		const x = this.x;
-		const y = this.y;
-		const r = this.rot;
-		const w = 10;
-		const h = 50;
-		const p = [{
-			x: Math.lendirx(h * 0.5, r) + Math.lendirx(w * 0.4, r - 90),
-			y: Math.lendiry(h * 0.5, r) + Math.lendiry(w * 0.4, r - 90)
-		}];
-		p.push({
-			x: Math.lendirx(h * 0.5, r) + Math.lendirx(w * 0.4, r + 90),
-			y: Math.lendiry(h * 0.5, r) + Math.lendiry(w * 0.4, r + 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5, r + 180) + Math.lendirx(w * 0.6, r + 90),
-			y: Math.lendiry(h * 0.5, r + 180) + Math.lendiry(w * 0.6, r + 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5, r + 180) + Math.lendirx(w * 0.6, r - 90),
-			y: Math.lendiry(h * 0.5, r + 180) + Math.lendiry(w * 0.6, r - 90)
-		});
-		const aw = 45;
-		const ah = 14;
-		p.push({
-			x: Math.lendirx(h * 0.5 - ah * 0.6, r) + Math.lendirx(aw * 0.5, r - 90),
-			y: Math.lendiry(h * 0.5 - ah * 0.6, r) + Math.lendiry(aw * 0.5, r - 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5 + ah * 0.9, r) + Math.lendirx(aw * 0.1, r - 90),
-			y: Math.lendiry(h * 0.5 + ah * 0.9, r) + Math.lendiry(aw * 0.1, r - 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5 + ah * 0.9, r) + Math.lendirx(aw * 0.1, r + 90),
-			y: Math.lendiry(h * 0.5 + ah * 0.9, r) + Math.lendiry(aw * 0.1, r + 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5 - ah * 0.6, r) + Math.lendirx(aw * 0.5, r + 90),
-			y: Math.lendiry(h * 0.5 - ah * 0.6, r) + Math.lendiry(aw * 0.5, r + 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5 - ah * 0.25, r) + Math.lendirx(aw * 0.1, r - 90),
-			y: Math.lendiry(h * 0.5 - ah * 0.25, r) + Math.lendiry(aw * 0.1, r - 90)
-		});
-		p.push({
-			x: Math.lendirx(h * 0.5 - ah * 0.25, r) + Math.lendirx(aw * 0.1, r + 90),
-			y: Math.lendiry(h * 0.5 - ah * 0.25, r) + Math.lendiry(aw * 0.1, r + 90)
-		});
-		CTX.beginPath();
-		CTX.moveTo(x + p[0].x, y + p[0].y);
-		CTX.lineTo(x + p[1].x, y + p[1].y);
-		CTX.lineTo(x + p[2].x, y + p[2].y);
-		CTX.lineTo(x + p[3].x, y + p[3].y);
-		CTX.closePath();
-		Draw.setColor(C.brown);
-		CTX.fill();
-		CTX.beginPath();
-		CTX.moveTo(x + p[4].x, y + p[4].y);
-		CTX.bezierCurveTo(x + p[5].x, y + p[5].y, x + p[6].x, y + p[6].y, x + p[7].x, y + p[7].y);
-		CTX.bezierCurveTo(x + p[8].x, y + p[8].y, x + p[9].x, y + p[9].y, x + p[4].x, y + p[4].y);
-		CTX.closePath();
-		Draw.setColor(C.gray);
-		CTX.fill();
+		Draw.pickAxe(this.x, this.y, this.rot);
 	}
 }
 OBJ.add(Pickaxe);
 
-class Miner extends BranthObject {
+class Miner extends BranthBehaviour {
 	start() {
+		this.xs = 1;
+		this.ys = 1;
+		this.xto = this.x;
+		this.spd = 24;
+		this.hsp = 0;
+		this.vsp = 0;
+		this.grv = 0.7;
+		this.alpha = 0;
+		this.axeAngle = 0;
+		this.axeScale = 1;
+		this.alarm[0] = 1500;
 	}
 	update() {
-		if (Input.mouseDown(0)) {
-			const m = Input.screenToWorldPoint(Input.mousePosition);
-			const n = new Pickaxe(this.x, this.y, new Vector(m.x, m.y), Math.range(0, 360));
-			OBJ.push(Pickaxe, n);
+		const keyLeft = Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.A)? 1 : 0;
+		const keyRight = Input.keyHold(KeyCode.Right) || Input.keyHold(KeyCode.D)? 1 : 0;
+		this.hsp = this.spd * keyRight - this.spd * keyLeft;
+		this.xto = Math.clamp(this.xto + this.hsp, Tile.mid.w, Room.w - Tile.mid.w);
+		this.x += 0.2 * (this.xto - this.x);
+		this.y += this.vsp;
+		this.vsp += this.grv;
+		if (this.y + this.vsp > World.y) {
+			this.y = World.y;
 		}
+		this.axeAngle = 90 + Math.sin(Time.time * 0.002) * 75;
+		if (this.alpha >= 0.8) {
+			if (Input.mouseDown(0)) {
+				const m = Input.screenToWorldPoint(Input.mousePosition);
+				const n = new Pickaxe(this.x, this.y, new Vector(m.x, m.y), this.axeAngle);
+				OBJ.push(Pickaxe, n);
+				this.axeScale = 0;
+			}
+		}
+		if (this.alarm[1] > 0) {
+			this.alpha = 1 - Math.max(0, this.alarm[1] / 500);
+		}
+		this.xs += 0.2 * (1 - this.xs);
+		this.ys += 0.2 * (1 - this.ys);
+		this.axeScale += 0.2 * (1 - this.axeScale);
+	}
+	alarm0() {
+		this.alarm[1] = 500;
+		this.vsp = -10;
+	}
+	alarm1() {
+		this.alpha = 1;
+		this.xs = 1.2;
+		this.ys = 0.8;
 	}
 	render() {
+		const d = {
+			x: View.x + this.x - Tile.mid.w * this.xs,
+			y: View.y + this.y - Tile.h * this.ys,
+			w: Tile.w * this.xs,
+			h: Tile.h * this.ys
+		};
+		Draw.setAlpha(this.alpha);
 		Draw.setColor(C.brown);
-		Draw.circle(this.x, this.y, 12);
+		Draw.roundRect(d.x, d.y, d.w, d.h, 5);
+		Draw.setColor(C.black);
+		Draw.roundRect(d.x, d.y, d.w, d.h, 5, true);
+		CTX.save();
+		CTX.translate(this.x, this.y);
+		CTX.scale(this.axeScale, this.axeScale);
+		Draw.pickAxe(0, 0, this.axeAngle);
+		CTX.restore();
+		Draw.setAlpha(1);
 	}
 }
 OBJ.add(Miner);
@@ -323,7 +302,6 @@ Game.start = () => {
 
 Game.render = () => {
 	Draw.setColor(C.burlyWood);
-// CANVAS.style.backgroundImage = `radial-gradient(burlywood 33%, peru)`;
 	Draw.rect(0, 0, Room.w, Room.h);
 };
 

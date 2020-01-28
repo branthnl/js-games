@@ -1039,6 +1039,71 @@ const Draw = {
 	star(x, y, r, outline) {
 		this.starTransformed(x, y, r, 0, outline);
 	},
+	pickAxe(x, y, r) {
+		const w = 10;
+		const h = 50;
+		const p = [{
+			x: Math.lendirx(h * 0.5, r) + Math.lendirx(w * 0.4, r - 90),
+			y: Math.lendiry(h * 0.5, r) + Math.lendiry(w * 0.4, r - 90)
+		}];
+		p.push({
+			x: Math.lendirx(h * 0.5, r) + Math.lendirx(w * 0.4, r + 90),
+			y: Math.lendiry(h * 0.5, r) + Math.lendiry(w * 0.4, r + 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5, r + 180) + Math.lendirx(w * 0.6, r + 90),
+			y: Math.lendiry(h * 0.5, r + 180) + Math.lendiry(w * 0.6, r + 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5, r + 180) + Math.lendirx(w * 0.6, r - 90),
+			y: Math.lendiry(h * 0.5, r + 180) + Math.lendiry(w * 0.6, r - 90)
+		});
+		const aw = 45;
+		const ah = 14;
+		p.push({
+			x: Math.lendirx(h * 0.5 - ah * 0.6, r) + Math.lendirx(aw * 0.5, r - 90),
+			y: Math.lendiry(h * 0.5 - ah * 0.6, r) + Math.lendiry(aw * 0.5, r - 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5 + ah * 0.9, r) + Math.lendirx(aw * 0.1, r - 90),
+			y: Math.lendiry(h * 0.5 + ah * 0.9, r) + Math.lendiry(aw * 0.1, r - 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5 + ah * 0.9, r) + Math.lendirx(aw * 0.1, r + 90),
+			y: Math.lendiry(h * 0.5 + ah * 0.9, r) + Math.lendiry(aw * 0.1, r + 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5 - ah * 0.6, r) + Math.lendirx(aw * 0.5, r + 90),
+			y: Math.lendiry(h * 0.5 - ah * 0.6, r) + Math.lendiry(aw * 0.5, r + 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5 - ah * 0.25, r) + Math.lendirx(aw * 0.1, r - 90),
+			y: Math.lendiry(h * 0.5 - ah * 0.25, r) + Math.lendiry(aw * 0.1, r - 90)
+		});
+		p.push({
+			x: Math.lendirx(h * 0.5 - ah * 0.25, r) + Math.lendirx(aw * 0.1, r + 90),
+			y: Math.lendiry(h * 0.5 - ah * 0.25, r) + Math.lendiry(aw * 0.1, r + 90)
+		});
+		CTX.beginPath();
+		CTX.moveTo(x + p[0].x, y + p[0].y);
+		CTX.lineTo(x + p[1].x, y + p[1].y);
+		CTX.lineTo(x + p[2].x, y + p[2].y);
+		CTX.lineTo(x + p[3].x, y + p[3].y);
+		CTX.closePath();
+		Draw.setColor(C.brown);
+		CTX.fill();
+		Draw.setColor(C.black);
+		CTX.stroke();
+		CTX.beginPath();
+		CTX.moveTo(x + p[4].x, y + p[4].y);
+		CTX.bezierCurveTo(x + p[5].x, y + p[5].y, x + p[6].x, y + p[6].y, x + p[7].x, y + p[7].y);
+		CTX.bezierCurveTo(x + p[8].x, y + p[8].y, x + p[9].x, y + p[9].y, x + p[4].x, y + p[4].y);
+		CTX.closePath();
+		Draw.setColor(C.gray);
+		CTX.fill();
+		Draw.setColor(C.black);
+		CTX.stroke();
+	},
 	setCap(cap) {
 		CTX.lineCap = cap;
 	},

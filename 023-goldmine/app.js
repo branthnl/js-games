@@ -89,12 +89,13 @@ class Gold extends BranthBehaviour {
 		}
 	}
 	render() {
-		const t = 1 + Math.sin((Time.time + this.x) * 0.01) * (Math.max(0.5, Math.sin(Time.time * 0.0005)) - 0.5) * 0.1;
+		const t = 1 + Math.sin((Time.time + this.x) * 0.01) * (Game.over? 0.1 : (Math.max(0.5, Math.sin(Time.time * 0.0005)) - 0.5) * 0.1);
+		const tt = Game.over? Math.sin((Time.time + this.x) * 0.01) * Tile.mid.h : 0;
 		const d = {
 			w: Tile.w * t,
 			h: Tile.h * t,
 			x: View.x + this.x - (Tile.w * t - Tile.w) * 0.5,
-			y: View.y + this.y - (Tile.h * t - Tile.h) * 0.5
+			y: View.y + this.y - (Tile.h * t - Tile.h) * 0.5 + tt
 		};
 		Draw.setColor(C.black);
 		Draw.roundRect(d.x, d.y, d.w, d.h, 8, true);
@@ -114,28 +115,78 @@ class Gold extends BranthBehaviour {
 OBJ.add(Gold);
 
 class Boom extends BranthBehaviour {
+	sparkle(n) {
+		Emitter.preset('sparkle');
+		Emitter.setArea(n.x + Tile.mid.w, n.x + Tile.mid.w, n.y + Tile.mid.h, n.y + Tile.mid.h);
+		Emitter.setColor(C.gold);
+		Emitter.emit(5);
+		Emitter.setColor(C.lemonChiffon);
+		Emitter.emit(5);
+	}
 	start() {
 		this.count = 0;
-		const b = World.fromScreen(this.x, this.y, true);
-		if (b.c >= 0 && b.c < Grid.c && b.r >= 0 && b.r < Grid.r) {
-			if (Grid.g[b.c][b.r] instanceof Gold) {
-				const n = Grid.g[b.c][b.r];
-				Game.gold++;
-				OBJ.destroy(n.id);
-				Emitter.preset('sparkle');
-				Emitter.setArea(n.x + Tile.mid.w, n.x + Tile.mid.w, n.y + Tile.mid.h, n.y + Tile.mid.h);
-				Emitter.setColor(C.gold);
-				Emitter.emit(5);
-				Emitter.setColor(C.lemonChiffon);
-				Emitter.emit(5);
-				Grid.g[b.c][b.r] = null;
-				this.count++;
+		if (!Game.over) {
+			const b = World.fromScreen(this.x, this.y, true);
+			if (b.c >= 0 && b.c < Grid.c && b.r >= 0 && b.r < Grid.r) {
+				if (Grid.g[b.c][b.r] instanceof Gold) {
+					const n = Grid.g[b.c][b.r];
+					Game.gold++;
+					this.count++;
+					this.sparkle(n);
+					OBJ.destroy(n.id);
+					Grid.g[b.c][b.r] = null;
+					const gridToCheck = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+					for (let i = 0; i < gridToCheck.length; i++) {
+						const c = b.c + gridToCheck[i][0];
+						const r = b.r + gridToCheck[i][1];
+						if (c >= 0 && c < Grid.c && r >= 0 && r < Grid.r) {
+							if (Grid.g[c][r] instanceof Gold) {
+								if (Grid.g[c][r].c === n.c) {
+									const bb = World.fromGrid(c, r);
+									const nn = OBJ.create(Boom, bb.x, bb.y);
+									nn.count = ++this.count;
+								}
+							}
+						}
+					}
+				}
 			}
+		}
+		if (this.count > 2) {
+			Game.bigGold++;
 		}
 		this.alarm[0] = 60;
 	}
 	alarm0() {
 		OBJ.destroy(this.id);
+		let count = 0;
+		for (let i = 0; i < OBJ.take(Boom).length; i++) {
+			const n = OBJ.take(Boom)[i];
+			if (n) {
+				count++;
+			}
+		}
+		if (count === 0) {
+			for (let r = Grid.r - 1; r >= 0; r--) {
+				for (let c = 0; c < Grid.c; c++) {
+					const g = Grid.g[c][r];
+					if (g instanceof Gold) {
+						for (let rr = r + 1; rr < Grid.r; rr++) {
+							const bg = Grid.g[c][rr];
+							if (bg === null) {
+								const b = World.fromGrid(c, rr);
+								g.xto = b.x;
+								g.yto = b.y;
+								Grid.g[c][rr] = g;
+								for (let pr = rr - 1; pr >= r; pr--) {
+									Grid.g[c][pr] = null;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 	render() {
 		if (this.count === 0) {
@@ -192,7 +243,7 @@ class Pickaxe extends BranthObject {
 		else {
 			OBJ.create(Boom, this.x, this.y);
 			OBJ.destroy(this.id);
-			View.shake(20, 300);
+			View.shake(Tile.mid.w, 200);
 		}
 		this.rot += this.rotSpd;
 	}
@@ -207,56 +258,105 @@ class Miner extends BranthBehaviour {
 		this.xs = 1;
 		this.ys = 1;
 		this.xto = this.x;
-		this.spd = 24;
-		this.hsp = 0;
-		this.vsp = 0;
-		this.grv = 0.7;
-		this.alpha = 0;
+		this.yto = this.y;
+		this.c = Grid.mid.c;
+		this.r = 0;
+		this.aim = new Vector(this.x, this.y);
+		this.alpha = 1;
 		this.axeAngle = 0;
 		this.axeScale = 1;
-		this.alarm[0] = 1500;
-		this.aim = new Vector(this.x, this.y);
+		this.triggerTime = 0;
 	}
-	update() {
-		const keyLeft = Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.A)? 1 : 0;
-		const keyRight = Input.keyHold(KeyCode.Right) || Input.keyHold(KeyCode.D)? 1 : 0;
-		this.hsp = this.spd * keyRight - this.spd * keyLeft;
-		this.xto = Math.clamp(this.xto + this.hsp, Tile.mid.w, Room.w - Tile.mid.w);
-		this.x += 0.2 * (this.xto - this.x);
-		this.y += this.vsp;
-		this.vsp += this.grv;
-		if (this.y + this.vsp > World.y) {
-			this.y = World.y;
+	movement() {
+		let keyA = Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.A);
+		let keyD = Input.keyHold(KeyCode.Right) || Input.keyHold(KeyCode.D);
+		let keyAd = Input.keyDown(KeyCode.Left) || Input.keyDown(KeyCode.A);
+		let keyDd = Input.keyDown(KeyCode.Right) || Input.keyDown(KeyCode.D);
+		if (keyA) {
+			this.triggerTime += Time.deltaTime;
+			if (this.triggerTime > 200) {
+				keyAd = true;
+			}
 		}
+		if (keyD) {
+			this.triggerTime += Time.deltaTime;
+			if (this.triggerTime > 200) {
+				keyDd = true;
+			}
+		}
+		if (keyAd) {
+			if (this.c > 0) {
+				if (Grid.g[this.c - 1][this.r] === null) {
+					this.c--;
+				}
+			}
+		}
+		if (keyDd) {
+			if (this.c < Grid.c - 1) {
+				if (Grid.g[this.c + 1][this.r] === null) {
+					this.c++;
+				}
+			}
+		}
+		if (keyAd || keyDd) {
+			this.triggerTime = 0;
+			this.c = Math.clamp(this.c, 0, Grid.c - 1);
+		}
+		const b = World.fromGrid(this.c, this.r);
+		this.xto = b.x + Tile.mid.w;
+		this.yto = b.y + Tile.h;
+	}
+	dropMovement() {
+		if (Math.abs(this.xto - this.x) < 0.2) {
+			if (this.r < Grid.r - 1) {
+				if (Grid.g[this.c][this.r + 1] === null) {
+					this.r++;
+					if (this.r >= Grid.r - 1 && !Game.over) {
+						Game.over = true;
+						for (let r = 1; r < Grid.r; r++) {
+							for (let c = 0; c < Grid.c; c++) {
+								const n = Grid.g[c][r];
+								if (n !== null) {
+									// n.yto -= Room.mid.h + Math.range(0, Tile.h * 0.25);
+									// n.xto += Room.mid.w * Math.randneg() + Math.range(0, Tile.w * 0.25);
+									n.xto += (c > this.c? Tile.w : -Tile.w) * 2;
+									n.canMove = false;
+									n.alarm[0] = Math.range(100, 500);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	aimMovement() {
 		const m = Input.screenToWorldPoint(Input.mousePosition);
 		const p = Math.lendir(Math.min(Room.mid.h * 0.5, Math.pointdis(this, m)), Math.pointdir(this, m));
 		this.aim.x = this.x + p.x;
 		this.aim.y = this.y + p.y;
-		if (this.alpha >= 0.8) {
-			if (Input.mouseDown(0)) {
-				const n = new Pickaxe(this.x, this.y, new Vector(this.aim.x, this.aim.y), this.axeAngle);
-				OBJ.push(Pickaxe, n);
-				this.axeScale = 0;
-			}
-		}
-		if (this.alarm[1] > 0) {
-			this.alpha = 1 - Math.max(0, this.alarm[1] / 500);
-		}
 		this.axeAngle = 90 + Math.sin(Time.time * 0.002) * 75;
+	}
+	spawnManager() {
+		if (Input.mouseDown(0)) {
+			const n = new Pickaxe(this.x, this.y, new Vector(this.aim.x, this.aim.y), this.axeAngle);
+			OBJ.push(Pickaxe, n);
+			this.axeScale = 0;
+		}
+	}
+	keepScale() {
+		this.x += 0.2 * (this.xto - this.x);
+		this.y += 0.2 * (this.yto - this.y);
 		this.xs += 0.2 * (1 - this.xs);
 		this.ys += 0.2 * (1 - this.ys);
 		this.axeScale += 0.2 * (1 - this.axeScale);
 	}
-	alarm0() {
-		this.alarm[1] = 500;
-		this.vsp = -10;
-		this.xs = 0.5;
-		this.ys = 1.5;
-	}
-	alarm1() {
-		this.alpha = 1;
-		this.xs = 1.2;
-		this.ys = 0.8;
+	update() {
+		this.movement();
+		this.dropMovement();
+		this.aimMovement();
+		this.spawnManager();
+		this.keepScale();
 	}
 	render() {
 		const d = {
@@ -291,8 +391,15 @@ class Miner extends BranthBehaviour {
 OBJ.add(Miner);
 
 Game.gold = 0;
+Game.bigGold = 0;
+Game.over = false;
+Game.score = () => {
+	return Game.gold + Game.bigGold * 5;
+};
 Game.start = () => {
 	Game.gold = 0;
+	Game.bigGold = 0;
+	Game.over = false;
 	Grid.start();
 	Emitter.setDepth(-1);
 	let count = 0;
@@ -304,7 +411,7 @@ Game.start = () => {
 		C.whiteSmoke
 	];
 	let colorsIndex = LEVEL.LVL1.map(x => x.split('')).flat();
-	for (let r = 0; r < Grid.r; r++) {
+	for (let r = 1; r < Grid.r; r++) {
 		for (let c = 0; c < Grid.c; c++) {
 			const b = World.fromGrid(c, r, true);
 			const n = new Gold(b.x, b.y, colors[colorsIndex[count]]);
@@ -322,15 +429,39 @@ Game.render = () => {
 };
 
 Game.renderUI = () => {
-	const t = Math.sin(Time.time * 0.01) * 2;
-	Draw.setFont(Font.lb);
-	Draw.setColor(C.gold);
-	Draw.setShadow(0, 2, 2, C.black);
-	Draw.setHVAlign(Align.l, Align.t);
-	Draw.text(16, 16 + t, Game.gold);
-	Draw.resetShadow();
-	Draw.setColor(C.white);
-	Draw.text(16, 14 + t, Game.gold);
+	if (Game.over) {
+		Draw.setAlpha(0.8);
+		Draw.setColor(C.black);
+		Draw.rect(0, Room.h * 0.2, Room.w, Room.h * 0.45);
+		Draw.setAlpha(1);
+		Draw.setFont(Font.xxlb);
+		Draw.setColor(C.white);
+		Draw.setHVAlign(Align.c, Align.t);
+		Draw.setShadow(0, 2, 5, C.black);
+		Draw.text(Room.mid.w, Room.h * 0.25, 'Game Over');
+		Draw.setVAlign(Align.b);
+		Draw.text(Room.mid.w, Room.h * 0.6, `Total: ${Game.score()}`);
+		const y1 = Room.h * 0.25 + Font.size * 2;
+		Draw.setFont(Font.xlb);
+		Draw.setHVAlign(Align.l, Align.t);
+		Draw.text(Room.w * 0.2, y1,'Gold:');
+		Draw.text(Room.w * 0.2, y1 + Font.size * 1.2, 'Big Gold:');
+		Draw.setHAlign(Align.r);
+		Draw.text(Room.w * 0.8, y1, `${Game.gold} (x1)`);
+		Draw.text(Room.w * 0.8, y1 + Font.size * 1.2, `${Game.bigGold} (x5)`);
+		Draw.resetShadow();
+	}
+	else {
+		const t = Math.sin(Time.time * 0.01) * 2;
+		Draw.setFont(Font.lb);
+		Draw.setColor(C.gold);
+		Draw.setShadow(0, 2, 2, C.black);
+		Draw.setHVAlign(Align.l, Align.t);
+		Draw.text(16, 16 + t, Game.gold);
+		Draw.resetShadow();
+		Draw.setColor(C.white);
+		Draw.text(16, 14 + t, Game.gold);
+	}
 };
 
 BRANTH.start();

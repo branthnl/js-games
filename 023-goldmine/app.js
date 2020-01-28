@@ -79,7 +79,7 @@ class Gold extends BranthBehaviour {
 		this.alarm[0] = 0.2 * (Room.w - this.xto) + (Room.h - this.yto) + Math.range(100, 200);
 	}
 	get hover() {
-		const m = Input.screenToWorldPoint(Input.mousePosition);
+		const m = OBJ.take(Miner)[0].aim;
 		return m.x > this.x && m.x < this.x + Tile.w && m.y > this.y && m.y < this.y + Tile.h;
 	}
 	update() {
@@ -215,6 +215,7 @@ class Miner extends BranthBehaviour {
 		this.axeAngle = 0;
 		this.axeScale = 1;
 		this.alarm[0] = 1500;
+		this.aim = new Vector(this.x, this.y);
 	}
 	update() {
 		const keyLeft = Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.A)? 1 : 0;
@@ -227,11 +228,13 @@ class Miner extends BranthBehaviour {
 		if (this.y + this.vsp > World.y) {
 			this.y = World.y;
 		}
-		this.axeAngle = 90 + Math.sin(Time.time * 0.002) * 75;
+		const m = Input.screenToWorldPoint(Input.mousePosition);
+		const p = Math.lendir(Math.min(Room.mid.h * 0.5, Math.pointdis(this, m)), Math.pointdir(this, m));
+		this.aim.x = this.x + p.x;
+		this.aim.y = this.y + p.y;
 		if (this.alpha >= 0.8) {
 			if (Input.mouseDown(0)) {
-				const m = Input.screenToWorldPoint(Input.mousePosition);
-				const n = new Pickaxe(this.x, this.y, new Vector(m.x, m.y), this.axeAngle);
+				const n = new Pickaxe(this.x, this.y, new Vector(this.aim.x, this.aim.y), this.axeAngle);
 				OBJ.push(Pickaxe, n);
 				this.axeScale = 0;
 			}
@@ -239,6 +242,7 @@ class Miner extends BranthBehaviour {
 		if (this.alarm[1] > 0) {
 			this.alpha = 1 - Math.max(0, this.alarm[1] / 500);
 		}
+		this.axeAngle = 90 + Math.sin(Time.time * 0.002) * 75;
 		this.xs += 0.2 * (1 - this.xs);
 		this.ys += 0.2 * (1 - this.ys);
 		this.axeScale += 0.2 * (1 - this.axeScale);
@@ -246,6 +250,8 @@ class Miner extends BranthBehaviour {
 	alarm0() {
 		this.alarm[1] = 500;
 		this.vsp = -10;
+		this.xs = 0.5;
+		this.ys = 1.5;
 	}
 	alarm1() {
 		this.alpha = 1;
@@ -270,6 +276,16 @@ class Miner extends BranthBehaviour {
 		Draw.pickAxe(0, 0, this.axeAngle);
 		CTX.restore();
 		Draw.setAlpha(1);
+	}
+	renderUI() {
+		const a = this.aim; a.r = 8 + Math.sin(Time.time * 0.013) * 0.5;
+		Draw.setColor(C.white);
+		CTX.lineCap = Cap.round;
+		CTX.lineWidth = 3;
+		Draw.circle(a.x, a.y, a.r, true);
+		Draw.line(a.x - a.r * 1.8, a.y, a.x + a.r * 1.8, a.y);
+		Draw.line(a.x, a.y - a.r * 1.8, a.x, a.y + a.r * 1.8);
+		CTX.lineWidth = 1;
 	}
 }
 OBJ.add(Miner);

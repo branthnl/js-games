@@ -1604,6 +1604,21 @@ const Emitter = {
 				this.setShape(Shape.star);
 				this.setGravity(0, 0);
 				break;
+			case 'puff':
+				this.setSpeed(2, 5);
+				this.setSpeedInc(-0.1, -0.1);
+				this.setSize(5, 10);
+				this.setSizeInc(-0.1, -0.1);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
+				this.setColor(C.white);
+				this.setLife(500, 1000);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				break;
 		}
 	},
 	emit(n) {

@@ -3,7 +3,13 @@ Room.add(Game);
 
 const Tile = {
 	w: 40,
-	h: 40
+	h: 40,
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	}
 };
 
 const Grid = {
@@ -118,11 +124,21 @@ OBJ.add(Gold);
 
 class Boom extends BranthBehaviour {
 	start() {
+		this.count = 0;
 		const b = World.fromScreen(this.x, this.y, true);
 		if (b.c >= 0 && b.c < Grid.c && b.r >= 0 && b.r < Grid.r) {
 			if (Grid.g[b.c][b.r] instanceof Gold) {
+				const n = Grid.g[b.c][b.r];
 				Game.gold++;
-				OBJ.destroy(Grid.g[b.c][b.r].id);
+				OBJ.destroy(n.id);
+				Emitter.preset('sparkle');
+				Emitter.setArea(n.x + Tile.mid.w, n.x + Tile.mid.w, n.y + Tile.mid.h, n.y + Tile.mid.h);
+				Emitter.setColor(C.gold);
+				Emitter.emit(5);
+				Emitter.setColor(C.lemonChiffon);
+				Emitter.emit(5);
+				Grid.g[b.c][b.r] = null;
+				this.count++;
 			}
 		}
 		this.alarm[0] = 60;
@@ -131,12 +147,14 @@ class Boom extends BranthBehaviour {
 		OBJ.destroy(this.id);
 	}
 	render() {
-		Emitter.preset('sparkle');
-		Emitter.setArea(this.x - Tile.w * 0.5, this.x + Tile.w * 0.5, this.y - Tile.h * 0.5, this.y + Tile.h * 0.5);
-		Emitter.setColor(C.gold);
-		Emitter.emit(1);
-		Emitter.setColor(C.lemonChiffon);
-		Emitter.emit(1);
+		if (this.count === 0) {
+			Emitter.preset('puff');
+			Emitter.setArea(this.x - Tile.mid.w, this.x + Tile.mid.w, this.y - Tile.mid.h, this.y + Tile.mid.h);
+			Emitter.setColor(C.brown);
+			Emitter.emit(1);
+			Emitter.setColor(C.gray);
+			Emitter.emit(1);
+		}
 	}
 }
 OBJ.add(Boom);
@@ -149,6 +167,14 @@ class Pickaxe extends BranthObject {
 		this.target = target;
 		this.rot = rot || 0;
 		this.rotSpd = Math.range(10, 20) * Math.randneg();
+		Emitter.preset('puff');
+		Emitter.setSize(2, 4);
+		Emitter.setSpeed(2, 3);
+		Emitter.setColor(C.brown);
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.emit(Math.irange(2, 4));
+		Emitter.setColor(C.gray);
+		Emitter.emit(Math.irange(2, 4));
 	}
 	get target() {
 		if (!this._target instanceof Vector) {
@@ -179,6 +205,11 @@ class Pickaxe extends BranthObject {
 			View.shake(20, 300);
 		}
 		this.rot += this.rotSpd;
+		Emitter.preset('puff');
+		Emitter.setSize(2, 4);
+		Emitter.setColor('rgba(255, 255, 255, 0.5)');
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.emit(1);
 	}
 	render() {
 		const x = this.x;

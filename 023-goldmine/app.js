@@ -338,7 +338,7 @@ class Miner extends BranthBehaviour {
 		this.axeAngle = 90 + Math.sin(Time.time * 0.002) * 75;
 	}
 	spawnManager() {
-		if (Input.mouseDown(0)) {
+		if (Input.keyDown(KeyCode.Space) || Input.mouseDown(0)) {
 			const n = new Pickaxe(this.x, this.y, new Vector(this.aim.x, this.aim.y), this.axeAngle);
 			OBJ.push(Pickaxe, n);
 			this.axeScale = 0;

@@ -398,8 +398,17 @@ class Miner extends BranthBehaviour {
 		Draw.circle(a.x, a.y, a.r, true);
 		Draw.line(a.x - a.r * 1.8, a.y, a.x + a.r * 1.8, a.y);
 		Draw.line(a.x, a.y - a.r * 1.8, a.x, a.y + a.r * 1.8);
-		Draw.setAlpha(1);
 		CTX.lineWidth = 1;
+		Draw.setAlpha(this.alarm[0] > 1200? 1 - Math.clamp((this.alarm[0] - 1200) / 300, 0, 1) : Math.clamp(this.alarm[0] / 300, 0, 1));
+		Draw.setFont(Font.xxlb);
+		Draw.setColor('rgba(0, 0, 0, 0.5)');
+		Draw.rect(0, Room.mid.h - Font.size, Room.w, Font.size * 2);
+		Draw.setColor(C.gold);
+		Draw.setShadow(0, 2, 5, C.black);
+		Draw.setHVAlign(Align.c, Align.m);
+		Draw.text(Room.mid.w, Room.mid.h, 'Gold Mine');
+		Draw.resetShadow();
+		Draw.setAlpha(1);
 	}
 }
 OBJ.add(Miner);

@@ -416,6 +416,12 @@ Game.start = () => {
 	OBJ.create(Miner, Room.mid.w, 32);
 };
 
+Game.update = () => {
+	if (Input.keyDown(KeyCode.R)) {
+		Room.start('Game');
+	}
+};
+
 Game.render = () => {
 	Draw.setColor(C.burlyWood);
 	Draw.rect(0, 0, Room.w, Room.h);

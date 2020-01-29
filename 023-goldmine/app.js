@@ -262,10 +262,11 @@ class Miner extends BranthBehaviour {
 		this.c = Grid.mid.c;
 		this.r = 0;
 		this.aim = new Vector(this.x, this.y);
-		this.alpha = 1;
+		this.alpha = 0;
 		this.axeAngle = 0;
 		this.axeScale = 1;
 		this.triggerTime = 0;
+		this.alarm[0] = 1500;
 	}
 	movement() {
 		let keyA = Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.A);
@@ -302,6 +303,8 @@ class Miner extends BranthBehaviour {
 			this.triggerTime = 0;
 			this.c = Math.clamp(this.c, 0, Grid.c - 1);
 		}
+	}
+	move() {
 		const b = World.fromGrid(this.c, this.r);
 		this.xto = b.x + Tile.mid.w;
 		this.yto = b.y + Tile.h;
@@ -352,10 +355,19 @@ class Miner extends BranthBehaviour {
 		this.axeScale += 0.2 * (1 - this.axeScale);
 	}
 	update() {
-		this.movement();
-		this.dropMovement();
+		if (this.alarm[0] > 0) {
+			if (this.alarm[0] > 600) {
+				this.y -= Room.h;
+			}
+			this.alpha = 1 - Math.clamp(this.alarm[0] / 600, 0, 1);
+		}
+		else {
+			this.movement();
+			this.spawnManager();
+		}
+		this.move();
 		this.aimMovement();
-		this.spawnManager();
+		this.dropMovement();
 		this.keepScale();
 	}
 	render() {
@@ -382,9 +394,11 @@ class Miner extends BranthBehaviour {
 		Draw.setColor(C.white);
 		CTX.lineCap = Cap.round;
 		CTX.lineWidth = 3;
+		Draw.setAlpha(this.alpha);
 		Draw.circle(a.x, a.y, a.r, true);
 		Draw.line(a.x - a.r * 1.8, a.y, a.x + a.r * 1.8, a.y);
 		Draw.line(a.x, a.y - a.r * 1.8, a.x, a.y + a.r * 1.8);
+		Draw.setAlpha(1);
 		CTX.lineWidth = 1;
 	}
 }

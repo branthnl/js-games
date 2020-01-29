@@ -403,18 +403,11 @@ Game.start = () => {
 	Grid.start();
 	Emitter.setDepth(-1);
 	let count = 0;
-	const colors = [
-		C.sandyBrown,
-		C.lightSlateGray,
-		C.gold,
-		C.slateBlue,
-		C.whiteSmoke
-	];
-	let colorsIndex = LEVEL.LVL1.map(x => x.split('')).flat();
+	let colorsIndex = LEVEL[~~(Math.random() * LEVEL.length)].map(x => x.split('')).flat();
 	for (let r = 1; r < Grid.r; r++) {
 		for (let c = 0; c < Grid.c; c++) {
 			const b = World.fromGrid(c, r, true);
-			const n = new Gold(b.x, b.y, colors[colorsIndex[count]]);
+			const n = new Gold(b.x, b.y, COLORS[colorsIndex[count]]);
 			OBJ.push(Gold, n);
 			Grid.g[c][r] = n;
 			count++;

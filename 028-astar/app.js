@@ -1,13 +1,13 @@
 const Tile = {
-	w: 32,
-	h: 32
+	w: 4,
+	h: 4
 };
 
 const Grid = {
 	EMPTY: 'EMPTY',
 	BLOCK: 'BLOCK',
-	c: 30,
-	r: 20,
+	c: 180,
+	r: 180,
 	g: []
 };
 
@@ -70,10 +70,10 @@ class Spot {
 	show(col, outline) {
 		Draw.setColor(col);
 		Draw.rect(this.c * Tile.w + Tile.w * 0.05, this.r * Tile.h + Tile.h * 0.05, Tile.w * 0.9, Tile.h * 0.9, outline);
-		Draw.setFont(Font.s);
-		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.m);
-		Draw.text((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, this.f);
+		// Draw.setFont(Font.s);
+		// Draw.setColor(C.black);
+		// Draw.setHVAlign(Align.c, Align.m);
+		// Draw.text((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, this.f);
 	}
 	circle(col) {
 		Draw.setColor(col);
@@ -90,6 +90,7 @@ class AStar extends BranthObject {
 				Grid.g[i].push(new Spot(i, j, Math.random() > 0.8? Grid.BLOCK : Grid.EMPTY));
 			}
 		}
+		console.time();
 		this.start = Grid.g[0][0];
 		this.goal = Grid.g[Math.irange(0, Grid.c)][Math.irange(0, Grid.r)];
 		this.current = this.start;
@@ -104,11 +105,23 @@ class AStar extends BranthObject {
 					j.h = 0;
 				}
 			}
+			if (this.openSet.length > 0) {
+				console.log('TERMINATED');
+				console.timeEnd();
+			}
+			console.time();
 			this.goal = Grid.g[Math.irange(0, Grid.c)][Math.irange(0, Grid.r)];
-			this.openSet = [this.current];
+			if (this.goal.type === Grid.BLOCK) {
+				console.log(`IT'S A BLOCK`);
+				console.timeEnd();
+				this.openSet = [];
+			}
+			else {
+				this.openSet = [this.current];
+			}
 			this.closedSet = [];
 		}
-		if (Input.keyHold(KeyCode.Enter)) {
+		if (true || Input.keyHold(KeyCode.Enter)) {
 			if (this.openSet.length > 0) {
 				let iMin = 0;
 				for (let i = this.openSet.length - 1; i > 0; i--) {
@@ -122,6 +135,7 @@ class AStar extends BranthObject {
 				this.closedSet.push(this.current);
 				if (this.current === this.goal) {
 					console.log('DONE!');
+					console.timeEnd();
 					this.openSet = [];
 					return;
 				}
@@ -144,12 +158,15 @@ class AStar extends BranthObject {
 					}
 				}
 			}
+			else {
+				// Path not found, are you sure the goal is reachable?
+			}
 		}
 	}
 	render() {
 		for (const i of Grid.g) {
 			for (const j of i) {
-				j.show(C.black, true);
+				// j.show(C.black, true);
 				if (j.type === Grid.BLOCK) {
 					j.show(C.gray);
 				}
@@ -161,6 +178,13 @@ class AStar extends BranthObject {
 		for (const i of this.closedSet) {
 			i.show(C.red);
 		}
+		Draw.setColor(C.black);
+		Draw.circle(
+			(this.goal.c + 0.5) * Tile.w,
+			(this.goal.r + 0.5) * Tile.h,
+			Math.hypot(this.current.c - this.goal.c, this.current.r - this.goal.r) * Tile.w,
+			true
+		);
 		this.goal.circle(C.yellow);
 		this.current.circle(C.blue);
 	}

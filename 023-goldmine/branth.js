@@ -1220,7 +1220,7 @@ const OBJ = {
 		for (const o of this.list) {
 			for (const i in o) {
 				if (o[i].id === id) {
-					delete o[i];
+					o.splice(i, 1);
 				}
 			}
 		}

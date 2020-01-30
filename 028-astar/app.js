@@ -1,11 +1,11 @@
 const Tile = {
-	w: 64,
-	h: 64
+	w: 32,
+	h: 32
 };
 
 const Grid = {
-	c: 15,
-	r: 10,
+	c: 30,
+	r: 20,
 	g: []
 };
 
@@ -65,7 +65,7 @@ class Spot {
 		Draw.setFont(Font.s);
 		Draw.setColor(C.black);
 		Draw.setHVAlign(Align.c, Align.m);
-		Draw.text((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, `(${this.g}, ${this.h})`);
+		Draw.text((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, this.f);
 	}
 }
 
@@ -79,13 +79,24 @@ class AStar extends BranthObject {
 			}
 		}
 		this.start = Grid.g[0][0];
-		this.goal = Grid.g[Grid.c - 1][Grid.r - 1];
+		this.goal = Grid.g[Math.irange(0, Grid.c)][Math.irange(0, Grid.r)];
 		this.current = this.start;
 		this.openSet = [this.start];
 		this.closedSet = [];
 	}
 	update() {
-		if (true || Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space)) {
+		if (Input.keyDown(KeyCode.Space)) {
+			for (const i of Grid.g) {
+				for (const j of i) {
+					j.g = 0;
+					j.h = 0;
+				}
+			}
+			this.goal = Grid.g[Math.irange(0, Grid.c)][Math.irange(0, Grid.r)];
+			this.openSet = [this.current];
+			this.closedSet = [];
+		}
+		if (Input.keyHold(KeyCode.Enter)) {
 			if (this.openSet.length > 0) {
 				let iMin = 0;
 				for (let i = 1; i < this.openSet.length; i++) {
@@ -125,6 +136,7 @@ class AStar extends BranthObject {
 		for (const i of this.closedSet) {
 			i.show(C.red);
 		}
+		this.goal.show(C.yellow);
 		this.current.show(C.blue);
 	}
 }

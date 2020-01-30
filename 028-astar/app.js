@@ -4,13 +4,16 @@ const Tile = {
 };
 
 const Grid = {
+	EMPTY: 'EMPTY',
+	BLOCK: 'BLOCK',
 	c: 30,
 	r: 20,
 	g: []
 };
 
 class Spot {
-	constructor(c, r) {
+	constructor(c, r, type = Grid.EMPTY) {
+		this.type = type;
 		this.c = c;
 		this.r = r;
 		this.g = 0;
@@ -21,6 +24,11 @@ class Spot {
 	}
 	get neighbors() {
 		const n = [];
+		const push = (g) => {
+			if (g.type !== Grid.BLOCK) {
+				n.push(g);
+			}
+		};
 		const Empty = {
 			top: this.r > 0,
 			right: this.c < Grid.c - 1,
@@ -34,28 +42,28 @@ class Spot {
 			left: this.c - 1
 		};
 		if (Empty.top) {
-			n.push(Grid.g[this.c][Bound.top]);
+			push(Grid.g[this.c][Bound.top]);
 		}
 		if (Empty.right && Empty.top) {
-			n.push(Grid.g[Bound.right][Bound.top]);
+			push(Grid.g[Bound.right][Bound.top]);
 		}
 		if (Empty.right) {
-			n.push(Grid.g[Bound.right][this.r]);
+			push(Grid.g[Bound.right][this.r]);
 		}
 		if (Empty.right && Empty.bottom) {
-			n.push(Grid.g[Bound.right][Bound.bottom]);
+			push(Grid.g[Bound.right][Bound.bottom]);
 		}
 		if (Empty.bottom) {
-			n.push(Grid.g[this.c][Bound.bottom]);
+			push(Grid.g[this.c][Bound.bottom]);
 		}
 		if (Empty.left && Empty.bottom) {
-			n.push(Grid.g[Bound.left][Bound.bottom]);
+			push(Grid.g[Bound.left][Bound.bottom]);
 		}
 		if (Empty.left) {
-			n.push(Grid.g[Bound.left][this.r]);
+			push(Grid.g[Bound.left][this.r]);
 		}
 		if (Empty.left && Empty.top) {
-			n.push(Grid.g[Bound.left][Bound.top]);
+			push(Grid.g[Bound.left][Bound.top]);
 		}
 		return n;
 	}
@@ -67,6 +75,10 @@ class Spot {
 		Draw.setHVAlign(Align.c, Align.m);
 		Draw.text((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, this.f);
 	}
+	circle(col) {
+		Draw.setColor(col);
+		Draw.circle((this.c + 0.5) * Tile.w, (this.r + 0.5) * Tile.h, Math.min(Tile.w, Tile.h) * 0.4);
+	}
 }
 
 class AStar extends BranthObject {
@@ -75,7 +87,7 @@ class AStar extends BranthObject {
 		for (let i = 0; i < Grid.c; i++) {
 			Grid.g.push([]);
 			for (let j = 0; j < Grid.r; j++) {
-				Grid.g[i].push(new Spot(i, j));
+				Grid.g[i].push(new Spot(i, j, Math.random() > 0.8? Grid.BLOCK : Grid.EMPTY));
 			}
 		}
 		this.start = Grid.g[0][0];
@@ -99,7 +111,7 @@ class AStar extends BranthObject {
 		if (Input.keyHold(KeyCode.Enter)) {
 			if (this.openSet.length > 0) {
 				let iMin = 0;
-				for (let i = 1; i < this.openSet.length; i++) {
+				for (let i = this.openSet.length - 1; i > 0; i--) {
 					const f = this.openSet[i].f;
 					if (f < this.openSet[iMin].f) {
 						iMin = i;
@@ -115,10 +127,20 @@ class AStar extends BranthObject {
 				}
 				for (let i = 0; i < this.current.neighbors.length; i++) {
 					const n = this.current.neighbors[i];
-					n.g++;
-					n.h = Math.abs(this.goal.c - n.c) + Math.abs(this.goal.r - n.r);
-					if (!this.openSet.includes(n) && !this.closedSet.includes(n)) {
-						this.openSet.push(n);
+					if (!this.closedSet.includes(n)) {
+						const g = n.g + 1;
+						const h = Math.abs(this.goal.c - n.c) + Math.abs(this.goal.r - n.r);
+						if (!this.openSet.includes(n)) {
+							n.g = g;
+							n.h = h;
+							this.openSet.push(n);
+						}
+						else {
+							if ((g + h) < n.f) {
+								n.g = g;
+								n.h = h;
+							}
+						}
 					}
 				}
 			}
@@ -128,6 +150,9 @@ class AStar extends BranthObject {
 		for (const i of Grid.g) {
 			for (const j of i) {
 				j.show(C.black, true);
+				if (j.type === Grid.BLOCK) {
+					j.show(C.gray);
+				}
 			}
 		}
 		for (const i of this.openSet) {
@@ -136,8 +161,8 @@ class AStar extends BranthObject {
 		for (const i of this.closedSet) {
 			i.show(C.red);
 		}
-		this.goal.show(C.yellow);
-		this.current.show(C.blue);
+		this.goal.circle(C.yellow);
+		this.current.circle(C.blue);
 	}
 }
 

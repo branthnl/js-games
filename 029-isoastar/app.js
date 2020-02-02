@@ -1,90 +1,4 @@
-const Tile = {
-	w: 40,
-	h: 20,
-	get mid() {
-		return {
-			w: this.w * 0.5,
-			h: this.h * 0.5
-		};
-	}
-};
-
-const Grid = {
-	EMPTY: 'EMPTY',
-	BLOCK: 'BLOCK',
-	c: 18,
-	r: 18,
-	g: [],
-	getPath(start, goal) {
-		let current = start;
-		const openSet = [start];
-		const closedSet = [];
-		const fScore = [0];
-		const gScore = [0];
-		const hScore = [0];
-		while (openSet.length > 0) {
-			let iMin = 0;
-			for (let i = openSet.length - 1; i > 0; i--) {
-				if (fScore[i] < fScore[iMin]) {
-					iMin = i;
-				}
-			}
-			current = openSet[iMin];
-			const g = hScore[iMin] + 1;
-			openSet.splice(iMin, 1);
-			fScore.splice(iMin, 1);
-			gScore.splice(iMin, 1);
-			hScore.splice(iMin, 1);
-			closedSet.push(current);
-			if (current.equal(goal)) {
-				return closedSet;
-			}
-			const neighbours = [];
-			const push = (n) => {
-				neighbours.push(n);
-				if (!closedSet.includes(n)) {
-					const h = Math.floor(Math.abs(n.c - goal.c) + Math.abs(n.r - goal.r));
-					if (!openSet.includes(n)) {
-						fScore.push(g + h);
-						gScore.push(g);
-						hScore.push(h);
-						openSet.push(n);
-					}
-					else {
-						const iN = openSet.indexOf(n);
-						if ((g + h) < fScore[iN]) {
-							fScore[iN] = f;
-							gScore[iN] = g;
-							hScore[iN] = h;
-						}
-					}
-				}
-			};
-			if (current.c > 0) {
-				push(new GridPoint(current.c - 1, current.r));
-			}
-			if (current.c < Grid.c - 1) {
-				push(new GridPoint(current.c + 1, current.r));
-			}
-			if (current.r > 0) {
-				push(new GridPoint(current.c, current.r - 1));
-			}
-			if (current.r < Grid.r - 1) {
-				push(new GridPoint(current.c, current.r + 1));
-			}
- 		}
- 		return null;
-	}
-};
-
-const World = {
-	getWorld(c, r) {
-		return {
-			x: Room.mid.w + (c - r) * Tile.mid.w,
-			y: Tile.mid.h + (r + c + 0.5) * Tile.mid.h
-		};
-	}
-};
+const CTX = document.querySelector('canvas').getContext('2d');
 
 class GridPoint {
 	constructor(c, r) {
@@ -96,63 +10,126 @@ class GridPoint {
 	}
 }
 
-class Cat extends BranthObject {
-	constructor(c, r) {
-		super(0, 0);
-		this.c = c;
-		this.r = r;
-		this.targetPoints = [];
-	}
-	setTarget(target) {
-		this.targetPoints = Grid.getPath(new GridPoint(this.c, this.r), target);
-	}
-	update() {
-		const b = World.getWorld(this.c, this.r);
-		[this.x, this.y] = [b.x, b.y];
-		if (this.targetPoints.length > 0) {
-			const p = this.targetPoints[0];
-			const cdif = p.c - this.c;
-			const rdif = p.r - this.r;
-			const spd = 0.02;
-			if (Math.abs(cdif) + Math.abs(rdif) < spd) {
-				this.targetPoints.splice(0, 1);
-			}
-			else {
-				this.c += spd * Math.sign(cdif);
-				this.r += spd * Math.sign(rdif);
+const Grid = {
+	EMPTY: 'Empty',
+	BLOCK: 'Block',
+	c: 9,
+	r: 19,
+	g: [],
+	setup() {
+		for (let i = 0; i < this.c; i++) {
+			this.g.push([]);
+			for (let j = 0; j < this.r; j++) {
+				this.g[i].push(this.EMPTY);
 			}
 		}
+	},
+	getPath(start, goal) {
+		const openSet = [start];
+		const closedSet = [];
+		const fScore = [0];
+		const gScore = [0];
+		const includes = (set, n) => {
+			for (const g of set) {
+				if (g.equal(n)) {
+					return true;
+				}
+			}
+			return false;
+		};
+		const push = (g, c, r) => {
+			if (this.g[c][r] === this.EMPTY) {
+				const n = new GridPoint(c, r);
+				if (!includes(closedSet, n)) {
+					const h = Math.floor(Math.abs(goal.c - n.c) + Math.abs(goal.r - n.r));
+					if (!includes(openSet, n)) {
+						fScore.push(g + h);
+						gScore.push(g);
+						openSet.push(n);
+					}
+					else {
+						const i = openSet.indexOf(n);
+						if ((g + h) < fScore[i]) {
+							fScore[i] = g + h;
+							gScore[i] = g;
+						}
+					}
+				}
+			}
+		};
+		while (openSet.length > 0) {
+			let iMin = 0;
+			for (let i = 1; i < openSet.length; i++) {
+				if (fScore[i] <= fScore[iMin]) {
+					iMin = i;
+				}
+			}
+			const current = openSet[iMin];
+			const g = gScore[iMin] + 1;
+			openSet.splice(iMin, 1);
+			fScore.splice(iMin, 1);
+			gScore.splice(iMin, 1);
+			closedSet.push(current);
+			if (current.equal(goal)) {
+				return closedSet;
+			}
+			const Exists = {
+				Top: current.r > 0,
+				Left: current.c > 0,
+				Right: current.c < this.c - 1,
+				Bottom: current.r < this.r - 1
+			};
+			if (Exists.Top) {
+				push(g, current.c, current.r - 1);
+			}
+			if (Exists.Left) {
+				push(g, current.c - 1, current.r);
+			}
+			if (Exists.Right) {
+				push(g, current.c + 1, current.r);
+			}
+			if (Exists.Bottom) {
+				push(g, current.c, current.r + 1);
+			}
+		}
+		return [start];
 	}
-	render() {
-		Draw.setColor(C.black);
-		Draw.circle(this.x, this.y, Tile.w * 0.4);
-	}
-}
-
-OBJ.add(Cat);
-
-const Game = new BranthRoom('Game', (Grid.c + 1) * Tile.w, (Grid.r + 1) * Tile.h);
-Room.add(Game);
-
-Game.start = () => {
-	OBJ.create(Cat);
 };
 
-Game.render = () => {
-	for (let r = 0; r < Grid.r; r++) {
-		for (let c = 0; c < Grid.c; c++) {
-			const b = World.getWorld(c, r);
+let path = [];
+
+const start = () => {
+	Grid.setup();
+	path = Grid.getPath(new GridPoint(0, 0), new GridPoint(Grid.c - 1, Grid.r - 1));
+	update();
+};
+
+const update = () => {
+	CTX.lineWidth = 1;
+	CTX.strokeStyle = 'black';
+	CTX.clearRect(0, 0, 320, 640);
+	for (let i = 0; i < Grid.c; i++) {
+		for (let j = 0; j < Grid.r; j++) {
 			CTX.beginPath();
-			CTX.moveTo(b.x, b.y - Tile.mid.h);
-			CTX.lineTo(b.x + Tile.mid.w, b.y);
-			CTX.lineTo(b.x, b.y + Tile.mid.h);
-			CTX.lineTo(b.x - Tile.mid.w, b.y);
-			CTX.closePath();
-			Draw.setColor(C.black);
+			CTX.rect(16 + i * 32, 16 + j * 32, 32, 32);
 			CTX.stroke();
 		}
 	}
+	CTX.lineWidth = 10;
+	CTX.strokeStyle = 'purple';
+	CTX.beginPath();
+	for (let i = 0; i < path.length; i++) {
+		const p = path[i];
+		if (i === 0) {
+			CTX.moveTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
+			CTX.lineTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
+		}
+		else {
+			CTX.lineTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
+		}
+	}
+	CTX.stroke();
+	window.requestAnimationFrame(update);
 };
 
-BRANTH.start();
-Room.start('Game');
+start();

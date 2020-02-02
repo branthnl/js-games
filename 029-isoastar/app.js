@@ -14,7 +14,7 @@ const Grid = {
 	EMPTY: 'Empty',
 	BLOCK: 'Block',
 	c: 9,
-	r: 19,
+	r: 14,
 	g: [],
 	setup() {
 		for (let i = 0; i < this.c; i++) {
@@ -29,6 +29,8 @@ const Grid = {
 		const closedSet = [];
 		const fScore = [0];
 		const gScore = [0];
+		const cameSet = [-1];
+		const cameFrom = [];
 		const includes = (set, n) => {
 			for (const g of set) {
 				if (g.equal(n)) {
@@ -36,6 +38,14 @@ const Grid = {
 				}
 			}
 			return false;
+		};
+		const indexOf = (set, n) => {
+			for (const i in set) {
+				if (set[i].equal(n)) {
+					return +i;
+				}
+			}
+			return -1;
 		};
 		const push = (g, c, r) => {
 			if (this.g[c][r] === this.EMPTY) {
@@ -46,9 +56,10 @@ const Grid = {
 						fScore.push(g + h);
 						gScore.push(g);
 						openSet.push(n);
+						cameSet.push(closedSet.length - 1);
 					}
 					else {
-						const i = openSet.indexOf(n);
+						const i = indexOf(openSet, n);
 						if ((g + h) < fScore[i]) {
 							fScore[i] = g + h;
 							gScore[i] = g;
@@ -56,6 +67,16 @@ const Grid = {
 					}
 				}
 			}
+		};
+		const reconstruct = (current) => {
+			const finalSet = [];
+			let i = 0;
+			while (i !== -1) {
+				finalSet.push(current);
+				i = cameFrom[indexOf(closedSet, current)];
+				current = closedSet[i];
+			}
+			return finalSet;
 		};
 		while (openSet.length > 0) {
 			let iMin = 0;
@@ -70,8 +91,10 @@ const Grid = {
 			fScore.splice(iMin, 1);
 			gScore.splice(iMin, 1);
 			closedSet.push(current);
+			cameFrom.push(cameSet[iMin]);
+			cameSet.splice(iMin, 1);
 			if (current.equal(goal)) {
-				return closedSet;
+				return reconstruct(current);
 			}
 			const Exists = {
 				Top: current.r > 0,
@@ -109,11 +132,6 @@ const Grid = {
 };
 
 const blocks = [
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 1, 0, 0, 0, 0, 0, 0, 0],
-	[0, 1, 0, 0, 0, 0, 0, 0, 0],
-	[0, 1, 0, 0, 0, 0, 0, 0, 0],
 	[0, 1, 0, 0, 0, 1, 0, 0, 0],
 	[0, 1, 0, 0, 1, 1, 1, 1, 0],
 	[0, 1, 0, 0, 1, 0, 0, 0, 0],
@@ -123,8 +141,8 @@ const blocks = [
 	[0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[1, 1, 1, 1, 1, 0, 0, 0, 0],
-	[0, 0, 1, 0, 0, 0, 0, 0, 0],
-	[0, 0, 1, 1, 1, 1, 1, 1, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 1, 1, 1, 1, 1, 1, 1],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -141,13 +159,12 @@ const start = () => {
 			}
 		}
 	}
-	path = Grid.getPath(new GridPoint(5, 4), new GridPoint(0, 18));
+	path = Grid.getPath(new GridPoint(0, 0), new GridPoint(8, 13));
 	update();
 };
 
 const update = () => {
 	CTX.lineCap = 'butt';
-	CTX.lineWidth = 1;
 	CTX.fillStyle = 'black';
 	CTX.strokeStyle = 'black';
 	CTX.clearRect(0, 0, 320, 640);
@@ -159,9 +176,17 @@ const update = () => {
 			else CTX.stroke();
 		}
 	}
+	for (let i = 0; i < path.length; i++) {
+		const p = path[i];
+		const [x, y] = [16 + p.c * 32 + 16, 16 + p.r * 32 + 16];
+		const t = (i + 1) / path.length;
+		CTX.fillStyle = `rgba(${t * 255}, ${t * 50}, ${(1 - t) * 255}, ${t * 0.8 + 0.2})`;
+		CTX.beginPath();
+		CTX.arc(x, y, 5, 0, 2 * Math.PI);
+		CTX.fill();
+	}
 	CTX.lineCap = 'round';
-	CTX.lineWidth = 5;
-	CTX.strokeStyle = 'purple';
+	CTX.strokeStyle = 'orange';
 	CTX.beginPath();
 	for (let i = 0; i < path.length; i++) {
 		const p = path[i];
@@ -173,14 +198,8 @@ const update = () => {
 		else {
 			CTX.lineTo(x, y);
 		}
-		if (i === path.length - 1) {
-			CTX.stroke();
-			CTX.fillStyle = 'orange';
-			CTX.beginPath();
-			CTX.arc(x, y, 5, 0, 2 * Math.PI);
-			CTX.fill();
-		}
 	}
+	CTX.stroke();
 	window.requestAnimationFrame(update);
 };
 

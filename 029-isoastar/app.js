@@ -1,4 +1,5 @@
-const CTX = document.querySelector('canvas').getContext('2d');
+const CANVAS = document.querySelector('canvas');
+const CTX = CANVAS.getContext('2d');
 
 class GridPoint {
 	constructor(c, r) {
@@ -10,11 +11,49 @@ class GridPoint {
 	}
 }
 
+const Room = {
+	w: CANVAS.width,
+	h: CANVAS.height,
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	}
+};
+
+const Tile = {
+	w: 40,
+	h: 20,
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	},
+	draw(x, y, outline) {
+		CTX.beginPath();
+		CTX.moveTo(x, y - this.mid.h);
+		CTX.lineTo(x + this.mid.w, y);
+		CTX.lineTo(x, y + this.mid.h);
+		CTX.lineTo(x - this.mid.w, y);
+		CTX.closePath();
+		if (outline) {
+			CTX.strokeStyle = 'black';
+			CTX.stroke();
+		}
+		else {
+			CTX.fillStyle = 'black';
+			CTX.fill();
+		}
+	}
+};
+
 const Grid = {
 	EMPTY: 'Empty',
 	BLOCK: 'Block',
-	c: 9,
-	r: 14,
+	c: 17,
+	r: 18,
 	g: [],
 	setup() {
 		for (let i = 0; i < this.c; i++) {
@@ -86,7 +125,7 @@ const Grid = {
 				}
 			}
 			const current = openSet[iMin];
-			const g = gScore[iMin] + 1;
+			const g = gScore[iMin] + 10;
 			openSet.splice(iMin, 1);
 			fScore.splice(iMin, 1);
 			gScore.splice(iMin, 1);
@@ -115,37 +154,52 @@ const Grid = {
 				push(g, current.c, current.r + 1);
 			}
 			if (Exists.Top && Exists.Left) {
-				push(g, current.c - 1, current.r - 1);
+				push(g + 4, current.c - 1, current.r - 1);
 			}
 			if (Exists.Top && Exists.Right) {
-				push(g, current.c + 1, current.r - 1);
+				push(g + 4, current.c + 1, current.r - 1);
 			}
 			if (Exists.Bottom && Exists.Left) {
-				push(g, current.c - 1, current.r + 1);
+				push(g + 4, current.c - 1, current.r + 1);
 			}
 			if (Exists.Bottom && Exists.Right) {
-				push(g, current.c + 1, current.r + 1);
+				push(g + 4, current.c + 1, current.r + 1);
 			}
 		}
 		return [start];
 	}
 };
 
+const World = {
+	x: 10,
+	y: 32,
+	getWorld(c, r) {
+		return {
+			x: Room.mid.w + this.x + (c - r) * Tile.mid.w,
+			y: this.y + (c + r) * Tile.mid.h
+		};
+	}
+};
+
 const blocks = [
-	[0, 1, 0, 0, 0, 1, 0, 0, 0],
-	[0, 1, 0, 0, 1, 1, 1, 1, 0],
-	[0, 1, 0, 0, 1, 0, 0, 0, 0],
-	[0, 1, 0, 0, 1, 0, 0, 0, 0],
-	[0, 1, 1, 1, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[1, 1, 1, 1, 1, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 1, 1, 1, 1, 1, 1, 1],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0]
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+	[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1],
+	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1],
+	[1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+	[1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+	[1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+	[1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+	[1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+	[1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+	[1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+	[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ];
 
 let path = [];
@@ -159,46 +213,40 @@ const start = () => {
 			}
 		}
 	}
-	path = Grid.getPath(new GridPoint(0, 0), new GridPoint(8, 13));
+	path = Grid.getPath(new GridPoint(14, 12), new GridPoint(15, 16));
 	update();
 };
 
 const update = () => {
-	CTX.lineCap = 'butt';
-	CTX.fillStyle = 'black';
-	CTX.strokeStyle = 'black';
 	CTX.clearRect(0, 0, 320, 640);
 	for (let i = 0; i < Grid.c; i++) {
 		for (let j = 0; j < Grid.r; j++) {
-			CTX.beginPath();
-			CTX.rect(16 + i * 32, 16 + j * 32, 32, 32);
-			if (Grid.g[i][j] === Grid.BLOCK) CTX.fill();
-			else CTX.stroke();
+			const b = World.getWorld(i, j);
+			Tile.draw(b.x, b.y, Grid.g[i][j] === Grid.EMPTY);
 		}
 	}
 	for (let i = 0; i < path.length; i++) {
 		const p = path[i];
-		const [x, y] = [16 + p.c * 32 + 16, 16 + p.r * 32 + 16];
+		const b = World.getWorld(p.c, p.r);
 		const t = (i + 1) / path.length;
 		CTX.fillStyle = `rgba(${t * 255}, ${t * 50}, ${(1 - t) * 255}, ${t * 0.5 + 0.5})`;
 		CTX.beginPath();
-		CTX.arc(x, y, 5, 0, 2 * Math.PI);
+		CTX.arc(b.x, b.y, 5, 0, 2 * Math.PI);
 		CTX.fill();
 	}
-	CTX.lineCap = 'round';
-	CTX.strokeStyle = 'orange';
 	CTX.beginPath();
 	for (let i = 0; i < path.length; i++) {
 		const p = path[i];
-		const [x, y] = [16 + p.c * 32 + 16, 16 + p.r * 32 + 16];
+		const b = World.getWorld(p.c, p.r);
 		if (i === 0) {
-			CTX.moveTo(x, y);
-			CTX.lineTo(x, y);
+			CTX.moveTo(b.x, b.y);
+			CTX.lineTo(b.x, b.y);
 		}
 		else {
-			CTX.lineTo(x, y);
+			CTX.lineTo(b.x, b.y);
 		}
 	}
+	CTX.strokeStyle = 'orange';
 	CTX.stroke();
 	window.requestAnimationFrame(update);
 };

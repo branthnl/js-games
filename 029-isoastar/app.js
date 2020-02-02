@@ -23,8 +23,8 @@ const Room = {
 };
 
 const Tile = {
-	w: 40,
-	h: 20,
+	w: 60,
+	h: 30,
 	get mid() {
 		return {
 			w: this.w * 0.5,
@@ -52,8 +52,8 @@ const Tile = {
 const Grid = {
 	EMPTY: 'Empty',
 	BLOCK: 'Block',
-	c: 17,
-	r: 18,
+	c: 24,
+	r: 24,
 	g: [],
 	setup() {
 		for (let i = 0; i < this.c; i++) {
@@ -171,8 +171,8 @@ const Grid = {
 };
 
 const World = {
-	x: 10,
-	y: 32,
+	x: 0,
+	y: Tile.h * 2,
 	getWorld(c, r) {
 		return {
 			x: Room.mid.w + this.x + (c - r) * Tile.mid.w,
@@ -182,27 +182,51 @@ const World = {
 };
 
 const blocks = [
-	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-	[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1],
-	[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1],
-	[1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-	[1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-	[1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-	[1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-	[1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-	[1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-	[1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-	[1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-	[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+	[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+	[1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+	[1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1],
+	[1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+	[1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
+	[1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1],
+	[1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1],
+	[1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+	[1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1],
+	[1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+	[1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+	[1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+	[1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+	[1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ];
 
 let path = [];
+let pathFrom = new GridPoint(1, 1);
+let pathTarget = new GridPoint(22, 22);
+
+const setPathFrom = (c, r) => {
+	pathFrom = new GridPoint(c, r);
+	path = Grid.getPath(pathFrom, pathTarget);
+};
+
+const setPathTarget = (c, r) => {
+	pathTarget = new GridPoint(c, r);
+	path = Grid.getPath(pathFrom, pathTarget);
+};
+
+const setPath = (cFrom, rFrom, cTarget, rTarget) => {
+	pathFrom = new GridPoint(cFrom, rFrom);
+	pathTarget = new GridPoint(cTarget, rTarget);
+	path = Grid.getPath(pathFrom, pathTarget);
+};
 
 const start = () => {
 	Grid.setup();
@@ -213,26 +237,18 @@ const start = () => {
 			}
 		}
 	}
-	path = Grid.getPath(new GridPoint(14, 12), new GridPoint(15, 16));
+	console.log('Call function setPathFrom(c, r) and setPathTarget(c, r) or setPath() for short to play around.');
+	setPathTarget(22, 22);
 	update();
 };
 
 const update = () => {
-	CTX.clearRect(0, 0, 320, 640);
+	CTX.clearRect(0, 0, Room.w, Room.h);
 	for (let i = 0; i < Grid.c; i++) {
 		for (let j = 0; j < Grid.r; j++) {
 			const b = World.getWorld(i, j);
 			Tile.draw(b.x, b.y, Grid.g[i][j] === Grid.EMPTY);
 		}
-	}
-	for (let i = 0; i < path.length; i++) {
-		const p = path[i];
-		const b = World.getWorld(p.c, p.r);
-		const t = (i + 1) / path.length;
-		CTX.fillStyle = `rgba(${t * 255}, ${t * 50}, ${(1 - t) * 255}, ${t * 0.5 + 0.5})`;
-		CTX.beginPath();
-		CTX.arc(b.x, b.y, 5, 0, 2 * Math.PI);
-		CTX.fill();
 	}
 	CTX.beginPath();
 	for (let i = 0; i < path.length; i++) {
@@ -248,6 +264,15 @@ const update = () => {
 	}
 	CTX.strokeStyle = 'orange';
 	CTX.stroke();
+	for (let i = 0; i < path.length; i++) {
+		const p = path[i];
+		const b = World.getWorld(p.c, p.r);
+		const t = (i + 1) / path.length;
+		CTX.fillStyle = `rgba(${t * 255}, 0, ${(1 - t) * 255}, 1)`;
+		CTX.beginPath();
+		CTX.arc(b.x, b.y, 5, 0, 2 * Math.PI);
+		CTX.fill();
+	}
 	window.requestAnimationFrame(update);
 };
 

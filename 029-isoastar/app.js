@@ -76,7 +76,7 @@ const Grid = {
 				i = cameFrom[indexOf(closedSet, current)];
 				current = closedSet[i];
 			}
-			return finalSet;
+			return finalSet.reverse();
 		};
 		while (openSet.length > 0) {
 			let iMin = 0;
@@ -180,7 +180,7 @@ const update = () => {
 		const p = path[i];
 		const [x, y] = [16 + p.c * 32 + 16, 16 + p.r * 32 + 16];
 		const t = (i + 1) / path.length;
-		CTX.fillStyle = `rgba(${t * 255}, ${t * 50}, ${(1 - t) * 255}, ${t * 0.8 + 0.2})`;
+		CTX.fillStyle = `rgba(${t * 255}, ${t * 50}, ${(1 - t) * 255}, ${t * 0.5 + 0.5})`;
 		CTX.beginPath();
 		CTX.arc(x, y, 5, 0, 2 * Math.PI);
 		CTX.fill();

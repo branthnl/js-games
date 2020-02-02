@@ -96,39 +96,79 @@ const Grid = {
 	}
 };
 
+const blocks = [
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 1, 0, 0, 0, 0, 0, 0, 0],
+	[0, 1, 0, 0, 0, 0, 0, 0, 0],
+	[0, 1, 0, 0, 0, 0, 0, 0, 0],
+	[0, 1, 0, 0, 0, 1, 0, 0, 0],
+	[0, 1, 0, 0, 1, 1, 1, 1, 1],
+	[0, 1, 0, 0, 1, 0, 0, 0, 0],
+	[0, 1, 0, 0, 1, 0, 0, 0, 0],
+	[0, 1, 1, 1, 1, 1, 1, 1, 1],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0]
+];
+
 let path = [];
 
 const start = () => {
 	Grid.setup();
-	path = Grid.getPath(new GridPoint(0, 0), new GridPoint(Grid.c - 1, Grid.r - 1));
+	for (let i = 0; i < blocks.length; i++) {
+		for (let j = 0; j < blocks[i].length; j++) {
+			if (blocks[i][j] === 1) {
+				Grid.g[j][i] = Grid.BLOCK;
+			}
+		}
+	}
+	path = Grid.getPath(new GridPoint(5, 4), new GridPoint(0, 18));
 	update();
 };
 
 const update = () => {
+	CTX.lineCap = 'butt';
 	CTX.lineWidth = 1;
+	CTX.fillStyle = 'black';
 	CTX.strokeStyle = 'black';
 	CTX.clearRect(0, 0, 320, 640);
 	for (let i = 0; i < Grid.c; i++) {
 		for (let j = 0; j < Grid.r; j++) {
 			CTX.beginPath();
 			CTX.rect(16 + i * 32, 16 + j * 32, 32, 32);
-			CTX.stroke();
+			if (Grid.g[i][j] === Grid.BLOCK) CTX.fill();
+			else CTX.stroke();
 		}
 	}
-	CTX.lineWidth = 10;
+	CTX.lineCap = 'round';
+	CTX.lineWidth = 5;
 	CTX.strokeStyle = 'purple';
 	CTX.beginPath();
 	for (let i = 0; i < path.length; i++) {
 		const p = path[i];
+		const [x, y] = [16 + p.c * 32 + 16, 16 + p.r * 32 + 16];
 		if (i === 0) {
-			CTX.moveTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
-			CTX.lineTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
+			CTX.moveTo(x, y);
+			CTX.lineTo(x, y);
 		}
 		else {
-			CTX.lineTo(16 + p.c * 32 + 16, 16 + p.r * 32 + 16);
+			CTX.lineTo(x, y);
+		}
+		if (i === path.length - 1) {
+			CTX.stroke();
+			CTX.fillStyle = 'orange';
+			CTX.beginPath();
+			CTX.arc(x, y, 5, 0, 2 * Math.PI);
+			CTX.fill();
 		}
 	}
-	CTX.stroke();
 	window.requestAnimationFrame(update);
 };
 

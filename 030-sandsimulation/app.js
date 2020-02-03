@@ -1,7 +1,18 @@
+OBJ.isExists = (cls, x, y) => {
+	for (const n of OBJ.take(cls)) {
+		if (n.x === x && n.y === y) {
+			return true;
+		}
+	}
+	return false;
+};
+
 class Sand extends BranthObject {
 	update() {
 		if (this.y < Room.h - 10) {
-			this.y += 10;
+			if (!OBJ.isExists(Sand, this.x, this.y + 10)) {
+				this.y += 10;
+			}
 		}
 	}
 	render() {

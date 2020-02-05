@@ -29,17 +29,13 @@ class MenuItem {
 	render() {
 		Draw.setColor(this.color);
 		Draw.rect(this.x - this.mid.w, this.y - this.mid.h, this.w, this.h);
-		Draw.setFont(Font.s);
-		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.m);
-		Draw.text(this.x, this.y, this.id);
 	}
 }
 
 class CarouselMenu extends BranthObject {
 	start() {
 		this.w = Room.w * 0.8;
-		this.h = Room.mid.h;
+		this.h = Room.h * 0.25;
 		this.item = null;
 		this.items = [
 			new MenuItem(0, C.red, 'New Game', 'Start a new game.'),
@@ -50,6 +46,13 @@ class CarouselMenu extends BranthObject {
 			new MenuItem(5, C.purple, 'Exit', 'Exit game.')
 		];
 		this.cursor = 0;
+		this.rotation = 0;
+	}
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
 	}
 	update() {
 		this.x = Room.mid.w;
@@ -63,6 +66,7 @@ class CarouselMenu extends BranthObject {
 		if (this.cursor < 0) {
 			this.cursor += this.items.length;
 		}
+		this.rotation = Math.lerp(this.rotation, this.cursor * (360 / this.items.length), 0.1);
 		this.item = this.items[this.cursor % this.items.length];
 		if (Input.keyDown(KeyCode.Enter)) {
 			alert(this.item.text);
@@ -70,14 +74,20 @@ class CarouselMenu extends BranthObject {
 	}
 	renderUI() {
 		if (this.item) {
-			this.item.draw(this.x, this.y, 1);
-			Draw.setFont(Font.m);
-			Draw.setColor(C.black);
-			Draw.setHVAlign(Align.c, Align.t);
-			Draw.text(this.x, this.y + this.item.mid.h + 8, this.item.text);
+			for (let i = 0; i < this.items.length; i++) {
+				const d = 90 + this.rotation + i * 360 / this.items.length;
+				let t = (d % 180) / 90; if (t > 1) t = 2 - t;
+				const p = Math.lendir(Math.lerp(this.mid.w, this.mid.h, 1), d);
+				this.items[i].draw(this.x + p.x, this.y + p.y, 1);
+			}
 			Draw.setFont(Font.s);
-			Draw.setVAlign(Align.b);
-			Draw.text(Room.mid.w, Room.h - 8, this.item.desc);
+			Draw.setColor(C.black);
+			Draw.setHVAlign(Align.c, Align.b);
+			let x = Room.mid.w, y = Room.h - 8;
+			Draw.text(x, y, this.item.desc);
+			y -= Font.size + 8;
+			Draw.setFont(Font.m);
+			Draw.text(x, y, this.item.text);
 		}
 	}
 }

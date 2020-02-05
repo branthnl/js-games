@@ -1,7 +1,7 @@
 OBJ.isExists = (cls, x, y) => {
 	for (const n of OBJ.take(cls)) {
 		if (n.x === x && n.y === y) {
-			return true;
+			return n;
 		}
 	}
 	return false;
@@ -46,7 +46,13 @@ Game.update = () => {
 	if (Input.mouseHold(0)) {
 		const m = Input.screenToWorldPoint(Input.mousePosition);
 		const [x, y] = [Math.floor(m.x / 10) * 10, Math.floor(m.y / 10) * 10];
-		if (!OBJ.isExists(Sand, x, y)) {
+		if (Input.keyHold(KeyCode.Shift)) {
+			const n = OBJ.isExists(Sand, x, y);
+			if (n) {
+				OBJ.destroy(n.id);
+			}
+		}
+		else if (!OBJ.isExists(Sand, x, y)) {
 			OBJ.create(Sand, x, y);
 			if (OBJ.take(Sand).length > Room.w * Room.h * 0.01) {
 				OBJ.take(Sand).splice(0, 1);

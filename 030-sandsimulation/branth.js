@@ -45,7 +45,7 @@ const OBJ_DEPTH_RENDER = true;
 const DEBUG_MODE = true;
 if (!DEBUG_MODE) console.log = () => {};
 
-CANVAS.style.backgroundImage = `radial-gradient(white 33%, gainsboro, lightGray)`;
+CANVAS.style.backgroundImage = `radial-gradient(white 33%, gainsboro)`;
 
 const CanvasScaler = {
 	get w() {

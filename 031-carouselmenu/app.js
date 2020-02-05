@@ -1,10 +1,11 @@
 class MenuItem {
-	constructor(id, color) {
+	constructor(id, color, text, desc) {
 		this.x = 0;
 		this.y = 0;
 		this.id = id;
 		this.color = color;
-		this.text = 'title goes here';
+		this.text = text;
+		this.desc = desc;
 		this.scale = 1;
 	}
 	get w() {
@@ -41,14 +42,12 @@ class CarouselMenu extends BranthObject {
 		this.h = Room.mid.h;
 		this.item = null;
 		this.items = [
-			new MenuItem(0, C.red),
-			new MenuItem(1, C.orange),
-			new MenuItem(2, C.yellow),
-			new MenuItem(3, C.lime),
-			new MenuItem(4, C.green),
-			new MenuItem(5, C.skyBlue),
-			new MenuItem(6, C.blue),
-			new MenuItem(7, C.purple)
+			new MenuItem(0, C.red, 'New Game', 'Start a new game.'),
+			new MenuItem(1, C.orange, 'Continue', 'Continue game.'),
+			new MenuItem(2, C.yellow, 'Options', 'Settings and stuff.'),
+			new MenuItem(3, C.green, 'Credits', 'See credits.'),
+			new MenuItem(4, C.blue, 'Leaderboard', 'See ranking.'),
+			new MenuItem(5, C.purple, 'Exit', 'Exit game.')
 		];
 		this.cursor = 0;
 	}
@@ -66,12 +65,19 @@ class CarouselMenu extends BranthObject {
 		}
 		this.item = this.items[this.cursor % this.items.length];
 		if (Input.keyDown(KeyCode.Enter)) {
-			console.log(this.item.id);
+			alert(this.item.text);
 		}
 	}
 	renderUI() {
 		if (this.item) {
 			this.item.draw(this.x, this.y, 1);
+			Draw.setFont(Font.m);
+			Draw.setColor(C.black);
+			Draw.setHVAlign(Align.c, Align.t);
+			Draw.text(this.x, this.y + this.item.mid.h + 8, this.item.text);
+			Draw.setFont(Font.s);
+			Draw.setVAlign(Align.b);
+			Draw.text(Room.mid.w, Room.h - 8, this.item.desc);
 		}
 	}
 }

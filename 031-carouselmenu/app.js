@@ -77,8 +77,10 @@ class CarouselMenu extends BranthObject {
 			for (let i = 0; i < this.items.length; i++) {
 				const d = 90 + this.rotation + i * 360 / this.items.length;
 				let t = (d % 180) / 90; if (t > 1) t = 2 - t;
-				const p = Math.lendir(Math.lerp(this.mid.w, this.mid.h, 1), d);
-				this.items[i].draw(this.x + p.x, this.y + p.y, 1);
+				const l = Math.lerp(this.mid.w, this.mid.h, 1);
+				const p = Math.lendir(l, d);
+				const cp = Math.lendir(l, 90);
+				this.items[i].draw(this.x + p.x, this.y + p.y, (this.items.length - (Math.pointdis(p, cp) / l) * 2) / this.items.length);
 			}
 			Draw.setFont(Font.s);
 			Draw.setColor(C.black);

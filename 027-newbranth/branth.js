@@ -8,13 +8,17 @@ class Vector2 {
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
 Math.range = (min, max, t) => min + (t || (t === 0? 0 : Math.random())) * (max - min);
 Math.irange = (min, max) => Math.floor(Math.range(min, max));
+Math.choose = (...args) => args[Math.irange(0, args.length)];
+Math.randneg = (t = 0.5) => Math.random() > t? -1 : 1;
 Math.degtorad = (d) => d * Math.PI / 180;
 Math.radtodeg = (d) => d * 180 / Math.PI;
 Math.lendirx = (l, d) => l * Math.cos(Math.degtorad(d));
 Math.lendiry = (l, d) => l * Math.sin(Math.degtorad(d));
 Math.lendir = (l, d) => new Vector2(Math.lendirx(l, d), Math.lendiry(l, d));
-Math.randneg = (t = 0.5) => Math.random() > t? -1 : 1;
-Math.choose = (...args) => args[Math.irange(0, args.length)];
+Math.linedis = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+Math.linedir = (x1, y1, x2, y2) => 90 - Math.radtodeg(Math.atan2(x2 - x1, y2 - y1));
+Math.pointdis = (p1, p2) => Math.linedis(p1.x, p1.y, p2.x, p2.y);
+Math.pointdir = (p1, p2) => Math.linedir(p1.x, p1.y, p2.x, p2.y);
 
 const HEAD = {
 	append(e) {

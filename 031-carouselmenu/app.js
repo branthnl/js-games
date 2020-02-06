@@ -35,6 +35,11 @@ for (const ch of chars) {
 	Draw.add(ch, `img/${ch}.png`);
 }
 
+Audio.add('BGM', 'snd/bgm.mp3', 'snd/bgm.ogg');
+Audio.add('Hit', 'snd/hit.mp3', 'snd/hit.ogg');
+
+Audio.setVolume('BGM', 0.2);
+
 class MenuItem {
 	constructor(text, desc) {
 		this.w = 136;
@@ -80,15 +85,20 @@ class CarouselMenu extends BranthObject {
 			if (this.cursor < 0) {
 				this.cursor += this.items.length;
 			}
+			Audio.play('Hit');
 		}
 		if (Input.keyDown(KeyCode.Right)) {
 			this.cursor += 1;
 			if (this.cursor >= this.items.length) {
 				this.cursor -= this.items.length;
 			}
+			Audio.play('Hit');
 		}
 		if (Input.keyDown(KeyCode.Enter)) {
 			alert(`${this.items[this.cursor].text} selected.`);
+			if (!Audio.isPlaying('BGM')) {
+				Audio.loop('BGM');
+			}
 		}
 		this.rotation += Math.sin(Math.degtorad(-this.cursor * (360 / this.items.length) - this.rotation)) * 10;
 	}

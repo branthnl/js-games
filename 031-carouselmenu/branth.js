@@ -166,7 +166,7 @@ const Audio = {
 	isPlaying(name) {
 		const a = this.list[this.names.indexOf(name)];
 		if (a) {
-			return a.currentTime > 0 && !s.paused;
+			return a.currentTime > 0 && !a.paused;
 		}
 		return false;
 	},

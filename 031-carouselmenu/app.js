@@ -9,10 +9,10 @@ class MenuItem {
 		this.scale = 1;
 	}
 	get w() {
-		return 32 * this.scale;
+		return 40 * this.scale;
 	}
 	get h() {
-		return 32 * this.scale;
+		return 40 * this.scale;
 	}
 	get mid() {
 		return {
@@ -34,16 +34,15 @@ class MenuItem {
 
 class CarouselMenu extends BranthObject {
 	start() {
-		this.w = Room.w * 0.8;
-		this.h = Room.h * 0.25;
+		this.w = Room.mid.w;
+		this.h = Room.h * 0.1;
 		this.item = null;
 		this.items = [
 			new MenuItem(0, C.red, 'New Game', 'Start a new game.'),
 			new MenuItem(1, C.orange, 'Continue', 'Continue game.'),
-			new MenuItem(2, C.yellow, 'Options', 'Settings and stuff.'),
-			new MenuItem(3, C.green, 'Credits', 'See credits.'),
-			new MenuItem(4, C.blue, 'Leaderboard', 'See ranking.'),
-			new MenuItem(5, C.purple, 'Exit', 'Exit game.')
+			new MenuItem(2, C.yellow, 'Leaderboard', 'See ranking.'),
+			new MenuItem(3, C.blue, 'Credits', 'See credits.'),
+			new MenuItem(4, C.purple, 'Exit', 'Exit game.')
 		];
 		this.cursor = 0;
 		this.rotation = 0;
@@ -65,22 +64,28 @@ class CarouselMenu extends BranthObject {
 		}
 		if (Input.keyDown(KeyCode.Right)) {
 			this.cursor += 1;
+			if (this.cursor >= this.items.length) {
+				this.cursor -= this.items.length;
+			}
 		}
-		this.rotation += Math.sin(Math.degtorad(this.cursor * (360 / this.items.length) - this.rotation)) * 10;
-		this.item = this.items[this.cursor % this.items.length];
+		this.rotation += Math.sin(Math.degtorad(-this.cursor * (360 / this.items.length) - this.rotation)) * 10;
+		this.item = this.items[this.cursor];
 		if (Input.keyDown(KeyCode.Enter)) {
 			alert(this.item.text);
 		}
 	}
 	renderUI() {
 		if (this.item) {
+			const sortedItems = [];
 			for (let i = 0; i < this.items.length; i++) {
-				const d = 90 + this.rotation + i * 360 / this.items.length;
-				let t = (d % 180) / 90; if (t > 1) t = 2 - t;
-				const l = Math.lerp(this.mid.w, this.mid.h, 1);
-				const p = Math.lendir(l, d);
-				const cp = Math.lendir(l, 90);
-				this.items[i].draw(this.x + p.x, this.y + p.y, (this.items.length - (Math.pointdis(p, cp) / l) * 2) / this.items.length);
+				const d = this.rotation + i * 360 / this.items.length;
+				const [x, y] = [this.x + Math.lendiry(this.mid.w, d), this.y + Math.lendirx(this.mid.h, d)];
+				sortedItems.push({i, x, y});
+			}
+			sortedItems.sort((a, b) => a.y < b.y? -1 : 1);
+			for (let i = 0; i < sortedItems.length; i++) {
+				const s = sortedItems[i];
+				this.items[s.i].draw(s.x, s.y, 1);
 			}
 			Draw.setFont(Font.s);
 			Draw.setColor(C.black);

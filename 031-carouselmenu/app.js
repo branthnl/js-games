@@ -59,14 +59,14 @@ class CarouselMenu extends BranthObject {
 		this.y = Room.mid.h;
 		if (Input.keyDown(KeyCode.Left)) {
 			this.cursor -= 1;
+			if (this.cursor < 0) {
+				this.cursor += this.items.length;
+			}
 		}
 		if (Input.keyDown(KeyCode.Right)) {
 			this.cursor += 1;
 		}
-		if (this.cursor < 0) {
-			this.cursor += this.items.length;
-		}
-		this.rotation = Math.lerp(this.rotation, this.cursor * (360 / this.items.length), 0.1);
+		this.rotation += Math.sin(Math.degtorad(this.cursor * (360 / this.items.length) - this.rotation)) * 10;
 		this.item = this.items[this.cursor % this.items.length];
 		if (Input.keyDown(KeyCode.Enter)) {
 			alert(this.item.text);

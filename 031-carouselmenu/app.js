@@ -92,7 +92,7 @@ class CarouselMenu extends BranthObject {
 		}
 		this.rotation += Math.sin(Math.degtorad(-this.cursor * (360 / this.items.length) - this.rotation)) * 10;
 	}
-	renderUI() {
+	render() {
 		const sortedItems = [];
 		for (let i = 0; i < this.items.length; i++) {
 			const d = this.rotation + i * 360 / this.items.length;
@@ -106,8 +106,17 @@ class CarouselMenu extends BranthObject {
 			const ydif = s.y - this.y + Math.lendirx(this.mid.h, 0);
 			const scale = (selected? 1.18 + Math.sin(Time.time * 0.0074) * 0.02 : 0.5) * ydif / this.h;
 			const r = selected? Math.sin(Time.time * 0.074) : 0;
+			if (selected) {
+				Emitter.preset('sparkle');
+				Emitter.setArea(s.x, s.x, s.y, s.y);
+				Emitter.setDepth(1);
+				Emitter.setColor(Math.choose(C.lemonChiffon, C.navajoWhite));
+				Emitter.emit(1);
+			}
 			this.items[s.i].draw(s.i, s.x, s.y, scale, r);
 		}
+	}
+	renderUI() {
 		Draw.setFont(Font.s);
 		Draw.setColor(C.black);
 		Draw.setHVAlign(Align.c, Align.b);
@@ -126,6 +135,13 @@ Room.add(Menu);
 
 Menu.start = () => {
 	OBJ.create(CarouselMenu, Room.mid.w, Room.mid.h);
+};
+
+Menu.update = () => {
+	Emitter.preset('snow');
+	Emitter.setArea(0, Room.w * 2, 0, 0);
+	Emitter.setDepth(-1);
+	Emitter.emit(1);
 };
 
 Menu.renderUI = () => {

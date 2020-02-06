@@ -1597,6 +1597,21 @@ const Emitter = {
 				this.setShape(Shape.star);
 				this.setGravity(0, 0);
 				break;
+			case 'snow':
+				this.setSpeed(2, 5);
+				this.setSpeedInc(0, 0);
+				this.setSize(2, 5);
+				this.setSizeInc(0, 0);
+				this.setDirection(130, 140);
+				this.setDirectionInc(0, -1);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.5, 0.7);
+				this.setColor(C.white);
+				this.setLife(10000, 10000);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				break;
 		}
 	},
 	emit(n) {

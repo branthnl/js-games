@@ -85,7 +85,8 @@ class CarouselMenu extends BranthObject {
 			sortedItems.sort((a, b) => a.y < b.y? -1 : 1);
 			for (let i = 0; i < sortedItems.length; i++) {
 				const s = sortedItems[i];
-				this.items[s.i].draw(s.x, s.y, 1);
+				const ydif = s.y - this.y + Math.lendirx(this.mid.h, 0);
+				this.items[s.i].draw(s.x, s.y, ydif / this.h);
 			}
 			Draw.setFont(Font.s);
 			Draw.setColor(C.black);

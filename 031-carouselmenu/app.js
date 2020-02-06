@@ -1,18 +1,46 @@
+const chars = [
+	'bear',
+	'buffalo',
+	'chick',
+	'chicken',
+	'cow',
+	'crocodile',
+	'dog',
+	'duck',
+	'elephant',
+	'frog',
+	'giraffe',
+	'goat',
+	'gorilla',
+	'hippo',
+	'horse',
+	'monkey',
+	'moose',
+	'narwhal',
+	'owl',
+	'panda',
+	'parrot',
+	'penguin',
+	'pig',
+	'rabbit',
+	'rhino',
+	'sloth',
+	'snake',
+	'walrus',
+	'whale',
+	'zebra'
+];
+
+for (const ch of chars) {
+	Draw.add(ch, `img/${ch}.png`);
+}
+
 class MenuItem {
-	constructor(id, color, text, desc) {
-		this.x = 0;
-		this.y = 0;
-		this.id = id;
-		this.color = color;
+	constructor(text, desc) {
+		this.w = 136;
+		this.h = 136;
 		this.text = text;
 		this.desc = desc;
-		this.scale = 1;
-	}
-	get w() {
-		return 40 * this.scale;
-	}
-	get h() {
-		return 40 * this.scale;
 	}
 	get mid() {
 		return {
@@ -20,30 +48,23 @@ class MenuItem {
 			h: this.h * 0.5
 		};
 	}
-	draw(x, y, scale) {
-		this.x = x;
-		this.y = y;
-		this.scale = scale;
-		this.render();
-	}
-	render() {
-		Draw.setColor(this.color);
-		Draw.rect(this.x - this.mid.w, this.y - this.mid.h, this.w, this.h);
+	draw(i, x, y, scale, r) {
+		Draw.imageTransformed(chars[i], x, y, scale * 0.5, r, true);
+		Draw.setAlpha(1 - Math.clamp(scale, 0, 1));
+		Draw.setColor(C.black);
+		Draw.rectTransformed(x, y, this.mid.w * scale, this.mid.h * scale, r);
+		Draw.setAlpha(1);
 	}
 }
 
 class CarouselMenu extends BranthObject {
 	start() {
-		this.w = Room.mid.w;
-		this.h = Room.h * 0.1;
-		this.item = null;
-		this.items = [
-			new MenuItem(0, C.red, 'New Game', 'Start a new game.'),
-			new MenuItem(1, C.orange, 'Continue', 'Continue game.'),
-			new MenuItem(2, C.yellow, 'Leaderboard', 'See ranking.'),
-			new MenuItem(3, C.blue, 'Credits', 'See credits.'),
-			new MenuItem(4, C.purple, 'Exit', 'Exit game.')
-		];
+		this.w = 480;
+		this.h = 80;
+		this.items = [];
+		for (const ch of chars) {
+			this.items.push(new MenuItem(ch.toUpperCase(), `Select ${ch} as your character.`));
+		}
 		this.cursor = 0;
 		this.rotation = 0;
 	}
@@ -54,8 +75,6 @@ class CarouselMenu extends BranthObject {
 		};
 	}
 	update() {
-		this.x = Room.mid.w;
-		this.y = Room.mid.h;
 		if (Input.keyDown(KeyCode.Left)) {
 			this.cursor -= 1;
 			if (this.cursor < 0) {
@@ -68,35 +87,35 @@ class CarouselMenu extends BranthObject {
 				this.cursor -= this.items.length;
 			}
 		}
-		this.rotation += Math.sin(Math.degtorad(-this.cursor * (360 / this.items.length) - this.rotation)) * 10;
-		this.item = this.items[this.cursor];
 		if (Input.keyDown(KeyCode.Enter)) {
-			alert(this.item.text);
+			alert(`${this.items[this.cursor].text} selected.`);
 		}
+		this.rotation += Math.sin(Math.degtorad(-this.cursor * (360 / this.items.length) - this.rotation)) * 10;
 	}
 	renderUI() {
-		if (this.item) {
-			const sortedItems = [];
-			for (let i = 0; i < this.items.length; i++) {
-				const d = this.rotation + i * 360 / this.items.length;
-				const [x, y] = [this.x + Math.lendiry(this.mid.w, d), this.y + Math.lendirx(this.mid.h, d)];
-				sortedItems.push({i, x, y});
-			}
-			sortedItems.sort((a, b) => a.y < b.y? -1 : 1);
-			for (let i = 0; i < sortedItems.length; i++) {
-				const s = sortedItems[i];
-				const ydif = s.y - this.y + Math.lendirx(this.mid.h, 0);
-				this.items[s.i].draw(s.x, s.y, ydif / this.h);
-			}
-			Draw.setFont(Font.s);
-			Draw.setColor(C.black);
-			Draw.setHVAlign(Align.c, Align.b);
-			let x = Room.mid.w, y = Room.h - 8;
-			Draw.text(x, y, this.item.desc);
-			y -= Font.size + 8;
-			Draw.setFont(Font.m);
-			Draw.text(x, y, this.item.text);
+		const sortedItems = [];
+		for (let i = 0; i < this.items.length; i++) {
+			const d = this.rotation + i * 360 / this.items.length;
+			const [x, y] = [this.x + Math.lendiry(this.mid.w, d), this.y + Math.lendirx(this.mid.h, d)];
+			sortedItems.push({i, x, y});
 		}
+		sortedItems.sort((a, b) => a.y < b.y? -1 : 1);
+		for (let i = 0; i < sortedItems.length; i++) {
+			const s = sortedItems[i];
+			const selected = s.i === this.cursor;
+			const ydif = s.y - this.y + Math.lendirx(this.mid.h, 0);
+			const scale = (selected? 1.18 + Math.sin(Time.time * 0.0074) * 0.02 : 0.5) * ydif / this.h;
+			const r = selected? Math.sin(Time.time * 0.074) : 0;
+			this.items[s.i].draw(s.i, s.x, s.y, scale, r);
+		}
+		Draw.setFont(Font.s);
+		Draw.setColor(C.black);
+		Draw.setHVAlign(Align.c, Align.b);
+		let x = Room.mid.w, y = Room.h - 8;
+		Draw.text(x, y, this.items[this.cursor].desc);
+		y -= Font.size + 8;
+		Draw.setFont(Font.m);
+		Draw.text(x, y, this.items[this.cursor].text);
 	}
 }
 
@@ -106,7 +125,16 @@ const Menu = new BranthRoom('Menu', 640, 360);
 Room.add(Menu);
 
 Menu.start = () => {
-	OBJ.create(CarouselMenu);
+	OBJ.create(CarouselMenu, Room.mid.w, Room.mid.h);
+};
+
+Menu.renderUI = () => {
+	Draw.setFont(Font.xlb);
+	Draw.setHVAlign(Align.c, Align.t);
+	Draw.setColor(C.white);
+	Draw.text(Room.mid.w, 17, 'Choose character');
+	Draw.setColor(C.black);
+	Draw.text(Room.mid.w, 16, 'Choose character');
 };
 
 BRANTH.start();

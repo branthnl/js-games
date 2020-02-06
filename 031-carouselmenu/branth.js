@@ -39,13 +39,13 @@ const INPUT_KEY_PREVENT_DEFAULT = true;
 const INPUT_MOUSE_PARENT = window;
 const INPUT_TOUCH_PARENT = window;
 const INPUT_TOUCH_PREVENT_DEFAULT = false;
-const DEFAULT_FONT = 'Fresca, sans-serif';
+const DEFAULT_FONT = 'Sniglet, cursive';
 const FRAME_RATE = 1000 / 60;
 const OBJ_DEPTH_RENDER = true;
 const DEBUG_MODE = true;
 if (!DEBUG_MODE) console.log = () => {};
 
-CANVAS.style.backgroundImage = `radial-gradient(white 33%, gainsboro, lightGray)`;
+CANVAS.style.backgroundImage = `radial-gradient(darkorchid 33%, darkslateblue)`;
 
 const CanvasScaler = {
 	get w() {
@@ -835,9 +835,10 @@ const Draw = {
 		}
 		else throw new Error(`Sprite not found: ${name}`);
 	},
-	imageTransformed(name, x, y, r, center) {
+	imageTransformed(name, x, y, scale, r, center) {
 		CTX.save();
 		CTX.translate(x, y);
+		CTX.scale(scale, scale);
 		CTX.rotate(Math.degtorad(r));
 		this.image(name, 0, 0, center);
 		CTX.restore();

@@ -10,6 +10,7 @@ Math.range = (min, max, t) => min + (t || (t === 0? 0 : Math.random())) * (max -
 Math.irange = (min, max) => Math.floor(Math.range(min, max));
 Math.choose = (...args) => args[Math.irange(0, args.length)];
 Math.randneg = (t = 0.5) => Math.random() > t? -1 : 1;
+Math.randbool = () => Math.random() > 0.5;
 Math.degtorad = (d) => d * Math.PI / 180;
 Math.radtodeg = (d) => d * 180 / Math.PI;
 Math.lendirx = (l, d) => l * Math.cos(Math.degtorad(d));
@@ -1001,7 +1002,27 @@ const Emitter = {
 				this.setLife(1000, 2000);
 				this.setShape(Shape.star);
 				this.setGravity(0, 0);
-				this.setOutline(Math.randneg() > 0);
+				this.setOutline(Math.randbool());
+				break;
+			case 'puff':
+				this.setSpeed(3, 5);
+				this.setSpeedInc(-0.1, -0.1);
+				this.setSize(5, 10);
+				this.setSizeInc(-0.2, -0.2);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
+				this.setColor(C.white);
+				this.setLife(500, 800);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				this.setOutline(false);
+				break;
+			case 'bubble':
+				this.preset('puff');
+				this.setOutline(true);
 				break;
 		}
 	},

@@ -53,6 +53,12 @@ Menu.update = () => {
 };
 
 Menu.renderUI = () => {
+	if (Input.mouseDown(0)) {
+		const m = Input.mousePosition;
+		Emitter.preset(Math.randbool()? 'puff' : 'bubble');
+		Emitter.setArea(m.x, m.x, m.y, m.y);
+		Emitter.emit(Math.range(25, 30));
+	}
 	Draw.setFont(Font.l);
 	Draw.setColor(C.gold);
 	Draw.setHVAlign(Align.c, Align.m);
@@ -95,9 +101,7 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
-	for (let i = 0; i < 40; i++) {
-		OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
-	}
+	OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
 };
 
 Game.update = () => {

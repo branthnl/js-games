@@ -57,6 +57,8 @@ const BODY = {
 	}
 };
 
+let DEBUG_MODE = true;
+
 const Time = {
 	time: 0,
 	lastTime: 0,
@@ -590,36 +592,159 @@ const Draw = {
 		CTX.closePath();
 		this.draw(outline);
 	},
-	transform(x, y, xscale, yscale, angle, func) {
+	transform(x, y, xscale, yscale, angle, e) {
 		CTX.save();
 		CTX.translate(x, y);
 		CTX.rotate(Math.degtorad(angle));
 		CTX.scale(xscale, yscale);
-		func();
+		e();
 		CTX.restore();
 	},
 	textTransformed(x, y, text, xscale, yscale, angle) {
 		this.transform(x, y, xscale, yscale, angle, () => this.text(0, 0, text));
 	},
-	rectTransformed(x, y, w, h, outline, xscale, yscale, angle) {
-		this.transform(x, y, xscale, yscale, angle, () => this.rect(0, 0, w, h, outline));
+	rectTransformed(x, y, w, h, outline, xscale, yscale, angle, origin = new Vector2(0.5, 0.5)) {
+		this.transform(x, y, xscale, yscale, angle, () => this.rect(-w * origin.x, -h * origin.y, w, h, outline));
 	},
-	roundRectTransformed(x, y, w, h, r, outline, xscale, yscale, angle) {
-		this.transform(x, y, xscale, yscale, angle, () => this.roundRect(0, 0, w, h, r, outline));
+	roundRectTransformed(x, y, w, h, r, outline, xscale, yscale, angle, origin = new Vector2(0.5, 0.5)) {
+		this.transform(x, y, xscale, yscale, angle, () => this.roundRect(-w * origin.x, -h * origin.y, w, h, r, outline));
 	}
 };
+
+const OBJ = {
+	ID: 0,
+	list: [],
+	classes: [],
+	add(cls) {
+		this.list.push([]);
+		this.classes.push(cls);
+	},
+	get(id) {
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.id === id) {
+						return i;
+					}
+				}
+			}
+		}
+	},
+	take(cls) {
+		return this.list[this.classes.indexOf(cls)];
+	},
+	push(cls, i, dontStart) {
+		if (this.classes.includes(cls)) {
+			this.list[this.classes.indexOf(cls)].push(i);
+			if (!dontStart) {
+				i.awake();
+				if (i.active) {
+					i.start();
+					i.lateStart();
+				}
+			}
+			return i;
+		}
+		if (DEBUG_MODE) console.log(`Class not found: ${cls.name}`);
+	},
+	create(cls, x = 0, y = 0) {
+		if (this.classes.includes(cls)) {
+			const i = new cls(x, y);
+			this.list[this.classes.indexOf(cls)].push(i);
+			i.awake();
+			if (i.active) {
+				i.start();
+				i.lateStart();
+			}
+			return i;
+		}
+		if (DEBUG_MODE) console.log(`Class not found: ${cls.name}`);
+	},
+	destroy(id) {
+		for (const o of this.list) {
+			for (const i in o) {
+				if (o[i].id === id) {
+					o.splice(i, 1);
+				}
+			}
+		}
+	},
+	clear(cls) {
+		this.list[this.classes.indexOf(cls)] = [];
+	},
+	clearAll(cls) {
+		for (const i in this.list) {
+			this.list[i] = [];
+		}
+		this.ID = 0;
+	},
+	nearest(cls, x, y) {
+		let n = null;
+		let dis = Infinity;
+		for (const i of this.take(cls)) {
+			const d = Math.pointdis(new Vector2(x, y), i);
+			if (d < dis) {
+				n = i;
+				dis = d;
+			}
+		}
+		return n;
+	},
+	update() {
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.active) {
+						i.earlyUpdate();
+						i.update();
+						i.lateUpdate();
+					}
+				}
+			}
+		}
+	},
+	render() {
+		const so = [];
+		for (const o of this.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.visible) {
+						so.push(i);
+					}
+				}
+			}
+		}
+		so.sort((a, b) => (a.depth > b.depth)? -1 : 1);
+		for (const i of so) {
+			i.render();
+		}
+	}
+};
+
+class BranthObject {
+	constructor(x, y) {
+		this.id = OBJ.ID++;
+		this.depth = 0;
+		this.active = true;
+		this.visible = true;
+		this.xstart = x;
+		this.ystart = y;
+		this.x = x;
+		this.y = y;
+	}
+	awake() {}
+	start() {}
+	lateStart() {}
+	earlyUpdate() {}
+	update() {}
+	lateUpdate() {}
+	render() {}
+	renderUI() {}
+}
 
 class BranthRoom {
 	constructor(name) {
 		this.name = name;
-		this.w = 0;
-		this.h = 0;
-	}
-	get mid() {
-		return {
-			w: this.w * 0.5,
-			h: this.h * 0.5
-		};
 	}
 	start() {}
 	update() {}
@@ -628,38 +753,38 @@ class BranthRoom {
 }
 
 const Room = {
+	scale: 2,
+	w: 300,
+	h: 150,
+	id: 0,
+	pd: 0,
 	list: [],
 	names: [],
-	id: 0,
-	scale: 2,
-	prevId: 0,
-	get current() {
-		return this.list[this.id];
-	},
-	get previous() {
-		return this.list[this.prevId];
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
 	},
 	get name() {
 		return this.names[this.id];
 	},
-	get w() {
-		return this.current.w;
+	get current() {
+		return this.list[this.id];
 	},
-	get h() {
-		return this.current.h;
-	},
-	get mid() {
-		return this.current.mid;
+	get previous() {
+		return this.list[this.pd];
 	},
 	add(room) {
 		this.list.push(room);
 		this.names.push(room.name);
 	},
 	start(name) {
-		this.prevId = this.id;
+		this.pd = this.id;
 		this.id = this.names.indexOf(name);
-		this.resize();
+		OBJ.clearAll();
 		Input.reset();
+		this.resize();
 		this.current.start();
 	},
 	update() {
@@ -669,19 +794,28 @@ const Room = {
 		this.current.render();
 	},
 	resize() {
-		const b = CANVAS.getBoundingClientRect();
-		CANVAS.width = b.width * this.scale;
-		CANVAS.height = b.height * this.scale;
+		const [b, s] = [CANVAS.getBoundingClientRect(), this.scale];
+		this.w = b.width;
+		this.h = b.height;
+		CANVAS.width = this.w * s;
+		CANVAS.height = this.h * s;
 		CTX.resetTransform();
-		CTX.scale(this.scale, this.scale);
-		this.current.w = b.width;
-		this.current.h = b.height;
+		CTX.scale(s, s);
 	}
 };
 
 const UI = {
 	render() {
 		Room.current.renderUI();
+		for (const o of OBJ.list) {
+			for (const i of o) {
+				if (i) {
+					if (i.visible) {
+						i.renderUI();
+					}
+				}
+			}
+		}
 	}
 };
 
@@ -692,13 +826,13 @@ const RAF = window.requestAnimationFrame
 	|| function(f) { return setTimeout(f, Time.fixedDeltaTime) }
 const BRANTH = {
 	start() {
+		Input.setup();
 		window.onkeyup = (e) => Input.eventKeyUp(e);
 		window.onkeydown = (e) => Input.eventKeyDown(e);
 		window.onmouseup = (e) => Input.eventMouseUp(e);
 		window.onmousedown = (e) => Input.eventMouseDown(e);
 		window.onmousemove = (e) => Input.eventMouseMove(e);
 		window.onresize = () => Room.resize();
-		Input.setup();
 		HEAD.setup();
 		BODY.setup();
 		this.update();
@@ -706,12 +840,13 @@ const BRANTH = {
 	update(t) {
 		Time.update(t);
 		Room.update();
-		// OBJ.update();
+		OBJ.update();
+		if (Input.keyDown(KeyCode.U)) DEBUG_MODE = !DEBUG_MODE;
 		CTX.clearRect(0, 0, Room.w, Room.h);
 		Room.render();
-		// OBJ.render();
+		OBJ.render();
 		UI.render();
 		Input.reset();
-		RAF(BRANTH.update)
+		RAF(BRANTH.update);
 	}
 };

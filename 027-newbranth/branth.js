@@ -26,7 +26,7 @@ const HEAD = {
 	},
 	remove(e) {
 		if (document.head.contains(e)) {
-			document.removeChild(e);
+			document.head.removeChild(e);
 		}
 	}
 };
@@ -73,6 +73,238 @@ const Time = {
 		this.lastTime = this.time || 0;
 		this.time = t || 0;
 		this.deltaTime = this.time - this.lastTime || this.fixedDeltaTime;
+	}
+};
+
+const KeyCode = {
+	Backspace: 8,
+	Tab: 9,
+	Enter: 13,
+	Shift: 16,
+	Ctrl: 17,
+	Alt: 18,
+	Pause: 19,
+	Break: 19,
+	CapsLock: 20,
+	Escape: 27,
+	PageUp: 33,
+	Space: 32,
+	PageDown: 34,
+	End: 35,
+	Home: 36,
+	Left: 37,
+	Up: 38,
+	Right: 39,
+	Down: 40,
+	PrintScreen: 44,
+	Insert: 45,
+	Delete: 46,
+	Digit0: 48,
+	Digit1: 49,
+	Digit2: 50,
+	Digit3: 51,
+	Digit4: 52,
+	Digit5: 53,
+	Digit6: 54,
+	Digit7: 55,
+	Digit8: 56,
+	Digit9: 57,
+	A: 65,
+	B: 66,
+	C: 67,
+	D: 68,
+	E: 69,
+	F: 70,
+	G: 71,
+	H: 72,
+	I: 73,
+	J: 74,
+	K: 75,
+	L: 76,
+	M: 77,
+	N: 78,
+	O: 79,
+	P: 80,
+	Q: 81,
+	R: 82,
+	S: 83,
+	T: 84,
+	U: 85,
+	V: 86,
+	W: 87,
+	X: 88,
+	Y: 89,
+	Z: 90,
+	LeftWindowKey: 91,
+	RightWindowKey: 92,
+	SelectKey: 93,
+	Numpad0: 96,
+	Numpad1: 97,
+	Numpad2: 98,
+	Numpad3: 99,
+	Numpad4: 100,
+	Numpad5: 101,
+	Numpad6: 102,
+	Numpad7: 103,
+	Numpad8: 104,
+	Numpad9: 105,
+	NumpadMultiply: 106,
+	NumpadAdd: 107,
+	NumpadSubtract: 109,
+	NumpadDecimal: 110,
+	NumpadDivide: 111,
+	F1: 112,
+	F2: 113,
+	F3: 114,
+	F4: 115,
+	F5: 116,
+	F6: 117,
+	F7: 118,
+	F8: 119,
+	F9: 120,
+	F10: 121,
+	F11: 122,
+	F12: 123,
+	NumLock: 144,
+	ScrollLock: 145,
+	Semicolon: 186,
+	Equal: 187,
+	Comma: 188,
+	Minus: 189,
+	Period: 190,
+	Slash: 191,
+	Backquote: 191,
+	LeftBracket: 219,
+	Backslash: 220,
+	RightBracket: 221,
+	Quote: 222
+};
+
+const Mouse = {
+	Left: 0,
+	Middle: 1,
+	Right: 2
+};
+
+class BranthKey {
+	constructor(keyCode) {
+		this.keyCode = keyCode;
+		this.hold = false;
+		this.pressed = false;
+		this.released = false;
+	}
+	up() {
+		this.hold = false;
+		this.released = true;
+	}
+	down() {
+		this.hold = true;
+		this.pressed = true;
+	}
+	reset() {
+		this.pressed = false;
+		this.released = false;
+	}
+}
+
+class BranthMouse extends BranthKey {
+	get button() {
+		return this.keyCode;
+	}
+}
+
+const Input = {
+	preventedKeys: [
+		KeyCode.Up,
+		KeyCode.Left,
+		KeyCode.Down,
+		KeyCode.Right,
+		KeyCode.Space
+	],
+	list: [[], []],
+	mouseMove: false,
+	mousePosition: new Vector2(0, 0),
+	setup() {
+		this.list = [[], []];
+		for (const k of Object.values(KeyCode)) {
+			this.list[0].push(new BranthKey(k));
+		}
+		for (const b of Object.values(Mouse)) {
+			this.list[1].push(new BranthMouse(b));
+		}
+	},
+	reset() {
+		for (const i of this.list) {
+			for (const j of i) {
+				j.reset();
+			}
+		}
+		this.mouseMove = false;
+	},
+	getKey(keyCode) {
+		for (const k of this.list[0]) {
+			if (k.keyCode === keyCode) {
+				return k;
+			}
+		}
+	},
+	keyUp(keyCode) {
+		return this.getKey(keyCode).released;
+	},
+	keyDown(keyCode) {
+		return this.getKey(keyCode).pressed;
+	},
+	keyHold(keyCode) {
+		return this.getKey(keyCode).hold;
+	},
+	getMouse(button) {
+		return this.list[1][button];
+	},
+	mouseUp(button) {
+		return this.list[1][button].released;
+	},
+	mouseDown(button) {
+		return this.list[1][button].pressed;
+	},
+	mouseHold(button) {
+		return this.list[1][button].hold;
+	},
+	eventKeyUp(e) {
+		for (const k of this.list[0]) {
+			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+				k.up();
+			}
+		}
+	},
+	eventKeyDown(e) {
+		if (this.preventedKeys.includes(e.keyCode)) {
+			e.preventDefault();
+		}
+		for (const k of this.list[0]) {
+			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+				if (!k.hold) k.down();
+			}
+		}
+	},
+	updateMousePosition(e) {
+		const b = CANVAS.getBoundingClientRect();
+		this.mousePosition.x = e.clientX - b.x;
+		this.mousePosition.y = e.clientY - b.y;
+		this.mouseMove = true;
+	},
+	eventMouseUp(e) {
+		this.updateMousePosition(e);
+		this.list[1][e.button].up();
+	},
+	eventMouseMove(e) {
+		this.updateMousePosition(e);
+	},
+	eventMouseDown(e) {
+		const m = this.list[1][e.button];
+		if (!m.hold) {
+			this.updateMousePosition(e);
+			m.down();
+		}
 	}
 };
 
@@ -299,10 +531,10 @@ const Draw = {
 };
 
 class BranthRoom {
-	constructor(name, w, h) {
+	constructor(name) {
 		this.name = name;
-		this.w = w;
-		this.h = h;
+		this.w = 0;
+		this.h = 0;
 	}
 	get mid() {
 		return {
@@ -322,7 +554,6 @@ const Room = {
 	id: 0,
 	scale: 2,
 	prevId: 0,
-	fullDisplay: true,
 	get current() {
 		return this.list[this.id];
 	},
@@ -346,23 +577,10 @@ const Room = {
 		this.names.push(room.name);
 	},
 	start(name) {
-		HEAD.remove(FULL_DISPLAY_STYLE);
-		this.fullDisplay = false;
 		this.prevId = this.id;
 		this.id = this.names.indexOf(name);
-		if (this.w && this.h) {
-			CANVAS.style.width = `${this.w}px`;
-			CANVAS.style.height = `${this.h}px`;
-			CANVAS.width = this.w * this.scale;
-			CANVAS.height = this.h * this.scale;
-			CTX.resetTransform();
-			CTX.scale(this.scale, this.scale);
-		}
-		else {
-			this.fullDisplay = true;
-			HEAD.append(FULL_DISPLAY_STYLE);
-			this.resize();
-		}
+		this.resize();
+		Input.reset();
 		this.current.start();
 	},
 	update() {
@@ -372,15 +590,13 @@ const Room = {
 		this.current.render();
 	},
 	resize() {
-		if (this.fullDisplay) {
-			const b = CANVAS.getBoundingClientRect();
-			CANVAS.width = b.width * this.scale;
-			CANVAS.height = b.height * this.scale;
-			CTX.resetTransform();
-			CTX.scale(this.scale, this.scale);
-			this.current.w = b.width;
-			this.current.h = b.height;
-		}
+		const b = CANVAS.getBoundingClientRect();
+		CANVAS.width = b.width * this.scale;
+		CANVAS.height = b.height * this.scale;
+		CTX.resetTransform();
+		CTX.scale(this.scale, this.scale);
+		this.current.w = b.width;
+		this.current.h = b.height;
 	}
 };
 
@@ -397,22 +613,19 @@ const RAF = window.requestAnimationFrame
 	|| function(f) { return setTimeout(f, Time.fixedDeltaTime) }
 const BRANTH = {
 	start() {
-		// window.onkeyup = (e) => Input.eventKeyUp(e);
-		// window.onkeydown = (e) => {
-		// 	if (Input.preventDefaultKeyCodes.includes(e.keyCode)) {
-		// 		e.preventDefault();
-		// 	}
-		// 	Input.eventKeyDown(e);
-		// };
-		// window.onmouseup = (e) => Input.eventMouseUp(e);
-		// window.onmousedown = (e) => Input.eventMouseDown(e);
-		// window.onmousemove = (e) => Input.eventMouseMove(e);
+		window.onkeyup = (e) => Input.eventKeyUp(e);
+		window.onkeydown = (e) => Input.eventKeyDown(e);
+		window.onmouseup = (e) => Input.eventMouseUp(e);
+		window.onmousedown = (e) => Input.eventMouseDown(e);
+		window.onmousemove = (e) => Input.eventMouseMove(e);
 		// window.ontouchend = (e) => Input.eventTouchEnd(e);
 		// window.ontouchmove = (e) => Input.eventTouchMove(e);
 		// window.ontouchstart = (e) => Input.eventTouchStart(e);
 		window.onresize = () => Room.resize();
+		HEAD.append(FULL_DISPLAY_STYLE);
 		HEAD.append(FONT_LINK);
 		BODY.append(CANVAS);
+		Input.setup();
 		this.update();
 	},
 	update(t) {
@@ -423,7 +636,7 @@ const BRANTH = {
 		Room.render();
 		// OBJ.render();
 		UI.render();
-		// Input.reset();
+		Input.reset();
 		RAF(BRANTH.update)
 	}
 };

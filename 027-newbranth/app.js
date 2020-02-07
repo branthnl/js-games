@@ -30,6 +30,7 @@ Menu.renderUI = () => {
 	Draw.setColor(C.gold);
 	Draw.setHVAlign(Align.c, Align.m);
 	Draw.text(Room.mid.w + X, Room.mid.h + Y, Room.name);
+	Draw.textTransformed(Room.mid.w, Room.h * 0.25, 'Text Transformed', 1 + Math.sin(Time.time * 0.005) * 0.2, 2, Time.time * 0.1);
 	Draw.setHVAlign(Align.r, Align.b);
 	Draw.text(Room.w - 8, Room.h - 8, `(${~~Room.w}, ${~~Room.h})`);
 	let x = Room.w - 8, y = Room.h - 8 - Font.size;
@@ -51,10 +52,13 @@ Menu.renderUI = () => {
 		new Vector2(7, 7),
 		new Vector2(71, 37)
 	);
+	const kp = !Input.keyHold(KeyCode.Space);
 	Draw.rect(32, 32, 7, 18, true);
+	Draw.rectTransformed(128, 128, 28, 14, kp, 1, Math.sin(Time.time * 0.01) * 2, Math.sin(Time.time * 0.005) * 24);
 	Draw.circle(37, 68, 6);
 	Draw.roundRect(64, 48, 24, 18, 5);
-	Draw.roundRect(Room.w, Room.mid.h, -78, -28, 6, true);
+	Draw.roundRect(Room.mid.w + 39, Room.mid.h + 14, -78, -28, 14, kp);
+	Draw.roundRectTransformed(Room.mid.w + 39, Room.mid.h + 72, 78, 28, 14, kp, 1, Math.sin(Time.time * 0.01) * 2, Math.sin(Time.time * 0.005) * 24);
 };
 
 Game.start = () => Menu.start();

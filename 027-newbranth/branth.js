@@ -20,48 +20,42 @@ Math.linedir = (x1, y1, x2, y2) => 90 - Math.radtodeg(Math.atan2(x2 - x1, y2 - y
 Math.pointdis = (p1, p2) => Math.linedis(p1.x, p1.y, p2.x, p2.y);
 Math.pointdir = (p1, p2) => Math.linedir(p1.x, p1.y, p2.x, p2.y);
 
+const CANVAS = document.createElement('canvas');
+const CTX = CANVAS.getContext('2d');
+
+CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
+
 const HEAD = {
-	append(e) {
-		document.head.appendChild(e);
-	},
-	remove(e) {
-		if (document.head.contains(e)) {
-			document.head.removeChild(e);
-		}
+	setup() {
+		const FONT_LINK = document.createElement('link');
+		FONT_LINK.href = 'https://fonts.googleapis.com/css?family=Arvo&display=swap';
+		FONT_LINK.rel = 'stylesheet';
+		const FULL_DISPLAY_STYLE = document.createElement('style');
+		FULL_DISPLAY_STYLE.innerHTML = `
+			* {
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				width: 100vw;
+				height: 100vh;
+				overflow: hidden;
+			}
+			canvas {
+				width: 100%;
+				height: 100%;
+			}
+		`;
+		document.head.appendChild(FONT_LINK);
+		document.head.appendChild(FULL_DISPLAY_STYLE);
 	}
 };
 
 const BODY = {
-	append(e) {
-		document.body.appendChild(e);
+	setup() {
+		document.body.appendChild(CANVAS);
 	}
 };
-
-const CANVAS = document.createElement('canvas');
-const CTX = CANVAS.getContext('2d');
-
-const FONT_LINK = document.createElement('link');
-FONT_LINK.href = 'https://fonts.googleapis.com/css?family=Arvo&display=swap';
-FONT_LINK.rel = 'stylesheet';
-
-const FULL_DISPLAY_STYLE = document.createElement('style');
-FULL_DISPLAY_STYLE.innerHTML = `
-	* {
-		margin: 0;
-		padding: 0;
-	}
-	body {
-		width: 100vw;
-		height: 100vh;
-		overflow: hidden;
-	}
-	canvas {
-		width: 100%;
-		height: 100%;
-	}
-`;
-
-CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
 
 const Time = {
 	time: 0,
@@ -595,6 +589,23 @@ const Draw = {
 		CTX.lineTo(p4.x, p4.y);
 		CTX.closePath();
 		this.draw(outline);
+	},
+	transform(x, y, xscale, yscale, angle, func) {
+		CTX.save();
+		CTX.translate(x, y);
+		CTX.rotate(Math.degtorad(angle));
+		CTX.scale(xscale, yscale);
+		func();
+		CTX.restore();
+	},
+	textTransformed(x, y, text, xscale, yscale, angle) {
+		this.transform(x, y, xscale, yscale, angle, () => this.text(0, 0, text));
+	},
+	rectTransformed(x, y, w, h, outline, xscale, yscale, angle) {
+		this.transform(x, y, xscale, yscale, angle, () => this.rect(0, 0, w, h, outline));
+	},
+	roundRectTransformed(x, y, w, h, r, outline, xscale, yscale, angle) {
+		this.transform(x, y, xscale, yscale, angle, () => this.roundRect(0, 0, w, h, r, outline));
 	}
 };
 
@@ -686,14 +697,10 @@ const BRANTH = {
 		window.onmouseup = (e) => Input.eventMouseUp(e);
 		window.onmousedown = (e) => Input.eventMouseDown(e);
 		window.onmousemove = (e) => Input.eventMouseMove(e);
-		// window.ontouchend = (e) => Input.eventTouchEnd(e);
-		// window.ontouchmove = (e) => Input.eventTouchMove(e);
-		// window.ontouchstart = (e) => Input.eventTouchStart(e);
 		window.onresize = () => Room.resize();
-		HEAD.append(FULL_DISPLAY_STYLE);
-		HEAD.append(FONT_LINK);
-		BODY.append(CANVAS);
 		Input.setup();
+		HEAD.setup();
+		BODY.setup();
 		this.update();
 	},
 	update(t) {

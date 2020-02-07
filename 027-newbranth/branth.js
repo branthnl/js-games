@@ -68,6 +68,38 @@ const Time = {
 		this.lastTime = this.time || 0;
 		this.time = t || 0;
 		this.deltaTime = this.time - this.lastTime || this.fixedDeltaTime;
+	},
+	toSeconds(t) {
+		return Math.ceil(t / 1000);
+	},
+	toMinutes(t) {
+		return Math.ceil(t / 60000);
+	},
+	toClockSeconds(t) {
+		return Math.abs(Math.floor(t / 1000) % 60);
+	},
+	toClockMinutes(t) {
+		return Math.abs(Math.floor(t / 60000) % 60);
+	},
+	toClockSecondsWithLeadingZero(t) {
+		let s = this.toClockSeconds(t);
+		return `${(s < 10? '0' : '')}${s}`;
+	},
+	toClockMinutesWithLeadingZero(t) {
+		let m = this.toClockMinutes(t);
+		return `${(m < 10? '0' : '')}${m}`;
+	},
+	get s() {
+		return this.toSeconds(this.time);
+	},
+	get m() {
+		return this.toMinutes(this.time);
+	},
+	get ss() {
+		return this.toClockSecondsWithLeadingZero(this.time);
+	},
+	get mm() {
+		return this.toClockMinutesWithLeadingZero(this.time);
 	}
 };
 
@@ -592,6 +624,25 @@ const Draw = {
 		CTX.closePath();
 		this.draw(outline);
 	},
+	starExtRotated(x, y, pts, inner, outer, angle, outline) {
+		CTX.beginPath();
+		CTX.moveTo(x, y + inner);
+		for (let i = 0; i < 2 * pts + 1; i++) {
+			const [r, a] = [(i % 2 === 0)? inner : outer, Math.PI * i / pts - Math.degtorad(angle)];
+			CTX.lineTo(x + r * Math.sin(a), y + r * Math.cos(a));
+		}
+		CTX.closePath();
+		this.draw(outline);
+	},
+	starRotated(x, y, r, angle, outline) {
+		this.starExtRotated(x, y, 5, r * 0.5, r, angle, outline);
+	},
+	starExt(x, y, pts, inner, outer, outline) {
+		this.starExtRotated(x, y, pts, inner, outer, 0, outline);
+	},
+	star(x, y, r, outline) {
+		this.starExt(x, y, 5, r * 0.5, r, outline);
+	},
 	transform(x, y, xscale, yscale, angle, e) {
 		CTX.save();
 		CTX.translate(x, y);
@@ -605,6 +656,9 @@ const Draw = {
 	},
 	rectTransformed(x, y, w, h, outline, xscale, yscale, angle, origin = new Vector2(0.5, 0.5)) {
 		this.transform(x, y, xscale, yscale, angle, () => this.rect(-w * origin.x, -h * origin.y, w, h, outline));
+	},
+	starTransformed(x, y, r, outline, xscale, yscale, angle) {
+		this.transform(x, y, xscale, yscale, angle, () => this.star(0, 0, r, outline));
 	},
 	roundRectTransformed(x, y, w, h, r, outline, xscale, yscale, angle, origin = new Vector2(0.5, 0.5)) {
 		this.transform(x, y, xscale, yscale, angle, () => this.roundRect(-w * origin.x, -h * origin.y, w, h, r, outline));
@@ -741,6 +795,223 @@ class BranthObject {
 	render() {}
 	renderUI() {}
 }
+
+const Shape = {
+	rect: 'Rect',
+	star: 'Star',
+	circle: 'Circle'
+};
+
+class BranthParticle extends BranthObject {
+	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav) {
+		super(x, y);
+		this.spd = spd;
+		this.spdinc = spdinc;
+		this.size = size;
+		this.sizeinc = sizeinc;
+		this.d = d;
+		this.dinc = dinc;
+		this.r = r;
+		this.rinc = rinc;
+		this.a = a;
+		this.c = c;
+		this.life = life;
+		this.shape = shape;
+		this.grav = grav;
+		this.g = grav;
+		this.pts = Math.choose(4, 5);
+	}
+	update() {
+		this.a = Math.max(0, this.a - Time.deltaTime / this.life);
+		if (this.a <= 0) {
+			OBJ.destroy(this.id);
+		}
+		this.x += Math.lendirx(this.spd, this.d);
+		this.y += Math.lendiry(this.spd, this.d) + Math.lendiry(this.g, 90);
+		this.size = Math.max(this.size + this.sizeinc, 0);
+		this.spd += this.spdinc;
+		this.g += this.grav;
+		this.d += this.dinc;
+		this.r += this.rinc;
+	}
+	render() {
+		Draw.setAlpha(this.a);
+		Draw.setColor(this.c);
+		switch (this.shape) {
+			case Shape.rect:
+				Draw.rectTransformed(
+					this.x, this.y,
+					this.size * 2, this.size * 2,
+					false, 1, 1, this.r
+				);
+				break;
+			case Shape.star: Draw.starRotated(this.x, this.y, this.size, this.r); break;
+			case Shape.circle: Draw.circle(this.x, this.y, this.size); break;
+		}
+		Draw.setAlpha(1);
+	}
+}
+
+OBJ.add(BranthParticle);
+
+const Emitter = {
+	depth: 0,
+	x: {
+		min: 0,
+		max: 100
+	},
+	y: {
+		min: 0,
+		max: 100
+	},
+	spd: {
+		min: 1,
+		max: 2
+	},
+	spdinc: {
+		min: 0,
+		max: 0
+	},
+	size: {
+		min: 2,
+		max: 8
+	},
+	sizeinc: {
+		min: 0,
+		max: 0
+	},
+	d: {
+		min: 0,
+		max: 360
+	},
+	dinc: {
+		min: 5,
+		max: 10
+	},
+	r: {
+		min: 0,
+		max: 360
+	},
+	rinc: {
+		min: 5,
+		max: 10
+	},
+	a: {
+		min: 1,
+		max: 1
+	},
+	c: C.white,
+	life: {
+		min: 3000,
+		max: 4000
+	},
+	shape: Shape.rect,
+	grav: {
+		min: 0.01,
+		max: 0.01
+	},
+	setDepth(depth) {
+		this.depth = depth;
+	},
+	setArea(xmin, xmax, ymin, ymax) {
+		this.x.min = xmin;
+		this.x.max = xmax;
+		this.y.min = ymin;
+		this.y.max = ymax;
+	},
+	setSpeed(min, max) {
+		this.spd.min = min;
+		this.spd.max = max;
+	},
+	setSpeedInc(min, max) {
+		this.spdinc.min = min;
+		this.spdinc.max = max;
+	},
+	setSize(min, max) {
+		this.size.min = min;
+		this.size.max = max;
+	},
+	setSizeInc(min, max) {
+		this.sizeinc.min = min;
+		this.sizeinc.max = max;
+	},
+	setDirection(min, max) {
+		this.d.min = min;
+		this.d.max = max;
+	},
+	setDirectionInc(min, max) {
+		this.dinc.min = min;
+		this.dinc.max = max;
+	},
+	setRotation(min, max) {
+		this.r.min = min;
+		this.r.max = max;
+	},
+	setRotationInc(min, max) {
+		this.rinc.min = min;
+		this.rinc.max = max;
+	},
+	setAlpha(min, max) {
+		this.a.min = min;
+		this.a.max = max;
+	},
+	setColor(c) {
+		this.c = c;
+	},
+	setLife(min, max) {
+		this.life.min = min;
+		this.life.max = max;
+	},
+	setShape(s) {
+		this.shape = s;
+	},
+	setGravity(min, max) {
+		this.grav.min = min;
+		this.grav.max = max;
+	},
+	preset(s) {
+		switch (s) {
+			case 'sparkle':
+				this.setSpeed(2, 5);
+				this.setSpeedInc(-0.1, -0.1);
+				this.setSize(5, 10);
+				this.setSizeInc(-0.1, -0.1);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 360);
+				this.setRotationInc(-5, 5);
+				this.setAlpha(1, 1);
+				this.setColor(C.white);
+				this.setLife(1000, 2000);
+				this.setShape(Shape.star);
+				this.setGravity(0, 0);
+				break;
+		}
+	},
+	emit(n) {
+		for (let i = 0; i < n; i++) {
+			const n = new BranthParticle(
+				Math.range(this.x.min, this.x.max),
+				Math.range(this.y.min, this.y.max),
+				Math.range(this.spd.min, this.spd.max),
+				Math.range(this.spdinc.min, this.spdinc.max),
+				Math.range(this.size.min, this.size.max),
+				Math.range(this.sizeinc.min, this.sizeinc.max),
+				Math.range(this.d.min, this.d.max),
+				Math.range(this.dinc.min, this.dinc.max),
+				Math.range(this.r.min, this.r.max),
+				Math.range(this.rinc.min, this.rinc.max),
+				Math.range(this.a.min, this.a.max),
+				this.c,
+				Math.range(this.life.min, this.life.max),
+				this.shape,
+				Math.range(this.grav.min, this.grav.max)
+			);
+			n.depth = this.depth;
+			OBJ.push(BranthParticle, n);
+		}
+	}
+};
 
 class BranthRoom {
 	constructor(name) {

@@ -24,6 +24,9 @@ class Car extends BranthObject {
 		this.x += l.x;
 		this.y += l.y;
 		this.angle += this.spd * 0.5 * ((keyRight - keyLeft));
+		Emitter.preset('sparkle');
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.emit(1);
 	}
 	render() {
 		Draw.setColor(C.lemonChiffon);
@@ -53,6 +56,12 @@ Menu.renderUI = () => {
 	Draw.setFont(Font.l);
 	Draw.setColor(C.gold);
 	Draw.setHVAlign(Align.c, Align.m);
+	Draw.text(Room.mid.w, Room.h * 0.75 - 2, ':');
+	Draw.setHAlign(Align.r);
+	Draw.text(Room.mid.w - 8, Room.h * 0.75, Time.mm);
+	Draw.setHAlign(Align.l);
+	Draw.text(Room.mid.w + 8, Room.h * 0.75, Time.ss);
+	Draw.setHAlign(Align.c);
 	Draw.text(Room.mid.w, Room.mid.h, Room.name);
 	Draw.textTransformed(Room.mid.w, Room.h * 0.25, 'Press enter to switch between room', 1 + Math.sin(Time.time * 0.005) * 0.2, 2, Time.time * 0.1);
 	Draw.setHVAlign(Align.r, Align.b);
@@ -77,6 +86,7 @@ Menu.renderUI = () => {
 		new Vector2(7, 7),
 		new Vector2(71, 37)
 	);
+	Draw.starRotated(Room.mid.w + 72, Room.mid.h, 8, Time.time * 0.05);
 	Draw.rect(32, 32, 7, 18, true);
 	Draw.rectTransformed(128, 128, 28, 14, kp, 1, Math.sin(Time.time * 0.01) * 2, Math.sin(Time.time * 0.005) * 24);
 	Draw.circle(37, 68, 6);

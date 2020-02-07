@@ -77,7 +77,7 @@ Menu.renderUI = () => {
 	Draw.text(x, y, 'L');
 	y -= Font.size;
 	Draw.setFont(Font.m);
-	Draw.text(x, y, 'M');
+	Draw.text(x, y, `FPS: ${Time.FPS}`);
 	y -= Font.size;
 	Draw.setFont(Font.s);
 	const kp = DEBUG_MODE;
@@ -95,7 +95,9 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
-	OBJ.create(Car, Room.w * 0.25, Room.mid.h);
+	for (let i = 0; i < 40; i++) {
+		OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
+	}
 };
 
 Game.update = () => {

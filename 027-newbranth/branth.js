@@ -60,14 +60,24 @@ const BODY = {
 let DEBUG_MODE = true;
 
 const Time = {
+	FPS: 60,
 	time: 0,
 	lastTime: 0,
 	deltaTime: 0,
 	fixedDeltaTime: 1000 / 60,
+	_fpsCount: 0,
+	get frameRate() {
+		return this.fixedDeltaTime / this.deltaTime;
+	},
 	update(t) {
 		this.lastTime = this.time || 0;
 		this.time = t || 0;
 		this.deltaTime = this.time - this.lastTime || this.fixedDeltaTime;
+		if (this._fpsCount > 60) {
+			this.FPS = Math.floor(this.frameRate * 60);
+			this._fpsCount = 0;
+		}
+		else this._fpsCount++;
 	},
 	toSeconds(t) {
 		return Math.ceil(t / 1000);
@@ -626,10 +636,11 @@ const Draw = {
 	},
 	starExtRotated(x, y, pts, inner, outer, angle, outline) {
 		CTX.beginPath();
-		CTX.moveTo(x, y + inner);
-		for (let i = 0; i < 2 * pts + 1; i++) {
+		for (let i = 0; i <= 2 * pts; i++) {
 			const [r, a] = [(i % 2 === 0)? inner : outer, Math.PI * i / pts - Math.degtorad(angle)];
-			CTX.lineTo(x + r * Math.sin(a), y + r * Math.cos(a));
+			const p = new Vector2(x + r * Math.sin(a), y + r * Math.cos(a));
+			if (i === 0) CTX.moveTo(p.x, p.y);
+			else CTX.lineTo(p.x, p.y);
 		}
 		CTX.closePath();
 		this.draw(outline);
@@ -803,7 +814,7 @@ const Shape = {
 };
 
 class BranthParticle extends BranthObject {
-	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav) {
+	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav, outline) {
 		super(x, y);
 		this.spd = spd;
 		this.spdinc = spdinc;
@@ -818,6 +829,7 @@ class BranthParticle extends BranthObject {
 		this.life = life;
 		this.shape = shape;
 		this.grav = grav;
+		this.outline = outline;
 		this.g = grav;
 		this.pts = Math.choose(4, 5);
 	}
@@ -842,11 +854,11 @@ class BranthParticle extends BranthObject {
 				Draw.rectTransformed(
 					this.x, this.y,
 					this.size * 2, this.size * 2,
-					false, 1, 1, this.r
+					this.outline, 1, 1, this.r
 				);
 				break;
-			case Shape.star: Draw.starRotated(this.x, this.y, this.size, this.r); break;
-			case Shape.circle: Draw.circle(this.x, this.y, this.size); break;
+			case Shape.star: Draw.starExtRotated(this.x, this.y, this.pts, this.size * 0.5, this.size, this.r, this.outline); break;
+			case Shape.circle: Draw.circle(this.x, this.y, this.size, this.outline); break;
 		}
 		Draw.setAlpha(1);
 	}
@@ -910,6 +922,7 @@ const Emitter = {
 		min: 0.01,
 		max: 0.01
 	},
+	outline: false,
 	setDepth(depth) {
 		this.depth = depth;
 	},
@@ -969,6 +982,9 @@ const Emitter = {
 		this.grav.min = min;
 		this.grav.max = max;
 	},
+	setOutline(outline) {
+		this.outline = outline;
+	},
 	preset(s) {
 		switch (s) {
 			case 'sparkle':
@@ -985,6 +1001,7 @@ const Emitter = {
 				this.setLife(1000, 2000);
 				this.setShape(Shape.star);
 				this.setGravity(0, 0);
+				this.setOutline(Math.randneg() > 0);
 				break;
 		}
 	},
@@ -1005,7 +1022,8 @@ const Emitter = {
 				this.c,
 				Math.range(this.life.min, this.life.max),
 				this.shape,
-				Math.range(this.grav.min, this.grav.max)
+				Math.range(this.grav.min, this.grav.max),
+				this.outline
 			);
 			n.depth = this.depth;
 			OBJ.push(BranthParticle, n);

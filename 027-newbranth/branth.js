@@ -569,6 +569,8 @@ const Draw = {
 		this.draw(outline);
 	},
 	roundRect(x, y, w, h, r, outline) {
+		if (w < 0) { x += w; w = -w; }
+		if (h < 0) { y += h; h = -h; }
 		r = Math.clamp(r, 0, Math.min(w * 0.5, h * 0.5)) || 0;
 		CTX.beginPath();
 		CTX.moveTo(x, y + r);

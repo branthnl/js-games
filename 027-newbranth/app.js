@@ -54,6 +54,7 @@ Menu.renderUI = () => {
 	Draw.rect(32, 32, 7, 18, true);
 	Draw.circle(37, 68, 6);
 	Draw.roundRect(64, 48, 24, 18, 5);
+	Draw.roundRect(Room.w, Room.mid.h, -78, -28, 6, true);
 };
 
 Game.start = () => Menu.start();

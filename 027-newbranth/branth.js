@@ -37,7 +37,6 @@ const BODY = {
 	}
 };
 
-const DEFAULT_FONT = 'Arvo, serif';
 const CANVAS = document.createElement('canvas');
 const CTX = CANVAS.getContext('2d');
 
@@ -460,8 +459,10 @@ const C = {
 };
 
 const Font = {
+	normal: '',
 	bold: 'bold',
 	italic: 'italic',
+	bolditalic: 'bold italic',
 	size: 10,
 	style: '',
 	get font() {
@@ -498,26 +499,45 @@ const Align = {
 	m: 'middle'
 };
 
+const Cap = {
+	butt: 'butt',
+	round: 'round'
+};
+
 const Draw = {
-	setAlpha(a) {
-		CTX.globalAlpha = a;
+	fontFamily: '',
+	fontDefault: 'Arvo, serif',
+	setFont(s, style) {
+		CTX.font = `${style? `${style} ` : ''}${s} ${this.fontFamily? `${this.fontFamily}, `: ''}${this.fontDefault}`;
 	},
-	setColor(color) {
-		CTX.fillStyle = color;
-		CTX.strokeStyle = color;
+	setFontStyle(s) {
+		Font.style = s;
 	},
-	setHAlign(align) {
-		CTX.textAlign = align;
+	resetFontStyle() {
+		Font.style = Font.normal;
 	},
-	setVAlign(align) {
-		CTX.textBaseline = align;
+	setFontFamily(s) {
+		this.fontFamily = s;
+	},
+	resetFontFamily() {
+		this.fontFamily = '';
+	},
+	setAlpha(n) {
+		CTX.globalAlpha = n;
+	},
+	setColor(c) {
+		CTX.fillStyle = c;
+		CTX.strokeStyle = c;
+	},
+	setHAlign(a) {
+		CTX.textAlign = a;
+	},
+	setVAlign(a) {
+		CTX.textBaseline = a;
 	},
 	setHVAlign(h, v) {
 		CTX.textAlign = h;
 		CTX.textBaseline = v;
-	},
-	setFont(font) {
-		CTX.font = `${font} ${DEFAULT_FONT}`;
 	},
 	text(x, y, text) {
 		CTX.fillText(text, x, y);
@@ -527,6 +547,52 @@ const Draw = {
 	},
 	textHeight(text) {
 		return Font.size;
+	},
+	draw(outline) {
+		if (outline) CTX.stroke();
+		else CTX.fill();
+	},
+	line(x1, y1, x2, y2) {
+		CTX.beginPath();
+		CTX.moveTo(x1, y1);
+		CTX.lineTo(x2, y2);
+		CTX.stroke();
+	},
+	rect(x, y, w, h, outline) {
+		CTX.beginPath();
+		CTX.rect(x, y, w, h);
+		this.draw(outline);
+	},
+	circle(x, y, r, outline) {
+		CTX.beginPath();
+		CTX.arc(x, y, r, 0, 2 * Math.PI);
+		this.draw(outline);
+	},
+	roundRect(x, y, w, h, r, outline) {
+		r = Math.clamp(r, 0, Math.min(w * 0.5, h * 0.5)) || 0;
+		CTX.beginPath();
+		CTX.moveTo(x, y + r);
+		CTX.quadraticCurveTo(x, y, x + r, y);
+		CTX.lineTo(x + w - r, y);
+		CTX.quadraticCurveTo(x + w, y, x + w, y + r);
+		CTX.lineTo(x + w, y + h - r);
+		CTX.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+		CTX.lineTo(x + r, y + h);
+		CTX.quadraticCurveTo(x, y + h, x, y + h - r);
+		CTX.closePath();
+		this.draw(outline);
+	},
+	pointLine(p1, p2) {
+		this.line(p1.x, p1.y, p2.x, p2.y);
+	},
+	pointRect(p1, p2, p3, p4, outline) {
+		CTX.beginPath();
+		CTX.moveTo(p1.x, p1.y);
+		CTX.lineTo(p2.x, p2.y);
+		CTX.lineTo(p3.x, p3.y);
+		CTX.lineTo(p4.x, p4.y);
+		CTX.closePath();
+		this.draw(outline);
 	}
 };
 

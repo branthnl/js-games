@@ -1,3 +1,5 @@
+Sound.add('hit', 'hit.ogg', 'hit.mp3');
+
 class Car extends BranthBehaviour {
 	awake() {
 		this.w = 32;
@@ -38,6 +40,7 @@ class Car extends BranthBehaviour {
 		Emitter.setDirection(this.angle + 205, this.angle + 155);
 		Emitter.emit(Math.range(5, 10));
 		this.alarm[0] = 500;
+		Sound.play('hit');
 	}
 }
 

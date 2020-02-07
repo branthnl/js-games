@@ -114,6 +114,82 @@ const Time = {
 	}
 };
 
+const Sound = {
+	list: [],
+	names: [],
+	supportedExt: ['ogg', 'mp3', 'wav'],
+	add(name, ...paths) {
+		const sources = [];
+		for (const p of paths) {
+			const ext = p.split('.').pop();
+			if (this.supportedExt.includes(ext)) {
+				const type = ext === 'mp3'? 'mpeg' : ext;
+				sources.push(`<source src="${p}" type="audio/${type}">`);
+			}
+			else {
+				if (DEBUG_MODE) console.log(`Sound file extension not supported: .${ext}`);
+			}
+		}
+		if (sources.length > 0) {
+			const a = new Audio();
+			a.innerHTML = sources.join('');
+			this.list.push(a);
+			this.names.push(name);
+		}
+	},
+	get(name) {
+		const s = this.list[this.names.indexOf(name)];
+		if (!s && DEBUG_MODE) {
+			console.log(`Sound not found: ${name}`);
+			return;
+		}
+		return s;
+	},
+	play(name) {
+		const s = this.get(name);
+		if (s) {
+			s.currentTime = 0;
+			s.play();
+		}
+	},
+	loop(name) {
+		const s = this.get(name);
+		if (s) {
+			s.loop = true;
+			s.currentTime = 0;
+			s.play();
+		}
+	},
+	stop(name) {
+		const s = this.get(name);
+		if (s) {
+			s.pause();
+			s.currentTime = 0;
+			s.loop = false;
+		}
+	},
+	isPlaying(name) {
+		const s = this.get(name);
+		if (s) {
+			return s.currentTime > 0 && !s.paused;
+		}
+		return false;
+	},
+	setVolume(name, n) {
+		const s = this.get(name);
+		if (s) {
+			s.volume = Math.clamp(n, 0, 1);
+		}
+	},
+	getVolume(name) {
+		const s = this.get(name);
+		if (s) {
+			return s.volume;
+		}
+		return 0;
+	}
+};
+
 const KeyCode = {
 	Backspace: 8,
 	Tab: 9,
@@ -285,6 +361,8 @@ const Input = {
 				return k;
 			}
 		}
+		if (DEBUG_MODE) console.log(`No key found with key code: ${keyCode}`);
+		return new BranthKey(-1);
 	},
 	keyUp(keyCode) {
 		return this.getKey(keyCode).released;

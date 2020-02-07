@@ -74,11 +74,11 @@ const Time = {
 		this.lastTime = this.time || 0;
 		this.time = t || 0;
 		this.deltaTime = this.time - this.lastTime || this.fixedDeltaTime;
-		if (this._fpsCount > 60) {
+		if (this._fpsCount >= 60) {
 			this.FPS = Math.floor(this.frameRate * 60);
-			this._fpsCount = 0;
+			this._fpsCount -= 60;
 		}
-		else this._fpsCount++;
+		else this._fpsCount += this.frameRate;
 	},
 	toSeconds(t) {
 		return Math.ceil(t / 1000);
@@ -653,7 +653,7 @@ const Draw = {
 		this.starExtRotated(x, y, pts, inner, outer, 0, outline);
 	},
 	star(x, y, r, outline) {
-		this.starExt(x, y, 5, r * 0.5, r, outline);
+		this.starRotated(x, y, r, 0, outline);
 	},
 	transform(x, y, xscale, yscale, angle, e) {
 		CTX.save();
@@ -672,8 +672,20 @@ const Draw = {
 	starTransformed(x, y, r, outline, xscale, yscale, angle) {
 		this.transform(x, y, xscale, yscale, angle, () => this.star(0, 0, r, outline));
 	},
+	starExtTransformed(x, y, pts, inner, outer, outline, xscale, yscale, angle) {
+		this.transform(x, y, xscale, yscale, angle, () => this.starExt(0, 0, pts, inner, outer, outline));
+	},
 	roundRectTransformed(x, y, w, h, r, outline, xscale, yscale, angle, origin = new Vector2(0.5, 0.5)) {
 		this.transform(x, y, xscale, yscale, angle, () => this.roundRect(-w * origin.x, -h * origin.y, w, h, r, outline));
+	},
+	textRotated(x, y, text, angle) {
+		this.textTransformed(x, y, text, 1, 1, angle);
+	},
+	rectRotated(x, y, w, h, angle, outline, origin = new Vector2(0.5, 0.5)) {
+		this.rectTransformed(x, y, w, h, outline, 1, 1, angle, origin);
+	},
+	roundRectRotated(x, y, w, h, r, angle, outline, origin = new Vector2(0.5, 0.5)) {
+		this.roundRectTransformed(x, y, w, h, r, outline, 1, 1, angle, origin);
 	}
 };
 
@@ -806,6 +818,44 @@ class BranthObject {
 	lateUpdate() {}
 	render() {}
 	renderUI() {}
+}
+
+class BranthBehaviour extends BranthObject {
+	constructor(x, y) {
+		super(x, y);
+		this.alarm = [-1, -1, -1, -1, -1, -1];
+	}
+	alarm0() {}
+	alarm1() {}
+	alarm2() {}
+	alarm3() {}
+	alarm4() {}
+	alarm5() {}
+	alarmUpdate() {
+		if (this.alarm) {
+			for (let i = 0; i < this.alarm.length; i++) {
+				if (this.alarm[i] !== null) {
+					if (this.alarm[i] > 0) {
+						this.alarm[i] = Math.max(0, this.alarm[i] - Time.deltaTime);
+					}
+					else if (this.alarm[i] !== -1) {
+						switch (i) {
+							case 0: this.alarm0(); break;
+							case 1: this.alarm1(); break;
+							case 2: this.alarm2(); break;
+							case 3: this.alarm3(); break;
+							case 4: this.alarm4(); break;
+							case 5: this.alarm5(); break;
+						}
+						if (this.alarm[i] <= 0) this.alarm[i] = -1;
+					}
+				}
+			}
+		}
+	}
+	lateUpdate() {
+		this.alarmUpdate();
+	}
 }
 
 const Shape = {

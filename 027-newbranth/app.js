@@ -1,10 +1,11 @@
-class Car extends BranthObject {
+class Car extends BranthBehaviour {
 	awake() {
 		this.w = 32;
 		this.h = 72;
 		this.spd = 0;
 		this.acc = 0.2;
 		this.angle = 0;
+		this.alarm[0] = 500;
 	}
 	update() {
 		const keyUp = Input.keyHold(KeyCode.Up);
@@ -24,18 +25,19 @@ class Car extends BranthObject {
 		this.x += l.x;
 		this.y += l.y;
 		this.angle += this.spd * 0.5 * ((keyRight - keyLeft));
-		Emitter.preset('sparkle');
-		Emitter.setArea(this.x, this.x, this.y, this.y);
-		Emitter.emit(1);
 	}
 	render() {
 		Draw.setColor(C.lemonChiffon);
-		Draw.roundRectTransformed(
-			this.x, this.y,
-			this.h, this.w, this.w * 0.25,
-			false, 1, 1, this.angle);
+		Draw.roundRectRotated(this.x, this.y, this.h, this.w, this.w * 0.25, this.angle, false);
 		Draw.setColor(C.red);
 		Draw.circle(this.x, this.y, 3);
+	}
+	alarm0() {
+		Emitter.preset('sparkle');
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.setDirection(this.angle + 205, this.angle + 155);
+		Emitter.emit(Math.range(5, 10));
+		this.alarm[0] = 500;
 	}
 }
 

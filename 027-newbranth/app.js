@@ -1,7 +1,8 @@
-Sound.add('bgm', 'EngineLoop.wav');
+Sound.add('BGM', 'Backbeat.mp3');
+Sound.add('EngineLoop', 'EngineLoop.wav');
 Sound.add('Hit', 'Hit.ogg');
-Sound.setVolume('bgm', 0.1);
-Sound.setVolume('Hit', 0);
+Sound.setVolume('BGM', 0.1);
+Sound.setVolume('Hit', 0.2);
 
 class Car extends BranthBehaviour {
 	awake() {
@@ -109,7 +110,7 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
-	Sound.loop('bgm');
+	Sound.loop('BGM');
 	OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
 };
 

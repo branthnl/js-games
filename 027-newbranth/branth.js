@@ -59,6 +59,7 @@ const BODY = {
 };
 
 let DEBUG_MODE = true;
+let INTERACTED = false;
 
 const Time = {
 	FPS: 60,
@@ -147,18 +148,24 @@ const Sound = {
 	},
 	play(name) {
 		const s = this.get(name);
-		if (s) {
-			s.currentTime = 0;
-			s.play();
+		if (INTERACTED) {
+			if (s) {
+				s.currentTime = 0;
+				s.play();
+			}
 		}
+		else if (DEBUG_MODE) console.log(`Failed to play sound because the user didn't interact with the document first.`);
 	},
 	loop(name) {
 		const s = this.get(name);
-		if (s) {
-			s.loop = true;
-			s.currentTime = 0;
-			s.play();
+		if (INTERACTED) {
+			if (s) {
+				s.loop = true;
+				s.currentTime = 0;
+				s.play();
+			}
 		}
+		else if (DEBUG_MODE) console.log(`Failed to loop sound because the user didn't interact with the document first.`);
 	},
 	stop(name) {
 		const s = this.get(name);
@@ -187,6 +194,15 @@ const Sound = {
 			return s.volume;
 		}
 		return 0;
+	},
+	update() {
+		for (const s of this.list) {
+			if (s.loop) {
+				if (s.currentTime >= s.duration * 0.9) {
+					s.currentTime = 0;
+				}
+			}
+		}
 	}
 };
 
@@ -393,6 +409,7 @@ const Input = {
 		}
 	},
 	eventKeyDown(e) {
+		INTERACTED = true;
 		if (this.preventedKeys.includes(e.keyCode)) {
 			e.preventDefault();
 		}
@@ -416,6 +433,7 @@ const Input = {
 		this.updateMousePosition(e);
 	},
 	eventMouseDown(e) {
+		INTERACTED = true;
 		const m = this.list[1][e.button];
 		if (!m.hold) {
 			this.updateMousePosition(e);
@@ -1277,6 +1295,7 @@ const BRANTH = {
 	},
 	update(t) {
 		Time.update(t);
+		Sound.update();
 		Room.update();
 		OBJ.update();
 		if (Input.keyDown(KeyCode.U)) DEBUG_MODE = !DEBUG_MODE;

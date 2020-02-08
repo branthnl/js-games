@@ -1,4 +1,7 @@
-Sound.add('hit', 'hit.ogg', 'hit.mp3');
+Sound.add('bgm', 'EngineLoop.wav');
+Sound.add('Hit', 'Hit.ogg');
+Sound.setVolume('bgm', 0.1);
+Sound.setVolume('Hit', 0);
 
 class Car extends BranthBehaviour {
 	awake() {
@@ -40,7 +43,7 @@ class Car extends BranthBehaviour {
 		Emitter.setDirection(this.angle + 205, this.angle + 155);
 		Emitter.emit(Math.range(5, 10));
 		this.alarm[0] = 500;
-		Sound.play('hit');
+		Sound.play('Hit');
 	}
 }
 
@@ -106,6 +109,7 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
+	Sound.loop('bgm');
 	OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
 };
 

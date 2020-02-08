@@ -2,7 +2,7 @@ Sound.add('BGM', 'Backbeat.mp3');
 Sound.add('EngineLoop', 'EngineLoop.wav');
 Sound.add('Hit', 'Hit.ogg');
 Sound.setVolume('BGM', 0.1);
-Sound.setVolume('Hit', 0.2);
+Sound.setVolume('Hit', 0.05);
 
 class Car extends BranthBehaviour {
 	awake() {

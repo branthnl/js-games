@@ -344,6 +344,12 @@ class BranthMouse extends BranthKey {
 }
 
 const Input = {
+	metaKeys: [
+		KeyCode.Alt,
+		KeyCode.Ctrl,
+		KeyCode.LeftWindowKey,
+		KeyCode.RightWindowKey
+	],
 	preventedKeys: [
 		KeyCode.Up,
 		KeyCode.Left,
@@ -403,18 +409,22 @@ const Input = {
 	},
 	eventKeyUp(e) {
 		for (const k of this.list[0]) {
-			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+			if (k.keyCode === e.which || k.keyCode === e.keyCode) {
 				k.up();
 			}
 		}
 	},
 	eventKeyDown(e) {
-		INTERACTED = true;
+		if (!INTERACTED) {
+			if (!this.metaKeys.includes(e.keyCode)) {
+				INTERACTED = true;
+			}
+		}
 		if (this.preventedKeys.includes(e.keyCode)) {
 			e.preventDefault();
 		}
 		for (const k of this.list[0]) {
-			if (k.keyCode == e.which || k.keyCode == e.keyCode) {
+			if (k.keyCode === e.which || k.keyCode === e.keyCode) {
 				if (!k.hold) k.down();
 			}
 		}

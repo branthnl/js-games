@@ -1,3 +1,20 @@
+const World = {
+	w: 2880,
+	h: 1480,
+	get x() {
+		return -View.x;
+	},
+	get y() {
+		return -View.y;
+	},
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	}
+};
+
 class Car extends BranthBehaviour {
 	awake() {
 		this.w = 24;
@@ -20,7 +37,7 @@ class Car extends BranthBehaviour {
 			this.spd = Math.min(this.acc * 40, this.spd + this.acc);
 		}
 		if (keyDown) {
-			this.spd = Math.max(-this.acc * 20, this.spd - this.acc);
+			this.spd = Math.max(-this.acc * 30, this.spd - this.acc);
 		}
 		if (!keyUp && !keyDown) {
 			this.spd *= 0.98;
@@ -40,19 +57,20 @@ class Car extends BranthBehaviour {
 			Math.lendir(this.spd, this.angle),
 			Math.lendir(this.driftSpd, this.angle + 90)
 		);
-		this.x += l.x;
-		this.y += l.y;
-	}
-	renderUI() {
-		// const p = new Vector2(this.x, this.y);
-		// Draw.setColor(C.red);
-		// Draw.pointLine(p, Vector2.add(p, Math.lendir(this.driftSpd * 10, this.angle + 90)));
+		let p = Math.lendir(this.h * 0.5, this.angle);
+		this.x = Math.clamp(this.x + l.x, -p.x, World.w - p.x);
+		this.y = Math.clamp(this.y + l.y, -p.y, World.h - p.y);
+		p = Vector2.add(p, new Vector2(this.x, this.y));
+		View.target(p.x, p.y);
+		if (Input.keyDown(KeyCode.Space)) {
+			View.shake(1, 1000);
+		}
 	}
 	render() {
 		for (let i = 0; i <= 1; i++) {
 			for (let j = -1; j <= 1; j += 2) {
 				const p = Vector2.add(
-					new Vector2(this.x, this.y),
+					new Vector2(this.x - View.x, this.y - View.y),
 					Vector2.add(
 						Math.lendir(this.h * (0.2 + 0.6 * i), this.angle),
 						Math.lendir(this.w * 0.5, this.angle + 90 * j)
@@ -76,7 +94,7 @@ class Car extends BranthBehaviour {
 		const p = Math.lendir(this.h * 0.5, this.angle);
 		for (const b of [false, true]) {
 			Draw.setColor(b? C.black : C.lemonChiffon);
-			Draw.roundRectRotated(this.x + p.x, this.y + p.y, this.h, this.w, this.w * 0.25, this.angle, b);
+			Draw.roundRectRotated(this.x + p.x - View.x, this.y + p.y - View.y, this.h, this.w, this.w * 0.25, this.angle, b);
 		}
 		for (let i = -1; i <= 1; i += 2) {
 			const p = Vector2.add(
@@ -86,13 +104,20 @@ class Car extends BranthBehaviour {
 			Draw.setAlpha(Input.keyHold(KeyCode.Down)? 1 : 0.5);
 			Draw.setColor(C.red);
 			Draw.roundRectRotated(
-				this.x + p.x, this.y + p.y,
+				this.x + p.x - View.x, this.y + p.y - View.y,
 				this.h * 0.2, this.h * 0.2,
 				this.h * 0.1, this.angle
 			);
 			Draw.setAlpha(1);
 		}
 		// Draw.circle(this.x, this.y, 5);
+	}
+	renderUI() {
+		Draw.text(32, 32, `(${~~View.x}, ${~~View.y})`);
+		Draw.text(32, 64, `(${~~this.x}, ${~~this.y})`);
+		// const p = new Vector2(this.x, this.y);
+		// Draw.setColor(C.red);
+		// Draw.pointLine(p, Vector2.add(p, Math.lendir(this.driftSpd * 10, this.angle + 90)));
 	}
 	alarm0() {
 		if (!Sound.isPlaying('EngineLoop')) {
@@ -119,5 +144,19 @@ Game.start = () => {
 	OBJ.create(Car, Room.mid.w, Room.mid.h);
 };
 
-BRANTH.start(0, 0, { backgroundColor: C.gray });
+Game.render = () => {
+	const [x, y, r] = [World.x, World.y, World.h * 0.05];
+	for (const b of [false, true]) {
+		Draw.setColor(b? C.black : C.gray);
+		Draw.roundRect(x - r, y - r, World.w + r * 2, World.h + r * 2, r * 1.5, b);
+	}
+	for (let i = 0; i < 23; i += 2) {
+		for (let j = 0; j < 24; j += 2) {
+			Draw.setColor(`rgba(${50}, 0, ${50 + 155 * i / 29}, 1)`);
+			Draw.roundRect(x + i * 123, y + j * 64, 128, 64, 12);
+		}
+	}
+};
+
+BRANTH.start(960, 640, { HAlign: true, VAlign: true, backgroundColor: C.royalBlue });
 Room.start('Game');

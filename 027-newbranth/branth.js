@@ -1297,6 +1297,42 @@ const Room = {
 	}
 };
 
+const View = {
+	x: 0,
+	y: 0,
+	xto: 0,
+	yto: 0,
+	xshake: 0,
+	yshake: 0,
+	alarm: -1,
+	interval: 0,
+	magnitude: 0,
+	target(x, y) {
+		this.xto = x - Room.mid.w;
+		this.yto = y - Room.mid.h;
+	},
+	shake(mag, int) {
+		this.magnitude = mag;
+		this.interval = int;
+		this.alarm = this.interval;
+	},
+	update() {
+		if (this.alarm > 0) {
+			const mag = this.magnitude * this.alarm / this.interval;
+			this.xshake = mag * (Math.random() > 0.5? -1 : 1);
+			this.yshake = mag * (Math.random() > 0.5? -1 : 1);
+			this.alarm -= Time.deltaTime;
+			if (this.alarm <= 0) {
+				this.xshake = 0;
+				this.yshake = 0;
+			}
+		}
+		const t = 0.05;
+		this.x = Math.range(this.x, this.xto, t) + this.xshake;
+		this.y = Math.range(this.y, this.yto, t) + this.yshake;
+	}
+};
+
 const UI = {
 	render() {
 		Room.current.renderUI();
@@ -1362,6 +1398,7 @@ const BRANTH = {
 		Time.update(t);
 		Sound.update();
 		Room.update();
+		View.update();
 		OBJ.update();
 		if (Input.keyDown(KeyCode.U)) GLOBAL.debugMode = !GLOBAL.debugMode;
 		CTX.clearRect(0, 0, Room.w, Room.h);

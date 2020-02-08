@@ -24,45 +24,10 @@ Math.pointdir = (p1, p2) => Math.linedir(p1.x, p1.y, p2.x, p2.y);
 const CANVAS = document.createElement('canvas');
 const CTX = CANVAS.getContext('2d');
 
-CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
-
-const HEAD = {
-	setup() {
-		const FONT_LINK = document.createElement('link');
-		FONT_LINK.href = 'https://fonts.googleapis.com/css?family=Arvo&display=swap';
-		FONT_LINK.rel = 'stylesheet';
-		const FULL_DISPLAY_STYLE = document.createElement('style');
-		FULL_DISPLAY_STYLE.innerHTML = `
-			* {
-				margin: 0;
-				padding: 0;
-			}
-			body {
-				width: 100vw;
-				height: 100vh;
-				overflow: hidden;
-			}
-			canvas {
-				width: 100%;
-				height: 100%;
-			}
-		`;
-		document.head.appendChild(FONT_LINK);
-		document.head.appendChild(FULL_DISPLAY_STYLE);
-	}
-};
-
-const BODY = {
-	setup() {
-		document.body.appendChild(CANVAS);
-	}
-};
-
-let DEBUG_MODE = false;
-let INTERACTED = false;
-
 const GLOBAL = {
 	key: '_' + Math.random().toString(36).substr(2, 9),
+	debugMode: false,
+	interacted: false,
 	save(key, value) {
 		sessionStorage.setItem(key, value);
 	},
@@ -146,7 +111,7 @@ const Sound = {
 				sources.push(`<source src="${p}" type="audio/${type}">`);
 			}
 			else {
-				if (DEBUG_MODE) console.log(`Sound file extension not supported: .${ext}`);
+				if (GLOBAL.debugMode) console.log(`Sound file extension not supported: .${ext}`);
 			}
 		}
 		if (sources.length > 0) {
@@ -158,7 +123,7 @@ const Sound = {
 	},
 	get(name) {
 		const s = this.list[this.names.indexOf(name)];
-		if (!s && DEBUG_MODE) {
+		if (!s && GLOBAL.debugMode) {
 			console.log(`Sound not found: ${name}`);
 			return;
 		}
@@ -166,24 +131,24 @@ const Sound = {
 	},
 	play(name) {
 		const s = this.get(name);
-		if (INTERACTED) {
+		if (GLOBAL.interacted) {
 			if (s) {
 				s.currentTime = 0;
 				s.play();
 			}
 		}
-		else if (DEBUG_MODE) console.log(`Failed to play sound because the user didn't interact with the document first.`);
+		else if (GLOBAL.debugMode) console.log(`Failed to play sound because the user didn't interact with the document first.`);
 	},
 	loop(name) {
 		const s = this.get(name);
-		if (INTERACTED) {
+		if (GLOBAL.interacted) {
 			if (s) {
 				s.loop = true;
 				s.currentTime = 0;
 				s.play();
 			}
 		}
-		else if (DEBUG_MODE) console.log(`Failed to loop sound because the user didn't interact with the document first.`);
+		else if (GLOBAL.debugMode) console.log(`Failed to loop sound because the user didn't interact with the document first.`);
 	},
 	stop(name) {
 		const s = this.get(name);
@@ -401,7 +366,7 @@ const Input = {
 				return k;
 			}
 		}
-		if (DEBUG_MODE) console.log(`No key found with key code: ${keyCode}`);
+		if (GLOBAL.debugMode) console.log(`No key found with key code: ${keyCode}`);
 		return new BranthKey(-1);
 	},
 	keyUp(keyCode) {
@@ -433,9 +398,9 @@ const Input = {
 		}
 	},
 	eventKeyDown(e) {
-		if (!INTERACTED) {
+		if (!GLOBAL.interacted) {
 			if (!this.metaKeys.includes(e.keyCode)) {
-				INTERACTED = true;
+				GLOBAL.interacted = true;
 			}
 		}
 		if (this.preventedKeys.includes(e.keyCode)) {
@@ -461,7 +426,7 @@ const Input = {
 		this.updateMousePosition(e);
 	},
 	eventMouseDown(e) {
-		INTERACTED = true;
+		GLOBAL.interacted = true;
 		const m = this.list[1][e.button];
 		if (!m.hold) {
 			this.updateMousePosition(e);
@@ -851,7 +816,7 @@ const OBJ = {
 			}
 			return i;
 		}
-		if (DEBUG_MODE) console.log(`Class not found: ${cls.name}`);
+		if (GLOBAL.debugMode) console.log(`Class not found: ${cls.name}`);
 	},
 	create(cls, x = 0, y = 0) {
 		if (this.classes.includes(cls)) {
@@ -864,7 +829,7 @@ const OBJ = {
 			}
 			return i;
 		}
-		if (DEBUG_MODE) console.log(`Class not found: ${cls.name}`);
+		if (GLOBAL.debugMode) console.log(`Class not found: ${cls.name}`);
 	},
 	destroy(id) {
 		for (const o of this.list) {
@@ -1202,6 +1167,22 @@ const Emitter = {
 				this.preset('puff');
 				this.setOutline(true);
 				break;
+			case 'box':
+				this.setSpeed(0, 0);
+				this.setSpeedInc(0, 0);
+				this.setSize(2, 4);
+				this.setSizeInc(0, 0);
+				this.setDirection(0, 0);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(1, 1);
+				this.setColor(C.white);
+				this.setLife(300, 500);
+				this.setShape(Shape.rect);
+				this.setGravity(0, 0);
+				this.setOutline(true);
+				break;
 		}
 	},
 	emit(n) {
@@ -1313,7 +1294,7 @@ const RAF = window.requestAnimationFrame
 	|| window.webkitRequestAnimationFrame
 	|| function(f) { return setTimeout(f, Time.fixedDeltaTime) }
 const BRANTH = {
-	start() {
+	start(w = 0, h = 0, options = {}) {
 		GLOBAL.setup();
 		Input.setup();
 		window.onkeyup = (e) => Input.eventKeyUp(e);
@@ -1322,8 +1303,34 @@ const BRANTH = {
 		window.onmousedown = (e) => Input.eventMouseDown(e);
 		window.onmousemove = (e) => Input.eventMouseMove(e);
 		window.onresize = () => Room.resize();
-		HEAD.setup();
-		BODY.setup();
+		if (options.backgroundColor) CANVAS.style.backgroundColor = options.backgroundColor;
+		else CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
+		const FULL_DISPLAY_STYLE = document.createElement('style');
+		FULL_DISPLAY_STYLE.innerHTML = `
+			* {
+				margin: 0;
+				padding: 0;
+			}
+			body {
+				width: ${w? `${w}px` : '100vw'};
+				height: ${h? `${h}px` : '100vh'};
+				overflow: hidden;
+				position: absolute;
+				top: ${options.VAlign? '50%' : '0'};
+				left: ${options.HAlign? '50%' : '0'};
+				transform: translate(${options.HAlign? '-50%' : '0'}, ${options.VAlign? '-50%' : '0'});
+			}
+			canvas {
+				width: 100%;
+				height: 100%;
+			}
+		`;
+		const FONT_LINK = document.createElement('link');
+		FONT_LINK.href = 'https://fonts.googleapis.com/css?family=Arvo&display=swap';
+		FONT_LINK.rel = 'stylesheet';
+		document.head.appendChild(FULL_DISPLAY_STYLE);
+		document.head.appendChild(FONT_LINK);
+		document.body.appendChild(CANVAS);
 		this.update();
 	},
 	update(t) {
@@ -1331,7 +1338,7 @@ const BRANTH = {
 		Sound.update();
 		Room.update();
 		OBJ.update();
-		if (Input.keyDown(KeyCode.U)) DEBUG_MODE = !DEBUG_MODE;
+		if (Input.keyDown(KeyCode.U)) GLOBAL.debugMode = !GLOBAL.debugMode;
 		CTX.clearRect(0, 0, Room.w, Room.h);
 		Room.render();
 		OBJ.render();

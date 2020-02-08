@@ -1,8 +1,11 @@
+Sound.add('Hit', 'Hit.ogg');
 Sound.add('BGM', 'Backbeat.mp3');
 Sound.add('EngineLoop', 'EngineLoop.wav');
-Sound.add('Hit', 'Hit.ogg');
-Sound.setVolume('BGM', 0.1);
+Sound.add('EngineStart', 'EngineStart.ogg');
 Sound.setVolume('Hit', 0.05);
+Sound.setVolume('BGM', 0.1);
+Sound.setVolume('EngineLoop', 0.2);
+Sound.setVolume('EngineStart', 0.2);
 
 class Car extends BranthBehaviour {
 	awake() {
@@ -12,6 +15,8 @@ class Car extends BranthBehaviour {
 		this.acc = 0.2;
 		this.angle = 0;
 		this.alarm[0] = 500;
+		Sound.loop('EngineLoop');
+		Sound.play('EngineStart');
 	}
 	update() {
 		const keyUp = Input.keyHold(KeyCode.Up);
@@ -31,6 +36,17 @@ class Car extends BranthBehaviour {
 		this.x += l.x;
 		this.y += l.y;
 		this.angle += this.spd * 0.5 * ((keyRight - keyLeft));
+		if (Math.abs(this.spd) > this.acc) {
+			for (let i = -1; i <= 1; i += 2) {
+				const p = Math.lendir(this.w * 0.3, this.angle + 90 * i);
+				p.x += this.x;
+				p.y += this.y;
+				Emitter.preset('box');
+				Emitter.setArea(p.x, p.x, p.y, p.y);
+				Emitter.setRotation(this.angle, this.angle);
+				Emitter.emit(1);
+			}
+		}
 	}
 	render() {
 		Draw.setColor(C.lemonChiffon);
@@ -44,7 +60,7 @@ class Car extends BranthBehaviour {
 		Emitter.setDirection(this.angle + 205, this.angle + 155);
 		Emitter.emit(Math.range(5, 10));
 		this.alarm[0] = 500;
-		Sound.play('Hit');
+		// Sound.play('Hit');
 	}
 }
 
@@ -95,7 +111,7 @@ Menu.renderUI = () => {
 	Draw.text(x, y, `FPS: ${Time.FPS}`);
 	y -= Font.size;
 	Draw.setFont(Font.s);
-	const kp = DEBUG_MODE;
+	const kp = GLOBAL.debugMode;
 	Draw.text(x, y, `Debug mode is: ${kp? 'ON' : 'OFF'}`);
 	Draw.pointLine(
 		new Vector2(7, 7),
@@ -122,5 +138,5 @@ Game.update = () => {
 
 Game.renderUI = () => Menu.renderUI();
 
-BRANTH.start();
+BRANTH.start(0, 360, { VAlign: true, backgroundColor: C.aquamarine });
 Room.start('Game');

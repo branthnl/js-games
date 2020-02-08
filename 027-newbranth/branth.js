@@ -58,8 +58,26 @@ const BODY = {
 	}
 };
 
-let DEBUG_MODE = true;
+let DEBUG_MODE = false;
 let INTERACTED = false;
+
+const GLOBAL = {
+	key: '_' + Math.random().toString(36).substr(2, 9),
+	save(key, value) {
+		sessionStorage.setItem(key, value);
+	},
+	load(key) {
+		return sessionStorage.getItem(key);
+	},
+	setup() {
+		const k = this.load('globalkey');
+		if (k) {
+			if (k.length >= 9) this.key = k;
+			return;
+		}
+		this.save('globalkey', this.key);
+	}
+};
 
 const Time = {
 	FPS: 60,
@@ -600,7 +618,11 @@ const C = {
 	white: '#ffffff',
 	whiteSmoke: '#f5f5f5',
 	yellow: '#ffff00',
-	yellowGreen: '#9acd32'
+	yellowGreen: '#9acd32',
+	random() {
+		const c = Object.values(this); c.pop();
+		return c[Math.floor(Math.random() * c.length)];
+	}
 };
 
 const Font = {
@@ -1292,6 +1314,7 @@ const RAF = window.requestAnimationFrame
 	|| function(f) { return setTimeout(f, Time.fixedDeltaTime) }
 const BRANTH = {
 	start() {
+		GLOBAL.setup();
 		Input.setup();
 		window.onkeyup = (e) => Input.eventKeyUp(e);
 		window.onkeydown = (e) => Input.eventKeyDown(e);

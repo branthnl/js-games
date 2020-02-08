@@ -3,6 +3,18 @@ class Vector2 {
 		this.x = x;
 		this.y = y;
 	}
+	static add(v1, v2) {
+		return new Vector2(v1.x + v2.x, v1.y + v2.y);
+	}
+	static subtract(v1, v2) {
+		return new Vector2(v1.x - v2.x, v1.y - v2.y);
+	}
+	static multiply(v1, v2) {
+		return new Vector2(v1.x * v2.x, v1.y * v2.y);
+	}
+	static equal(v1, v2) {
+		return v1.x === v2.x && v1.y === v2.y;
+	}
 }
 
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
@@ -638,9 +650,9 @@ const Cap = {
 
 const Draw = {
 	fontFamily: '',
-	fontDefault: 'Arvo, serif',
+	fontDefault: ['Arvo', 'Fresca', 'Sniglet'],
 	setFont(s, style) {
-		CTX.font = `${style? `${style} ` : ''}${s} ${this.fontFamily? `${this.fontFamily}, `: ''}${this.fontDefault}`;
+		CTX.font = `${style? `${style} ` : ''}${s} ${this.fontFamily? `${this.fontFamily}, `: ''}${this.fontDefault.join(',')}, serif`;
 	},
 	setFontStyle(s) {
 		Font.style = s;
@@ -954,7 +966,8 @@ class BranthBehaviour extends BranthObject {
 const Shape = {
 	rect: 'Rect',
 	star: 'Star',
-	circle: 'Circle'
+	circle: 'Circle',
+	square: 'Square'
 };
 
 class BranthParticle extends BranthObject {
@@ -994,15 +1007,10 @@ class BranthParticle extends BranthObject {
 		Draw.setAlpha(this.a);
 		Draw.setColor(this.c);
 		switch (this.shape) {
-			case Shape.rect:
-				Draw.rectTransformed(
-					this.x, this.y,
-					this.size * 2, this.size * 2,
-					this.outline, 1, 1, this.r
-				);
-				break;
+			case Shape.rect: Draw.rectRotated(this.x, this.y, this.size * 2, this.size * 0.5, this.r, this.outline); break;
 			case Shape.star: Draw.starExtRotated(this.x, this.y, this.pts, this.size * 0.5, this.size, this.r, this.outline); break;
 			case Shape.circle: Draw.circle(this.x, this.y, this.size, this.outline); break;
+			case Shape.square: Draw.rectRotated(this.x, this.y, this.size * 2, this.size * 2, this.r, this.outline); break;
 		}
 		Draw.setAlpha(1);
 	}
@@ -1179,9 +1187,25 @@ const Emitter = {
 				this.setAlpha(1, 1);
 				this.setColor(C.white);
 				this.setLife(300, 500);
-				this.setShape(Shape.rect);
+				this.setShape(Shape.square);
 				this.setGravity(0, 0);
 				this.setOutline(true);
+				break;
+			case 'strip':
+				this.setSpeed(0, 0);
+				this.setSpeedInc(0, 0);
+				this.setSize(5, 5);
+				this.setSizeInc(0, 0);
+				this.setDirection(0, 0);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.1, 0.1);
+				this.setColor(C.black);
+				this.setLife(800, 800);
+				this.setShape(Shape.rect);
+				this.setGravity(0, 0);
+				this.setOutline(false);
 				break;
 		}
 	},
@@ -1305,8 +1329,8 @@ const BRANTH = {
 		window.onresize = () => Room.resize();
 		if (options.backgroundColor) CANVAS.style.backgroundColor = options.backgroundColor;
 		else CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
-		const FULL_DISPLAY_STYLE = document.createElement('style');
-		FULL_DISPLAY_STYLE.innerHTML = `
+		const style = document.createElement('style');
+		style.innerHTML = `
 			* {
 				margin: 0;
 				padding: 0;
@@ -1325,11 +1349,12 @@ const BRANTH = {
 				height: 100%;
 			}
 		`;
-		const FONT_LINK = document.createElement('link');
-		FONT_LINK.href = 'https://fonts.googleapis.com/css?family=Arvo&display=swap';
-		FONT_LINK.rel = 'stylesheet';
-		document.head.appendChild(FULL_DISPLAY_STYLE);
-		document.head.appendChild(FONT_LINK);
+		for (const f of Draw.fontDefault) {
+			const l = document.createElement('link');
+			[l.href, l.rel] = [`https://fonts.googleapis.com/css?family=${f}&display=swap`, 'stylesheet'];
+			document.head.appendChild(l);
+		}
+		document.head.appendChild(style);
 		document.body.appendChild(CANVAS);
 		this.update();
 	},

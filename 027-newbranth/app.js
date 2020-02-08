@@ -1,21 +1,14 @@
-Sound.add('Hit', 'Hit.ogg');
-Sound.add('BGM', 'Backbeat.mp3');
-Sound.add('EngineLoop', 'EngineLoop.wav');
-Sound.add('EngineStart', 'EngineStart.ogg');
-Sound.setVolume('Hit', 0.05);
-Sound.setVolume('BGM', 0.1);
-Sound.setVolume('EngineLoop', 0.2);
-Sound.setVolume('EngineStart', 0.2);
-
 class Car extends BranthBehaviour {
 	awake() {
-		this.w = 32;
-		this.h = 72;
-		this.spd = 0;
+		this.w = 24;
+		this.h = 32;
+		this.spd = 2;
 		this.acc = 0.2;
 		this.angle = 0;
+		this.angleSpd = 0;
+		this.angleAcc = 0.1;
+		this.driftSpd = 0;
 		this.alarm[0] = 500;
-		Sound.loop('EngineLoop');
 		Sound.play('EngineStart');
 	}
 	update() {
@@ -32,111 +25,99 @@ class Car extends BranthBehaviour {
 		if (!keyUp && !keyDown) {
 			this.spd *= 0.98;
 		}
-		const l = Math.lendir(this.spd, this.angle);
+		if (keyLeft) {
+			this.angleSpd = Math.max(-this.angleAcc * 5, this.angleSpd - this.angleAcc);
+		}
+		if (keyRight) {
+			this.angleSpd = Math.min(this.angleAcc * 5, this.angleSpd + this.angleAcc);
+		}
+		if (!keyLeft && !keyRight) {
+			this.angleSpd *= 0.9;
+		}
+		this.angle += this.angleSpd * this.spd;
+		this.driftSpd = Math.range(this.driftSpd, this.spd * 0.5 * (keyLeft - keyRight), 0.05);
+		const l = Vector2.add(
+			Math.lendir(this.spd, this.angle),
+			Math.lendir(this.driftSpd, this.angle + 90)
+		);
 		this.x += l.x;
 		this.y += l.y;
-		this.angle += this.spd * 0.5 * ((keyRight - keyLeft));
-		if (Math.abs(this.spd) > this.acc) {
-			for (let i = -1; i <= 1; i += 2) {
-				const p = Math.lendir(this.w * 0.3, this.angle + 90 * i);
-				p.x += this.x;
-				p.y += this.y;
-				Emitter.preset('box');
-				Emitter.setArea(p.x, p.x, p.y, p.y);
-				Emitter.setRotation(this.angle, this.angle);
-				Emitter.emit(1);
-			}
-		}
+	}
+	renderUI() {
+		// const p = new Vector2(this.x, this.y);
+		// Draw.setColor(C.red);
+		// Draw.pointLine(p, Vector2.add(p, Math.lendir(this.driftSpd * 10, this.angle + 90)));
 	}
 	render() {
-		Draw.setColor(C.lemonChiffon);
-		Draw.roundRectRotated(this.x, this.y, this.h, this.w, this.w * 0.25, this.angle, false);
-		Draw.setColor(C.red);
-		Draw.circle(this.x, this.y, 3);
+		for (let i = 0; i <= 1; i++) {
+			for (let j = -1; j <= 1; j += 2) {
+				const p = Vector2.add(
+					new Vector2(this.x, this.y),
+					Vector2.add(
+						Math.lendir(this.h * (0.2 + 0.6 * i), this.angle),
+						Math.lendir(this.w * 0.5, this.angle + 90 * j)
+					)
+				);
+				const r = this.angle + i * this.angleSpd * 40;
+				Draw.setColor(C.black);
+				Draw.roundRectRotated(
+					p.x, p.y,
+					this.h * 0.3, this.h * 0.15,
+					this.h * 0.075, r
+				);
+				if (i > 0 && Math.abs(this.spd) > this.acc) {
+					Emitter.preset('strip');
+					Emitter.setArea(p.x, p.x, p.y, p.y);
+					Emitter.setRotation(r, r);
+					Emitter.emit(1);
+				}
+			}
+		}
+		const p = Math.lendir(this.h * 0.5, this.angle);
+		for (const b of [false, true]) {
+			Draw.setColor(b? C.black : C.lemonChiffon);
+			Draw.roundRectRotated(this.x + p.x, this.y + p.y, this.h, this.w, this.w * 0.25, this.angle, b);
+		}
+		for (let i = -1; i <= 1; i += 2) {
+			const p = Vector2.add(
+				Math.lendir(this.h * 0.15, this.angle),
+				Math.lendir(this.w * 0.25, this.angle + 90 * i)
+			);
+			Draw.setAlpha(Input.keyHold(KeyCode.Down)? 1 : 0.5);
+			Draw.setColor(C.red);
+			Draw.roundRectRotated(
+				this.x + p.x, this.y + p.y,
+				this.h * 0.2, this.h * 0.2,
+				this.h * 0.1, this.angle
+			);
+			Draw.setAlpha(1);
+		}
+		// Draw.circle(this.x, this.y, 5);
 	}
 	alarm0() {
-		Emitter.preset('sparkle');
-		Emitter.setArea(this.x, this.x, this.y, this.y);
-		Emitter.setDirection(this.angle + 205, this.angle + 155);
-		Emitter.emit(Math.range(5, 10));
-		this.alarm[0] = 500;
-		// Sound.play('Hit');
+		if (!Sound.isPlaying('EngineLoop')) {
+			// Sound.loop('EngineLoop');
+		}
 	}
 }
 
 OBJ.add(Car);
 
-const Menu = new BranthRoom('Menu');
+Sound.add('Hit', 'Hit.ogg');
+Sound.add('BGM', 'Backbeat.mp3');
+Sound.add('EngineLoop', 'EngineLoop.wav');
+Sound.add('EngineStart', 'EngineStart.ogg');
+Sound.setVolume('Hit', 0.05);
+Sound.setVolume('BGM', 0.1);
+Sound.setVolume('EngineLoop', 0.2);
+Sound.setVolume('EngineStart', 0.2);
+
 const Game = new BranthRoom('Game');
-Room.add(Menu);
 Room.add(Game);
 
-Menu.update = () => {
-	if (Input.keyDown(KeyCode.Enter)) {
-		Room.start('Game');
-	}
-};
-
-Menu.renderUI = () => {
-	if (Input.mouseDown(0)) {
-		const m = Input.mousePosition;
-		Emitter.preset(Math.randbool()? 'puff' : 'bubble');
-		Emitter.setArea(m.x, m.x, m.y, m.y);
-		Emitter.emit(Math.range(25, 30));
-	}
-	Draw.setFont(Font.l);
-	Draw.setColor(C.gold);
-	Draw.setHVAlign(Align.c, Align.m);
-	Draw.text(Room.mid.w, Room.h * 0.75 - 2, ':');
-	Draw.setHAlign(Align.r);
-	Draw.text(Room.mid.w - 8, Room.h * 0.75, Time.mm);
-	Draw.setHAlign(Align.l);
-	Draw.text(Room.mid.w + 8, Room.h * 0.75, Time.ss);
-	Draw.setHAlign(Align.c);
-	Draw.text(Room.mid.w, Room.mid.h, Room.name);
-	Draw.textTransformed(Room.mid.w, Room.h * 0.25, 'Press enter to switch between room', 1 + Math.sin(Time.time * 0.005) * 0.2, 2, Time.time * 0.1);
-	Draw.setHVAlign(Align.r, Align.b);
-	Draw.text(Room.w - 8, Room.h - 8, `(${~~Room.w}, ${~~Room.h})`);
-	let x = Room.w - 8, y = Room.h - 8 - Font.size;
-	Draw.setFont(Font.xxl);
-	Draw.text(x, y, 'XXL');
-	y -= Font.size;
-	Draw.setFont(Font.xl);
-	Draw.text(x, y, 'XL');
-	y -= Font.size;
-	Draw.setFont(Font.l);
-	Draw.text(x, y, 'L');
-	y -= Font.size;
-	Draw.setFont(Font.m);
-	Draw.text(x, y, `FPS: ${Time.FPS}`);
-	y -= Font.size;
-	Draw.setFont(Font.s);
-	const kp = GLOBAL.debugMode;
-	Draw.text(x, y, `Debug mode is: ${kp? 'ON' : 'OFF'}`);
-	Draw.pointLine(
-		new Vector2(7, 7),
-		new Vector2(71, 37)
-	);
-	Draw.starRotated(Room.mid.w + 72, Room.mid.h, 8, Time.time * 0.05);
-	Draw.rect(32, 32, 7, 18, true);
-	Draw.rectTransformed(128, 128, 28, 14, kp, 1, Math.sin(Time.time * 0.01) * 2, Math.sin(Time.time * 0.005) * 24);
-	Draw.circle(37, 68, 6);
-	Draw.roundRect(64, 48, 24, 18, 5);
-	Draw.roundRectTransformed(Room.mid.w, Room.mid.h, 78, 28, 14, kp, 1, Math.sin(Time.time * 0.01) * 2, Math.sin(Time.time * 0.005) * 24);
-};
-
 Game.start = () => {
-	Sound.loop('BGM');
-	OBJ.create(Car, Room.w * Math.range(0.25, 0.75), Room.h * Math.range(0.25, 0.75));
+	OBJ.create(Car, Room.mid.w, Room.mid.h);
 };
 
-Game.update = () => {
-	if (Input.keyDown(KeyCode.Enter)) {
-		Room.start('Menu');
-	}
-};
-
-Game.renderUI = () => Menu.renderUI();
-
-BRANTH.start(0, 360, { VAlign: true, backgroundColor: C.aquamarine });
+BRANTH.start(0, 0, { backgroundColor: C.gray });
 Room.start('Game');

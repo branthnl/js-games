@@ -133,9 +133,11 @@ const Sound = {
 			}
 		}
 		if (sources.length > 0) {
-			const a = new Audio();
-			a.innerHTML = sources.join('');
-			this.list.push(a);
+			const s = new Audio();
+			s.innerHTML = sources.join('');
+			s.loopFrom = 0;
+			s.loopTo = 1;
+			this.list.push(s);
 			this.names.push(name);
 		}
 	},
@@ -196,11 +198,18 @@ const Sound = {
 		}
 		return 0;
 	},
+	setLoopRange(name, from, to) {
+		const s = this.get(name);
+		if (s) {
+			s.loopFrom = from;
+			s.loopTo = to;
+		}
+	},
 	update() {
 		for (const s of this.list) {
 			if (s.loop) {
-				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration) {
-					s.currentTime = 0;
+				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration * s.loopTo) {
+					s.currentTime = s.duration * s.loopFrom;
 				}
 			}
 		}

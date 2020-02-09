@@ -52,7 +52,7 @@ class Car extends BranthBehaviour {
 			this.angleSpd *= 0.9;
 		}
 		this.angle += this.angleSpd * this.spd;
-		this.driftSpd = Math.range(this.driftSpd, this.spd * 0.5 * (keyLeft - keyRight), 0.05);
+		this.driftSpd = Math.range(this.driftSpd, this.spd * 0.1 * (keyLeft - keyRight), 0.05);
 		const l = Vector2.add(
 			Math.lendir(this.spd, this.angle),
 			Math.lendir(this.driftSpd, this.angle + 90)
@@ -76,7 +76,7 @@ class Car extends BranthBehaviour {
 						Math.lendir(this.w * 0.5, this.angle + 90 * j)
 					)
 				);
-				const r = this.angle + i * this.angleSpd * 40;
+				const r = this.angle + i * this.angleSpd * 45;
 				Draw.setColor(C.black);
 				Draw.roundRectRotated(
 					p.x, p.y,
@@ -146,10 +146,12 @@ Game.start = () => {
 
 Game.render = () => {
 	const [x, y, r] = [World.x, World.y, World.h * 0.05];
-	for (const b of [false, true]) {
-		Draw.setColor(b? C.black : C.gray);
-		Draw.roundRect(x - r, y - r, World.w + r * 2, World.h + r * 2, r * 1.5, b);
-	}
+	Draw.setColor(C.gray);
+	Draw.roundRect(x - r, y - r, World.w + r * 2, World.h + r * 2, r * 1.5);
+	Draw.setColor(C.dimGray);
+	Draw.setStrokeWeight(50);
+	Draw.draw(true);
+	Draw.resetStrokeWeight();
 	for (let i = 0; i < 23; i += 2) {
 		for (let j = 0; j < 24; j += 2) {
 			Draw.setColor(`rgba(${50}, 0, ${50 + 155 * i / 29}, 1)`);
@@ -158,5 +160,5 @@ Game.render = () => {
 	}
 };
 
-BRANTH.start(960, 640, { HAlign: true, VAlign: true, backgroundColor: C.royalBlue });
+BRANTH.start(960, 640, { HAlign: true, VAlign: true, backgroundColor: C.black });
 Room.start('Game');

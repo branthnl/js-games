@@ -696,6 +696,18 @@ const Draw = {
 		if (outline) CTX.stroke();
 		else CTX.fill();
 	},
+	setLineCap(cap) {
+		CTX.lineCap = cap;
+	},
+	resetLineCap() {
+		CTX.lineCap = Cap.butt;
+	},
+	setStrokeWeight(n) {
+		CTX.lineWidth = n;
+	},
+	resetStrokeWeight() {
+		CTX.lineWidth = 1;
+	},
 	line(x1, y1, x2, y2) {
 		CTX.beginPath();
 		CTX.moveTo(x1, y1);

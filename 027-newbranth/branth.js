@@ -648,9 +648,21 @@ const Cap = {
 	round: 'round'
 };
 
+const Primitive = {
+	fill: { name: 'Fill', quantity: 0, closePath: true, outline: false },
+	line: { name: 'Line', quantity: 0, closePath: false, outline: true },
+	stroke: { name: 'Stroke', quantity: 0, closePath: true, outline: true },
+	lineList: { name: 'Line List', quantity: 2, closePath: false, outline: true },
+	pointList: { name: 'Point List', quantity: 1, closePath: false, outline: true },
+	triangleList: { name: 'Triangle List', quantity: 3, closePath: true, outline: true },
+	triangleListFill: { name: 'Triangle List Fill', quantity: 3, closePath: false, outline: false }
+};
+
 const Draw = {
 	fontFamily: '',
 	fontDefault: ['Arvo', 'Fresca', 'Sniglet'],
+	primitiveType: '',
+	vertices: [],
 	setFont(s, style) {
 		CTX.font = `${style? `${style} ` : ''}${s} ${this.fontFamily? `${this.fontFamily}, `: ''}${this.fontDefault.join(',')}, serif`;
 	},
@@ -672,6 +684,15 @@ const Draw = {
 	setColor(c) {
 		CTX.fillStyle = c;
 		CTX.strokeStyle = c;
+	},
+	setShadow(x, y, b = 0, c = C.black) {
+		CTX.shadowBlur = b;
+		CTX.shadowColor = c;
+		CTX.shadowOffsetX = x;
+		CTX.shadowOffsetY = y;
+	},
+	resetShadow() {
+		this.setShadow(0, 0);
 	},
 	setHAlign(a) {
 		CTX.textAlign = a;
@@ -751,6 +772,37 @@ const Draw = {
 		CTX.lineTo(p4.x, p4.y);
 		CTX.closePath();
 		this.draw(outline);
+	},
+	primitiveBegin() {
+		this.vertices = [];
+	},
+	vertex(x, y) {
+		this.vertices.push(new Vector2(x, y));
+	},
+	primitiveEnd(primitiveType) {
+		this.primitiveType = primitiveType || Primitive.fill;
+		const [q, c, o] = [this.primitiveType.quantity, this.primitiveType.closePath, this.primitiveType.outline];
+		if (q === 1) this.setLineCap(Cap.round);
+		CTX.beginPath();
+		for (let i = 0; i < this.vertices.length; i++) {
+			const v = this.vertices[i];
+			if (q === 1) {
+				this.draw(o);
+				CTX.beginPath();
+				CTX.moveTo(v.x, v.y);
+				CTX.lineTo(v.x, v.y);
+			}
+			else if (i === 0 || (q > 1 && i % q === 0)) {
+				if (c) CTX.closePath();
+				this.draw(o);
+				CTX.beginPath();
+				CTX.moveTo(v.x, v.y);
+			}
+			else CTX.lineTo(v.x, v.y);
+		}
+		if (c) CTX.closePath();
+		this.draw(o);
+		this.resetLineCap();
 	},
 	starExtRotated(x, y, pts, inner, outer, angle, outline) {
 		CTX.beginPath();

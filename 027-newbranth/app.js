@@ -92,10 +92,10 @@ class Car extends BranthBehaviour {
 			}
 		}
 		const p = Math.lendir(this.h * 0.5, this.angle);
-		for (const b of [false, true]) {
-			Draw.setColor(b? C.black : C.lemonChiffon);
-			Draw.roundRectRotated(this.x + p.x - View.x, this.y + p.y - View.y, this.h, this.w, this.w * 0.25, this.angle, b);
-		}
+		Draw.setColor(C.lemonChiffon);
+		Draw.roundRectRotated(this.x + p.x - View.x, this.y + p.y - View.y, this.h, this.w, this.w * 0.25, this.angle);
+		Draw.setColor(C.black);
+		Draw.draw(true);
 		for (let i = -1; i <= 1; i += 2) {
 			const p = Vector2.add(
 				Math.lendir(this.h * 0.15, this.angle),
@@ -158,6 +158,42 @@ Game.render = () => {
 			Draw.roundRect(x + i * 123, y + j * 64, 128, 64, 12);
 		}
 	}
+};
+
+Game.renderUI = () => {
+	Draw.primitiveBegin();
+	Draw.vertex(500, 60);
+	Draw.vertex(550, 70);
+	Draw.vertex(500, 105);
+	Draw.vertex(465, 180);
+	Draw.vertex(440, 160);
+	Draw.vertex(450, 120);
+	Draw.primitiveEnd();
+	Draw.setColor(C.yellow);
+	Draw.primitiveEnd(Primitive.triangleListFill);
+	Draw.setColor(C.black);
+	Draw.setStrokeWeight(5);
+	Draw.primitiveEnd(Primitive.stroke);
+	Draw.setColor(C.green);
+	Draw.resetStrokeWeight();
+	Draw.primitiveEnd(Primitive.triangleList);
+	Draw.setStrokeWeight(10);
+	Draw.setColor(C.blue);
+	Draw.primitiveEnd(Primitive.pointList);
+	Draw.resetStrokeWeight();
+	Draw.primitiveBegin();
+	Draw.vertex(64, 64);
+	Draw.vertex(128, 128);
+	Draw.vertex(180, 180);
+	Draw.vertex(250, 400);
+	Draw.setColor(C.red);
+	Draw.setStrokeWeight(10);
+	Draw.primitiveEnd(Primitive.pointList);
+	Draw.setStrokeWeight(5);
+	Draw.primitiveEnd(Primitive.lineList);
+	Draw.resetStrokeWeight();
+	Draw.setColor(C.black);
+	Draw.primitiveEnd(Primitive.line);
 };
 
 BRANTH.start(960, 640, { HAlign: true, VAlign: true, backgroundColor: C.black });

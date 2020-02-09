@@ -3,6 +3,9 @@ class Vector2 {
 		this.x = x;
 		this.y = y;
 	}
+	equal(v) {
+		return this.x === v.x && this.y === v.y;
+	}
 	static add(v1, v2) {
 		return new Vector2(v1.x + v2.x, v1.y + v2.y);
 	}
@@ -12,8 +15,11 @@ class Vector2 {
 	static multiply(v1, v2) {
 		return new Vector2(v1.x * v2.x, v1.y * v2.y);
 	}
-	static equal(v1, v2) {
-		return v1.x === v2.x && v1.y === v2.y;
+	static divide(v1, v2) {
+		return new Vector2(v1.x / v2.x, v1.y / v2.y);
+	}
+	static dot(v1, v2) {
+		return v1.x * v2.x + v1.y * v2.y;
 	}
 }
 
@@ -648,6 +654,12 @@ const Cap = {
 	round: 'round'
 };
 
+const Line = {
+	miter: 'miter',
+	round: 'round',
+	bevel: 'bevel'
+};
+
 const Primitive = {
 	fill: { name: 'Fill', quantity: 0, closePath: true, outline: false },
 	line: { name: 'Line', quantity: 0, closePath: false, outline: true },
@@ -663,7 +675,7 @@ const Draw = {
 	fontDefault: ['Arvo', 'Fresca', 'Sniglet'],
 	primitiveType: '',
 	vertices: [],
-	setFont(s, style) {
+	setFont(s, style = Font.normal) {
 		CTX.font = `${style? `${style} ` : ''}${s} ${this.fontFamily? `${this.fontFamily}, `: ''}${this.fontDefault.join(',')}, serif`;
 	},
 	setFontStyle(s) {
@@ -713,7 +725,7 @@ const Draw = {
 	textHeight(text) {
 		return Font.size;
 	},
-	draw(outline) {
+	draw(outline = false) {
 		if (outline) CTX.stroke();
 		else CTX.fill();
 	},
@@ -722,6 +734,12 @@ const Draw = {
 	},
 	resetLineCap() {
 		CTX.lineCap = Cap.butt;
+	},
+	setLineJoin(line) {
+		CTX.lineJoin = line;
+	},
+	resetLineJoin() {
+		CTX.lineJoin = Line.miter;
 	},
 	setStrokeWeight(n) {
 		CTX.lineWidth = n;
@@ -735,17 +753,25 @@ const Draw = {
 		CTX.lineTo(x2, y2);
 		CTX.stroke();
 	},
-	rect(x, y, w, h, outline) {
+	plus(x, y, r) {
+		CTX.beginPath();
+		CTX.moveTo(x, y - r);
+		CTX.lineTo(x, y + r);
+		CTX.moveTo(x - r, y);
+		CTX.lineTo(x + r, y);
+		CTX.stroke();
+	},
+	rect(x, y, w, h, outline = false) {
 		CTX.beginPath();
 		CTX.rect(x, y, w, h);
 		this.draw(outline);
 	},
-	circle(x, y, r, outline) {
+	circle(x, y, r, outline = false) {
 		CTX.beginPath();
-		CTX.arc(x, y, r, 0, 2 * Math.PI);
+		CTX.arc(x, y, Math.abs(r), 0, 2 * Math.PI);
 		this.draw(outline);
 	},
-	roundRect(x, y, w, h, r, outline) {
+	roundRect(x, y, w, h, r, outline = false) {
 		if (w < 0) { x += w; w = -w; }
 		if (h < 0) { y += h; h = -h; }
 		r = Math.clamp(r, 0, Math.min(w * 0.5, h * 0.5)) || 0;
@@ -764,7 +790,7 @@ const Draw = {
 	pointLine(p1, p2) {
 		this.line(p1.x, p1.y, p2.x, p2.y);
 	},
-	pointRect(p1, p2, p3, p4, outline) {
+	pointRect(p1, p2, p3, p4, outline = false) {
 		CTX.beginPath();
 		CTX.moveTo(p1.x, p1.y);
 		CTX.lineTo(p2.x, p2.y);
@@ -804,7 +830,16 @@ const Draw = {
 		this.draw(o);
 		this.resetLineCap();
 	},
-	starExtRotated(x, y, pts, inner, outer, angle, outline) {
+	ellipseRotated(x, y, w, h, angle, outline = false) {
+		CTX.beginPath();
+		CTX.ellipse(x, y, Math.abs(w), Math.abs(h), angle, 0, 2 * Math.PI);
+		CTX.closePath();
+		this.draw(outline);
+	},
+	ellipse(x, y, w, h, outline = false) {
+		this.ellipseRotated(x, y, w, h, 0, outline);
+	},
+	starExtRotated(x, y, pts, inner, outer, angle, outline = false) {
 		CTX.beginPath();
 		for (let i = 0; i <= 2 * pts; i++) {
 			const [r, a] = [(i % 2 === 0)? inner : outer, Math.PI * i / pts - Math.degtorad(angle)];
@@ -815,13 +850,13 @@ const Draw = {
 		CTX.closePath();
 		this.draw(outline);
 	},
-	starRotated(x, y, r, angle, outline) {
+	starRotated(x, y, r, angle, outline = false) {
 		this.starExtRotated(x, y, 5, r * 0.5, r, angle, outline);
 	},
-	starExt(x, y, pts, inner, outer, outline) {
+	starExt(x, y, pts, inner, outer, outline = false) {
 		this.starExtRotated(x, y, pts, inner, outer, 0, outline);
 	},
-	star(x, y, r, outline) {
+	star(x, y, r, outline = false) {
 		this.starRotated(x, y, r, 0, outline);
 	},
 	transform(x, y, xscale, yscale, angle, e) {
@@ -850,13 +885,36 @@ const Draw = {
 	textRotated(x, y, text, angle) {
 		this.textTransformed(x, y, text, 1, 1, angle);
 	},
-	rectRotated(x, y, w, h, angle, outline, origin = new Vector2(0.5, 0.5)) {
+	rectRotated(x, y, w, h, angle, outline = false, origin = new Vector2(0.5, 0.5)) {
 		this.rectTransformed(x, y, w, h, outline, 1, 1, angle, origin);
 	},
-	roundRectRotated(x, y, w, h, r, angle, outline, origin = new Vector2(0.5, 0.5)) {
+	roundRectRotated(x, y, w, h, r, angle, outline = false, origin = new Vector2(0.5, 0.5)) {
 		this.roundRectTransformed(x, y, w, h, r, outline, 1, 1, angle, origin);
 	}
 };
+
+class Rect {
+	constructor(x, y, w, h) {
+		this.x = x;
+		this.y = y;
+		this.w = w;
+		this.h = h;
+	}
+	draw(outline = false) {
+		Draw.rect(this.x, this.y, this.w, this.h, outline);
+	}
+}
+
+class Circle {
+	constructor(x, y, r) {
+		this.x = x;
+		this.y = y;
+		this.r = r;
+	}
+	draw(outline = false) {
+		Draw.circle(this.x, this.y, this.r, outline);
+	}
+}
 
 const OBJ = {
 	ID: 0,
@@ -1027,6 +1085,126 @@ class BranthBehaviour extends BranthObject {
 	}
 }
 
+class BranthRoom {
+	constructor(name) {
+		this.name = name;
+	}
+	start() {}
+	update() {}
+	render() {}
+	renderUI() {}
+}
+
+const Room = {
+	scale: 2,
+	w: 300,
+	h: 150,
+	id: 0,
+	pd: 0,
+	list: [],
+	names: [],
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	},
+	get name() {
+		return this.names[this.id];
+	},
+	get current() {
+		return this.list[this.id];
+	},
+	get previous() {
+		return this.list[this.pd];
+	},
+	add(room) {
+		this.list.push(room);
+		this.names.push(room.name);
+	},
+	start(name) {
+		this.pd = this.id;
+		this.id = this.names.indexOf(name);
+		OBJ.clearAll();
+		Input.reset();
+		this.resize();
+		this.current.start();
+	},
+	update() {
+		this.current.update();
+	},
+	render() {
+		this.current.render();
+	},
+	resize() {
+		const [b, s] = [CANVAS.getBoundingClientRect(), this.scale];
+		this.w = b.width;
+		this.h = b.height;
+		CANVAS.width = this.w * s;
+		CANVAS.height = this.h * s;
+		CTX.resetTransform();
+		CTX.scale(s, s);
+	}
+};
+
+const View = {
+	_x: 0,
+	_y: 0,
+	xshake: 0,
+	yshake: 0,
+	int: 0,
+	mag: 0,
+	alarm: -1,
+	get x() {
+		return this._x + this.xshake;
+	},
+	get y() {
+		return this._y + this.yshake;
+	},
+	set x(val) {
+		this._x = val;
+	},
+	set y(val) {
+		this._y = val;
+	},
+	target(x, y) {
+		this._x = x;
+		this._y = y;
+	},
+	follow(i) {
+		this.target(i.x - Room.mid.w, i.y - Room.mid.h);
+	},
+	shake(mag, int) {
+		this.mag = mag;
+		this.int = int;
+		this.alarm = this.int;
+	},
+	convert(v) {
+		return Vector2.subtract(v, new Vector2(-this._x, -this._y));
+	},
+	update() {
+		if (this.alarm > 0) {
+			const mag = this.mag * this.alarm / this.int;
+			this.xshake = mag * (Math.random() > 0.5? -1 : 1);
+			this.yshake = mag * (Math.random() > 0.5? -1 : 1);
+			this.alarm -= Time.deltaTime;
+			if (this.alarm <= 0) {
+				this.xshake = 0;
+				this.yshake = 0;
+			}
+		}
+	}
+};
+
+class BranthGameObject extends BranthBehaviour {
+	get vx() {
+		return this.x - View.x;
+	}
+	get vy() {
+		return this.y - View.y;
+	}
+}
+
 const Shape = {
 	rect: 'Rect',
 	star: 'Star',
@@ -1034,7 +1212,7 @@ const Shape = {
 	square: 'Square'
 };
 
-class BranthParticle extends BranthObject {
+class BranthParticle extends BranthGameObject {
 	constructor(x, y, spd, spdinc, size, sizeinc, d, dinc, r, rinc, a, c, life, shape, grav, outline) {
 		super(x, y);
 		this.spd = spd;
@@ -1071,10 +1249,10 @@ class BranthParticle extends BranthObject {
 		Draw.setAlpha(this.a);
 		Draw.setColor(this.c);
 		switch (this.shape) {
-			case Shape.rect: Draw.rectRotated(this.x, this.y, this.size * 2, this.size * 0.5, this.r, this.outline); break;
-			case Shape.star: Draw.starExtRotated(this.x, this.y, this.pts, this.size * 0.5, this.size, this.r, this.outline); break;
-			case Shape.circle: Draw.circle(this.x, this.y, this.size, this.outline); break;
-			case Shape.square: Draw.rectRotated(this.x, this.y, this.size * 2, this.size * 2, this.r, this.outline); break;
+			case Shape.rect: Draw.rectRotated(this.vx, this.vy, this.size * 2, this.size, this.r, this.outline); break;
+			case Shape.star: Draw.starExtRotated(this.vx, this.vy, this.pts, this.size * 0.5, this.size, this.r, this.outline); break;
+			case Shape.circle: Draw.circle(this.vx, this.vy, this.size, this.outline); break;
+			case Shape.square: Draw.rectRotated(this.vx, this.vy, this.size * 2, this.size * 2, this.r, this.outline); break;
 		}
 		Draw.setAlpha(1);
 	}
@@ -1258,15 +1436,15 @@ const Emitter = {
 			case 'strip':
 				this.setSpeed(0, 0);
 				this.setSpeedInc(0, 0);
-				this.setSize(5, 5);
+				this.setSize(4, 4);
 				this.setSizeInc(0, 0);
 				this.setDirection(0, 0);
 				this.setDirectionInc(0, 0);
 				this.setRotation(0, 0);
 				this.setRotationInc(0, 0);
-				this.setAlpha(0.1, 0.1);
+				this.setAlpha(0.15, 0.15);
 				this.setColor(C.black);
-				this.setLife(800, 800);
+				this.setLife(12000, 12000);
 				this.setShape(Shape.rect);
 				this.setGravity(0, 0);
 				this.setOutline(false);
@@ -1296,104 +1474,6 @@ const Emitter = {
 			n.depth = this.depth;
 			OBJ.push(BranthParticle, n);
 		}
-	}
-};
-
-class BranthRoom {
-	constructor(name) {
-		this.name = name;
-	}
-	start() {}
-	update() {}
-	render() {}
-	renderUI() {}
-}
-
-const Room = {
-	scale: 2,
-	w: 300,
-	h: 150,
-	id: 0,
-	pd: 0,
-	list: [],
-	names: [],
-	get mid() {
-		return {
-			w: this.w * 0.5,
-			h: this.h * 0.5
-		};
-	},
-	get name() {
-		return this.names[this.id];
-	},
-	get current() {
-		return this.list[this.id];
-	},
-	get previous() {
-		return this.list[this.pd];
-	},
-	add(room) {
-		this.list.push(room);
-		this.names.push(room.name);
-	},
-	start(name) {
-		this.pd = this.id;
-		this.id = this.names.indexOf(name);
-		OBJ.clearAll();
-		Input.reset();
-		this.resize();
-		this.current.start();
-	},
-	update() {
-		this.current.update();
-	},
-	render() {
-		this.current.render();
-	},
-	resize() {
-		const [b, s] = [CANVAS.getBoundingClientRect(), this.scale];
-		this.w = b.width;
-		this.h = b.height;
-		CANVAS.width = this.w * s;
-		CANVAS.height = this.h * s;
-		CTX.resetTransform();
-		CTX.scale(s, s);
-	}
-};
-
-const View = {
-	x: 0,
-	y: 0,
-	xto: 0,
-	yto: 0,
-	xshake: 0,
-	yshake: 0,
-	alarm: -1,
-	interval: 0,
-	magnitude: 0,
-	target(x, y) {
-		this.xto = x - Room.mid.w;
-		this.yto = y - Room.mid.h;
-	},
-	shake(mag, int) {
-		this.magnitude = mag;
-		this.interval = int;
-		this.alarm = this.interval;
-	},
-	update() {
-		if (this.alarm > 0) {
-			const mag = this.magnitude * this.alarm / this.interval;
-			this.xshake = mag * (Math.random() > 0.5? -1 : 1);
-			this.yshake = mag * (Math.random() > 0.5? -1 : 1);
-			this.alarm -= Time.deltaTime;
-			if (this.alarm <= 0) {
-				this.xshake = 0;
-				this.yshake = 0;
-			}
-		}
-		const t = 0.05;
-		this.x = Math.range(this.x, this.xto, t) + this.xshake;
-		this.y = Math.range(this.y, this.yto, t) + this.yshake;
 	}
 };
 
@@ -1427,6 +1507,8 @@ const BRANTH = {
 		window.onmousedown = (e) => Input.eventMouseDown(e);
 		window.onmousemove = (e) => Input.eventMouseMove(e);
 		window.onresize = () => Room.resize();
+		window.oncontextmenu = (e) => e.preventDefault();
+		CANVAS.oncontextmenu = (e) => e.preventDefault();
 		if (options.backgroundColor) CANVAS.style.backgroundColor = options.backgroundColor;
 		else CANVAS.style.backgroundImage = 'radial-gradient(darkorchid 33%, darkslateblue)';
 		const style = document.createElement('style');

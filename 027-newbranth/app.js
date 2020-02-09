@@ -1,6 +1,6 @@
 const World = {
-	w: 2880,
-	h: 1480,
+	w: 1440,
+	h: 1440,
 	get x() {
 		return -View.x;
 	},
@@ -15,15 +15,15 @@ const World = {
 	}
 };
 
-class Car extends BranthBehaviour {
+class Car extends BranthGameObject {
 	awake() {
 		this.w = 24;
 		this.h = 32;
-		this.spd = 2;
+		this.spd = 0;
 		this.acc = 0.2;
 		this.angle = 0;
 		this.angleSpd = 0;
-		this.angleAcc = 0.1;
+		this.angleAcc = 0.02;
 		this.driftSpd = 0;
 		this.alarm[0] = 500;
 		Sound.play('EngineStart');
@@ -43,10 +43,10 @@ class Car extends BranthBehaviour {
 			this.spd *= 0.98;
 		}
 		if (keyLeft) {
-			this.angleSpd = Math.max(-this.angleAcc * 5, this.angleSpd - this.angleAcc);
+			this.angleSpd = Math.max(-this.angleAcc * 20, this.angleSpd - this.angleAcc);
 		}
 		if (keyRight) {
-			this.angleSpd = Math.min(this.angleAcc * 5, this.angleSpd + this.angleAcc);
+			this.angleSpd = Math.min(this.angleAcc * 20, this.angleSpd + this.angleAcc);
 		}
 		if (!keyLeft && !keyRight) {
 			this.angleSpd *= 0.9;
@@ -61,7 +61,7 @@ class Car extends BranthBehaviour {
 		this.x = Math.clamp(this.x + l.x, -p.x, World.w - p.x);
 		this.y = Math.clamp(this.y + l.y, -p.y, World.h - p.y);
 		p = Vector2.add(p, new Vector2(this.x, this.y));
-		View.target(p.x, p.y);
+		View.follow(this);
 		if (Input.keyDown(KeyCode.Space)) {
 			View.shake(1, 1000);
 		}
@@ -69,21 +69,20 @@ class Car extends BranthBehaviour {
 	render() {
 		for (let i = 0; i <= 1; i++) {
 			for (let j = -1; j <= 1; j += 2) {
-				const p = Vector2.add(
-					new Vector2(this.x - View.x, this.y - View.y),
-					Vector2.add(
-						Math.lendir(this.h * (0.2 + 0.6 * i), this.angle),
-						Math.lendir(this.w * 0.5, this.angle + 90 * j)
-					)
+				const d = Vector2.add(
+					Math.lendir(this.h * (0.2 + 0.6 * i), this.angle),
+					Math.lendir(this.w * 0.5, this.angle + 90 * j)
 				);
-				const r = this.angle + i * this.angleSpd * 45;
+				let p = Vector2.add(new Vector2(this.vx, this.vy), d);
+				const r = this.angle + i * this.angleSpd * 50;
 				Draw.setColor(C.black);
 				Draw.roundRectRotated(
 					p.x, p.y,
 					this.h * 0.3, this.h * 0.15,
 					this.h * 0.075, r
 				);
-				if (i > 0 && Math.abs(this.spd) > this.acc) {
+				if (i > 0 && Math.abs(this.spd) > this.acc * 20) {
+					p = Vector2.add(new Vector2(this.x, this.y), d);
 					Emitter.preset('strip');
 					Emitter.setArea(p.x, p.x, p.y, p.y);
 					Emitter.setRotation(r, r);
@@ -93,7 +92,7 @@ class Car extends BranthBehaviour {
 		}
 		const p = Math.lendir(this.h * 0.5, this.angle);
 		Draw.setColor(C.lemonChiffon);
-		Draw.roundRectRotated(this.x + p.x - View.x, this.y + p.y - View.y, this.h, this.w, this.w * 0.25, this.angle);
+		Draw.roundRectRotated(this.vx + p.x, this.vy + p.y, this.h, this.w, this.w * 0.25, this.angle);
 		Draw.setColor(C.black);
 		Draw.draw(true);
 		for (let i = -1; i <= 1; i += 2) {
@@ -104,20 +103,20 @@ class Car extends BranthBehaviour {
 			Draw.setAlpha(Input.keyHold(KeyCode.Down)? 1 : 0.5);
 			Draw.setColor(C.red);
 			Draw.roundRectRotated(
-				this.x + p.x - View.x, this.y + p.y - View.y,
+				this.vx + p.x, this.vy + p.y,
 				this.h * 0.2, this.h * 0.2,
 				this.h * 0.1, this.angle
 			);
 			Draw.setAlpha(1);
 		}
-		// Draw.circle(this.x, this.y, 5);
 	}
 	renderUI() {
-		Draw.text(32, 32, `(${~~View.x}, ${~~View.y})`);
-		Draw.text(32, 64, `(${~~this.x}, ${~~this.y})`);
-		// const p = new Vector2(this.x, this.y);
-		// Draw.setColor(C.red);
-		// Draw.pointLine(p, Vector2.add(p, Math.lendir(this.driftSpd * 10, this.angle + 90)));
+		Draw.setFont(Font.m);
+		Draw.setColor(C.white);
+		Draw.text(16, 24, `(${~~this.vx}, ${~~this.vy})`);
+		Draw.text(16, 56, `(${~~this.x}, ${~~this.y})`);
+		Draw.setColor(C.red);
+		Draw.circle(-View.x, -View.y, 4);
 	}
 	alarm0() {
 		if (!Sound.isPlaying('EngineLoop')) {
@@ -141,60 +140,33 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
-	OBJ.create(Car, Room.mid.w, Room.mid.h);
+	OBJ.create(Car, 64, 64);
+};
+
+Game.update = () => {
+	if (Input.mouseHold(0)) {
+		const m = View.convert(Input.mousePosition);
+		Emitter.setDepth(-1);
+		Emitter.preset(Math.randbool()? 'puff' : 'bubble');
+		Emitter.setArea(m.x, m.x, m.y, m.y);
+		Emitter.emit(1);
+		Emitter.setDepth(0);
+	}
 };
 
 Game.render = () => {
 	const [x, y, r] = [World.x, World.y, World.h * 0.05];
 	Draw.setColor(C.gray);
-	Draw.roundRect(x - r, y - r, World.w + r * 2, World.h + r * 2, r * 1.5);
+	Draw.rect(x, y, World.w, World.h);
+	// Draw.roundRect(x - r, y - r, World.w + r * 2, World.h + r * 2, r * 1.5);
 	Draw.setColor(C.dimGray);
-	Draw.setStrokeWeight(50);
-	Draw.draw(true);
+	// Draw.setStrokeWeight(50);
+	// Draw.draw(true);
+	Draw.setStrokeWeight(200);
+	Draw.plus(World.x + World.mid.w, World.y + World.mid.h, World.h * 0.4);
+	Draw.circle(World.x + World.mid.w, World.y + World.mid.h, World.h * 0.4, true);
 	Draw.resetStrokeWeight();
-	for (let i = 0; i < 23; i += 2) {
-		for (let j = 0; j < 24; j += 2) {
-			Draw.setColor(`rgba(${50}, 0, ${50 + 155 * i / 29}, 1)`);
-			Draw.roundRect(x + i * 123, y + j * 64, 128, 64, 12);
-		}
-	}
 };
 
-Game.renderUI = () => {
-	Draw.primitiveBegin();
-	Draw.vertex(500, 60);
-	Draw.vertex(550, 70);
-	Draw.vertex(500, 105);
-	Draw.vertex(465, 180);
-	Draw.vertex(440, 160);
-	Draw.vertex(450, 120);
-	Draw.primitiveEnd();
-	Draw.setColor(C.yellow);
-	Draw.primitiveEnd(Primitive.triangleListFill);
-	Draw.setColor(C.black);
-	Draw.setStrokeWeight(5);
-	Draw.primitiveEnd(Primitive.stroke);
-	Draw.setColor(C.green);
-	Draw.resetStrokeWeight();
-	Draw.primitiveEnd(Primitive.triangleList);
-	Draw.setStrokeWeight(10);
-	Draw.setColor(C.blue);
-	Draw.primitiveEnd(Primitive.pointList);
-	Draw.resetStrokeWeight();
-	Draw.primitiveBegin();
-	Draw.vertex(64, 64);
-	Draw.vertex(128, 128);
-	Draw.vertex(180, 180);
-	Draw.vertex(250, 400);
-	Draw.setColor(C.red);
-	Draw.setStrokeWeight(10);
-	Draw.primitiveEnd(Primitive.pointList);
-	Draw.setStrokeWeight(5);
-	Draw.primitiveEnd(Primitive.lineList);
-	Draw.resetStrokeWeight();
-	Draw.setColor(C.black);
-	Draw.primitiveEnd(Primitive.line);
-};
-
-BRANTH.start(960, 640, { HAlign: true, VAlign: true, backgroundColor: C.black });
+BRANTH.start(0, 0, { backgroundColor: C.black });
 Room.start('Game');

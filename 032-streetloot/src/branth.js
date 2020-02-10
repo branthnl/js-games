@@ -718,7 +718,7 @@ const Draw = {
 		return this.list[1][this.names[1].indexOf(name)];
 	},
 	sprite(name, index, x, y, xscale = 1, yscale = 1, rot = 0, alpha = 1) {
-		const img = this.getImage(name, index);
+		const img = this.getSprite(name)[index];
 		const dw = img.width * xscale;
 		const dh = img.height * yscale;
 		const dx = -dw * img.origin.x;
@@ -809,13 +809,20 @@ const Draw = {
 		CTX.textBaseline = v;
 	},
 	text(x, y, text) {
-		CTX.fillText(text, x, y);
+		let [t, baseline] = [('' + text).split('\n'), 0];
+		switch (CTX.textBaseline) {
+			case Align.m: baseline = -Font.size * (t.length - 1) * 0.5; break;
+			case Align.b: baseline = -Font.size * (t.length - 1); break;
+		}
+		for (let i = 0; i < t.length; i++) {
+			CTX.fillText(t[i], x, y + baseline + Font.size * i);
+		}
 	},
 	textWidth(text) {
-		return CTX.measureText(text).width;
+		return Math.max(...('' + text).split('\n').map(v => CTX.measureText(v).width));
 	},
 	textHeight(text) {
-		return Font.size;
+		return Font.size * ('' + text).split('\n').length;
 	},
 	draw(outline = false) {
 		if (outline) CTX.stroke();

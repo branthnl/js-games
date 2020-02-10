@@ -21,6 +21,9 @@ class Vector2 {
 	static dot(v1, v2) {
 		return v1.x * v2.x + v1.y * v2.y;
 	}
+	static get zero() {
+		return new Vector2(0, 0);
+	}
 }
 
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
@@ -1539,12 +1542,12 @@ const View = {
 	set y(val) {
 		this._y = val;
 	},
-	target(x, y) {
-		this._x = x;
-		this._y = y;
+	target(x, y, t = 1) {
+		this._x = Math.range(this._x, x, t);
+		this._y = Math.range(this._y, y, t);
 	},
-	follow(i) {
-		this.target(i.x - Room.mid.w, i.y - Room.mid.h);
+	follow(i, t = 1) {
+		this.target(i.x - Room.mid.w, i.y - Room.mid.h, t);
 	},
 	shake(mag, int) {
 		this.mag = mag;

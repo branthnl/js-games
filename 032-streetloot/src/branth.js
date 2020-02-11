@@ -27,8 +27,8 @@ class Vector2 {
 }
 
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
-Math.range = (min, max, t) => min + (t || (t === 0? 0 : Math.random())) * (max - min);
-Math.irange = (min, max) => Math.floor(Math.range(min, max));
+Math.range = (min, max = 0, t = null) => min + (t || (t === 0? 0 : Math.random())) * (max - min);
+Math.irange = (min, max = 0) => Math.floor(Math.range(min, max));
 Math.choose = (...args) => args[Math.irange(0, args.length)];
 Math.randneg = (t = 0.5) => Math.random() > t? -1 : 1;
 Math.randbool = () => Math.random() > 0.5;
@@ -146,9 +146,11 @@ const Sound = {
 			}
 		}
 		if (sources.length > 0) {
-			const a = new Audio();
-			a.innerHTML = sources.join('');
-			this.list.push(a);
+			const s = new Audio();
+			s.innerHTML = sources.join('');
+			s.loopFrom = 0;
+			s.loopTo = 1;
+			this.list.push(s);
 			this.names.push(name);
 		}
 	},
@@ -209,11 +211,18 @@ const Sound = {
 		}
 		return 0;
 	},
+	setLoopRange(name, from, to) {
+		const s = this.get(name);
+		if (s) {
+			s.loopFrom = from;
+			s.loopTo = to;
+		}
+	},
 	update() {
 		for (const s of this.list) {
 			if (s.loop) {
-				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration) {
-					s.currentTime = 0;
+				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration * s.loopTo) {
+					s.currentTime = s.duration * s.loopFrom;
 				}
 			}
 		}

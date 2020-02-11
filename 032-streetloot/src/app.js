@@ -1,5 +1,9 @@
 Sound.add('Brake', 'src/snd/Brake.wav');
+Sound.add('EngineLoop', 'src/snd/EngineLoop.wav');
 Sound.add('EngineStart', 'src/snd/EngineStart.ogg');
+Sound.add('BGM', 'src/snd/Backbeat.mp3');
+Sound.setLoopRange('BGM', 0, 0.98);
+Sound.setLoopRange('EngineLoop', 0.05, 0.95);
 
 Draw.add(new Vector2(0, 0), 'BG', 'src/img/BG.png');
 Draw.add(new Vector2(0, 0.5), 'Car', 'src/img/Car.png');
@@ -72,6 +76,8 @@ class Car extends BranthObject {
 		this.angleSpd = 0;
 		this.angleAcc = 0.2;
 		this.driftSpd = 0;
+		Sound.play('EngineStart');
+		Sound.loop('EngineLoop');
 	}
 	get w() {
 		return Draw.getImage(this.spriteName).width;
@@ -281,7 +287,9 @@ Game.start = () => {
 	for (let i = 0; i < 15; i++) {
 		OBJ.push(CarAI, new CarAI(i));
 	}
-	// Sound.play('EngineStart');
+	if (!Sound.isPlaying('BGM')) {
+		Sound.loop('BGM');
+	}
 };
 
 Game.render = () => {

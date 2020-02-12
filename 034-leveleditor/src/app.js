@@ -135,15 +135,21 @@ Level.render = () => {
 						pre.select();
 						document.execCommand('copy');
 					};
+					const deleteAll = document.createElement('button');
+					deleteAll.innerHTML = 'Delete All Objects';
+					deleteAll.onclick = () => {
+						OBJ.clear(Showcase);
+						updatePRE();
+					};
 					document.body.appendChild(copy);
+					document.body.appendChild(deleteAll);
 					document.body.appendChild(document.createElement('br'));
 					pre.style.width = '100%';
 					pre.style.height = '100%';
 					document.body.appendChild(pre);
 				}
-				pre.value += '// Copy code below to your game\n';
 			}
-			pre.value += `OBJ.create(${select.value}, ${m.x}, ${m.y});\n`;
+			updatePRE();
 		}
 	}
 	if (isSnap) {

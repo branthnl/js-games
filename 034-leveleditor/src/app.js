@@ -81,7 +81,14 @@ class Showcase extends BranthObject {
 			}
 		}
 		if (this.hold) {
-			const m = Vector2.add(Input.mousePosition, new Vector2(this.dragX, this.dragY));
+			let m = Input.mousePosition;
+			if (isSnap) {
+				m.x = (~~(m.x / Tile.w) + 0.5) * Tile.w;
+				m.y = (~~(m.y / Tile.h) + 0.5) * Tile.h;
+			}
+			else {
+				m = Vector2.add(m, new Vector2(this.dragX, this.dragY));
+			}
 			[this.x, this.y] = [~~m.x, ~~m.y];
 		}
 		if (Input.mouseUp(0)) {
@@ -98,7 +105,7 @@ class Showcase extends BranthObject {
 		Draw.circle(this.x, this.y, this.r);
 		Draw.setFont(Font.s);
 		Draw.setHVAlign(Align.c, Align.m);
-		Draw.setColor(this.hover? C.yellow : C.white);
+		Draw.setColor(this.hover || this.hold? C.yellow : C.white);
 		Draw.text(this.x, this.y, this.name);
 	}
 }

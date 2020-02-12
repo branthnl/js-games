@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Level Editor</title>
+</head>
+<body>
+	<script src="src/branth.js"></script>
+	<script src="src/app.js"></script>
+	<fieldset>
+		<legend>Room</legend>
+		<label>Width</label>
+		<input type="number" id="rw" value="640">
+		<label>Height</label>
+		<input type="number" id="rh" value="360">
+	</fieldset>
+	<fieldset>
+		<legend>Tile</legend>
+		<label>Width</label>
+		<input type="number" id="tw" value="32">
+		<label>Height</label>
+		<input type="number" id="th" value="32">
+	</fieldset>
+	<fieldset>
+		<legend>Objects (Separate with comma)</legend>
+		<input style="width: 100%" type="text" id="obj" value="Player,Wall,Car,Fire,Door,Skeleton">
+	</fieldset>
+	<br>
+	<button onclick="start();">Start</button>
+</body>
+</html>

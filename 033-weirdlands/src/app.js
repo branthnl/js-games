@@ -1,3 +1,5 @@
+Draw.add(new Vector2(0.5, 0.38), 'House', 'src/img/House.png');
+
 const Grid = {
 	g: [],
 	size: 20,
@@ -5,23 +7,23 @@ const Grid = {
 	type: [
 		{
 			name: 'grass',
-			color: C.green
+			color: C.springGreen
 		},
 		{
 			name: 'soil',
-			color: C.brown
+			color: C.saddleBrown
 		},
 		{
 			name: 'drygrass',
-			color: C.yellow
+			color: C.navajoWhite
 		},
 		{
 			name: 'water',
-			color: C.blue
+			color: C.lightSkyBlue
 		},
 		{
 			name: 'stone',
-			color: C.gray
+			color: C.lightSlateGray
 		},
 		{
 			name: 'coal',
@@ -54,7 +56,7 @@ const Grid = {
 			for (let c = 0; c < this.chunkSize; c++) {
 				this.g[k].push([]);
 				for (let r = 0; r < this.chunkSize; r++) {
-					this.g[k][c].push(Math.irange(6));
+					this.g[k][c].push(Math.randbool(0.001)? 6 : Math.irange(6));
 				}
 			}
 		}
@@ -62,8 +64,8 @@ const Grid = {
 };
 
 const Tile = {
-	w: 80,
-	h: 40,
+	w: 40,
+	h: 20,
 	get mid() {
 		return {
 			w: this.w * 0.5,
@@ -146,8 +148,19 @@ const World = {
 		for (let i = this.c; i <= this.cEnd; i++) {
 			for (let j = this.r; j <= this.rEnd; j++) {
 				const g = Grid.get(i, j);
-				const p = this.toWorld(i, j);
-				Tile.draw(p.x, p.y, Grid.type[g].color);
+				if (g < 6) {
+					const p = this.toWorld(i, j);
+					Tile.draw(p.x, p.y, Grid.type[g].color);
+				}
+			}
+		}
+		for (let i = this.c; i <= this.cEnd; i++) {
+			for (let j = this.r; j <= this.rEnd; j++) {
+				const g = Grid.get(i, j);
+				if (g === 6) {
+					const p = this.toWorld(i, j);
+					Draw.image('House', p.x, p.y);
+				}
 			}
 		}
 	},

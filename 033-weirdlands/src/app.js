@@ -56,7 +56,7 @@ const Grid = {
 			for (let c = 0; c < this.chunkSize; c++) {
 				this.g[k].push([]);
 				for (let r = 0; r < this.chunkSize; r++) {
-					this.g[k][c].push(Math.randbool(0.001)? 6 : Math.irange(6));
+					this.g[k][c].push(Math.randbool(0.001)? 6 : Math.irange(k % 7));
 				}
 			}
 		}
@@ -137,12 +137,12 @@ const World = {
 		this.r = r;
 	},
 	update() {
-		const keyW = Input.keyDown(KeyCode.Up);
-		const keyA = Input.keyDown(KeyCode.Left);
-		const keyS = Input.keyDown(KeyCode.Down);
-		const keyD = Input.keyDown(KeyCode.Right);
-		this.c += (keyD - keyA) * (1 + 9 * Input.keyHold(KeyCode.Space));
-		this.r += (keyS - keyW) * (1 + 9 * Input.keyHold(KeyCode.Space));
+		const keyW = Input.keyHold(KeyCode.Up);
+		const keyA = Input.keyHold(KeyCode.Left);
+		const keyS = Input.keyHold(KeyCode.Down);
+		const keyD = Input.keyHold(KeyCode.Right);
+		this.c += (keyS + keyD - keyW - keyA) * (1 + 9 * Input.keyHold(KeyCode.Space));
+		this.r += (keyS + keyA - keyW - keyD) * (1 + 9 * Input.keyHold(KeyCode.Space));
 	},
 	render() {
 		for (let i = this.c; i <= this.cEnd; i++) {
@@ -166,11 +166,11 @@ const World = {
 	},
 	renderUI() {
 		Draw.setFont(Font.l);
-		Draw.setColor(C.lemonChiffon);
+		Draw.setColor(C.red);
 		Draw.setShadow(0, 4, 5, C.black);
 		Draw.setHVAlign(Align.l, Align.b);
 		const g = Grid.convert(this.c, this.r);
-		Draw.text(8, Room.h - 8, `(${this.c}, ${this.r}) —> (${this.cEnd}, ${this.rEnd})\n\nGrid.g[${g.k}][${g.c}][${g.r}]\n\n(${~~Room.w}, ${~~Room.h})`);
+		Draw.text(8, Room.h - 8, `(${this.c}, ${this.r}) —> (${this.cEnd}, ${this.rEnd})\n\nGrid.g[${g.k}][${g.c}][${g.r}]\n\n(${~~Room.w}, ${~~Room.h})\n\n${Time.FPS}`);
 		Draw.resetShadow();
 	}
 };

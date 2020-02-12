@@ -82,14 +82,14 @@ class Showcase extends BranthObject {
 		}
 		if (this.hold) {
 			let m = Input.mousePosition;
-			if (isSnap) {
+			if (isSnap || Input.keyHold(KeyCode.Ctrl)) {
 				m.x = (~~(m.x / Tile.w) + 0.5) * Tile.w;
 				m.y = (~~(m.y / Tile.h) + 0.5) * Tile.h;
 			}
 			else {
 				m = Vector2.add(m, new Vector2(this.dragX, this.dragY));
 			}
-			[this.x, this.y] = [~~m.x, ~~m.y];
+			[this.x, this.y] = [Math.clamp(~~m.x, 0, Room.w), Math.clamp(~~m.y, 0, Room.h)];
 		}
 		if (Input.mouseUp(0)) {
 			if (this.hold) {

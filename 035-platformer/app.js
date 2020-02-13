@@ -1,5 +1,7 @@
-Draw.addStrip(new Vector2(0.5, 0.5), 'Skeleton', 'skeleton.png', 10);
+Sound.add('BGM', 'bgm.mp3');
+
 Draw.add(new Vector2(0.5, 0.5), 'Ske', 'skeleton.png', 'skeleton.png');
+Draw.addStrip(new Vector2(0.5, 0.5), 'Skeleton', 'skeleton.png', 10);
 
 class Player extends BranthGameObject {
 	awake() {
@@ -40,6 +42,13 @@ Room.add(Game);
 
 Game.start = () => {
 	Physics.add(OBJ.create(Player, Room.mid.w, Room.mid.h).id);
+	if (!Sound.isPlaying('BGM')) Sound.loop('BGM');
+};
+
+Game.update = () => {
+	if (Input.keyDown(KeyCode.Enter)) {
+		Room.restart();
+	}
 };
 
 BRANTH.start();

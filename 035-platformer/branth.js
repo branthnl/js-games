@@ -1735,6 +1735,9 @@ const Room = {
 		this.resize();
 		this.current.start();
 	},
+	restart() {
+		this.start(this.name);
+	},
 	update() {
 		this.current.update();
 	},

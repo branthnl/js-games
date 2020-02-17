@@ -1,9 +1,13 @@
 Array.prototype.shuffle = function() {
-	let i = this.length;
+	let i = this.length, j;
 	while (--i > 0) {
-		const j = Math.irange(i + 1);
+		j = Math.irange(i + 1);
 		[this[i], this[j]] = [this[j], this[i]];
 	}
+}
+
+String.prototype.capitalize = function() {
+	return this.substr(0, 1).toUpperCase().concat(this.substr(1));
 }
 
 class Turret extends BranthGameObject {

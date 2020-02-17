@@ -87,7 +87,7 @@ class AStar extends BranthObject {
 		for (let i = 0; i < Grid.c; i++) {
 			Grid.g.push([]);
 			for (let j = 0; j < Grid.r; j++) {
-				Grid.g[i].push(new Spot(i, j, Math.random() > 0.8? Grid.BLOCK : Grid.EMPTY));
+				Grid.g[i].push(new Spot(i, j, Math.random() > 0.8 || (j === 50 && i !== 50)? Grid.BLOCK : Grid.EMPTY));
 			}
 		}
 		console.time();

@@ -1,3 +1,11 @@
+Array.prototype.shuffle = function() {
+	let i = this.length;
+	while (--i > 0) {
+		const j = Math.irange(i + 1);
+		[this[i], this[j]] = [this[j], this[i]];
+	}
+}
+
 class Turret extends BranthGameObject {
 	awake() {
 		this.angle = 0;

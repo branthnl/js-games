@@ -199,7 +199,7 @@ class Unit extends BranthBehaviour {
 			case DATA.UNIT_STATE.CALCULATING_PATH:
 				// Update
 				if (this.pathfinder.openSet.length > 0) {
-					let step = 16;
+					let step = 1;
 					while (--step >= 0) {
 						let iMin = 0;
 						for (let i = 1; i < this.pathfinder.openSet.length; i++) {
@@ -208,6 +208,7 @@ class Unit extends BranthBehaviour {
 							}
 						}
 						let current = this.pathfinder.openSet[iMin];
+						const g = this.pathfinder.gScore[iMin] + 10;
 						this.pathfinder.cameFrom.push(this.pathfinder.cameSet[iMin]);
 						this.pathfinder.closedSet.push(current);
 						this.pathfinder.openSet.splice(iMin, 1);
@@ -232,7 +233,6 @@ class Unit extends BranthBehaviour {
 							Right: current.c < Grid.c - 1,
 							Bottom: current.r < Grid.r - 1
 						};
-						const g = this.pathfinder.gScore[iMin] + 10;
 						if (Exists.Top) this.pathfinder.push(g, current.c, current.r - 1);
 						if (Exists.Left) this.pathfinder.push(g, current.c - 1, current.r);
 						if (Exists.Right) this.pathfinder.push(g, current.c + 1, current.r);
@@ -298,9 +298,9 @@ const Game = new BranthRoom('Game');
 Game.start = () => {
 	Grid.setup(DATA.GRID_LEVEL[0]);
 	OBJ.push(Unit, new Unit(5, 24));
-	OBJ.push(Unit, new Unit(12, 80));
-	OBJ.push(Unit, new Unit(50, 50));
-	OBJ.push(Unit, new Unit(110, 63));
+	// OBJ.push(Unit, new Unit(12, 80));
+	// OBJ.push(Unit, new Unit(50, 50));
+	// OBJ.push(Unit, new Unit(110, 63));
 };
 
 Game.render = () => {

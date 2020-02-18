@@ -45,23 +45,34 @@ class Tank extends BranthBehaviour {
 		this.weaponH = 7;
 		this.weaponR = 2;
 		this.weaponAngle = 0;
+		this.canShoot = true;
+		this.shootInterval = 1000;
+		this.projectileSpeed = this.isPlayer? 10 : 5;
 		this.state = DATA.TANK_STATE.PATROL;
 		this.chaseRange = 200;
 		this.attackRange = 150;
-		this.canShoot = true;
-		this.shootInterval = 1000;
 		this.waypoints = [
-			new Vector2(this.x + 200, this.y + 200),
-			new Vector2(this.x + 200, this.y),
-			new Vector2(this.x, this.y + 200),
-			new Vector2(this.x, this.y)
+			new Vector2(this.x + Math.range(200, 300), this.y + Math.range(150, 210)),
+			new Vector2(this.x + Math.range(200, 300), this.y + Math.range(-50, 100)),
+			new Vector2(this.x + Math.range(-50, 100), this.y + Math.range(150, 210)),
+			new Vector2(this.x + Math.range(-50, 100), this.y + Math.range(-50, 100))
 		];
 		this.currentWaypointIndex = Math.irange(this.waypoints.length);
 	}
+	shoot() {
+		if (this.canShoot) {
+			let l = Vector2.add(this, Math.lendir(this.weaponW, this.angle + this.weaponAngle));
+			OBJ.push(Projectile, new Projectile(l.x, l.y, this.projectileSpeed, this.angle + this.weaponAngle));
+			this.alarm[0] = this.shootInterval;
+			this.canShoot = false;
+		}
+	}
 	update() {
 		if (this.isPlayer) {
-			this.speed = 2 * (Input.keyHold(KeyCode.Up) - Input.keyHold(KeyCode.Down));
-			this.angle += this.speed * (Input.keyHold(KeyCode.Right) - Input.keyHold(KeyCode.Left));
+			this.speed = 2 * (Input.keyHold(KeyCode.W) - Input.keyHold(KeyCode.S));
+			this.angle += this.speed * (Input.keyHold(KeyCode.D) - Input.keyHold(KeyCode.A));
+			if (Input.keyDown(KeyCode.Space) || Input.mouseDown(0)) this.shoot();
+			this.weaponAngle = Math.pointdir(this, Input.mousePosition) - this.angle;
 		}
 		else {
 			const distanceToPlayer = Math.pointdis(this, OBJ.take(Tank)[0]);
@@ -76,12 +87,7 @@ class Tank extends BranthBehaviour {
 				case DATA.TANK_STATE.ATTACK:
 					// Update
 					this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
-					if (this.canShoot) {
-						let l = Vector2.add(this, Math.lendir(this.weaponW, this.angle));
-						OBJ.push(Projectile, new Projectile(l.x, l.y, 5, this.angle));
-						this.alarm[0] = this.shootInterval;
-						this.canShoot = false;
-					}
+					this.shoot();
 					// Transition
 					if (distanceToPlayer > this.attackRange) this.state = DATA.TANK_STATE.CHASE;
 					break;
@@ -124,11 +130,20 @@ class Tank extends BranthBehaviour {
 		Draw.setColor(C.black);
 		Draw.draw(true);
 		Draw.roundRectRotated(this.x, this.y, this.weaponW, this.weaponH, this.weaponR, this.angle + this.weaponAngle, false, new Vector2(0, 0.5));
+		Draw.circle(this.x, this.y, 5);
 		if (b) {
 			const l = Vector2.add(this, Math.lendir(this.h * 0.5, this.angle - 90));
 			Draw.setFont(Font.m);
 			Draw.setHVAlign(Align.c, Align.b);
 			Draw.textRotated(l.x, l.y, this.state, this.angle);
+		}
+	}
+	renderUI() {
+		if (this.isPlayer) {
+			const m = Input.mousePosition;
+			Draw.setColor(C.white);
+			Draw.plus(m.x, m.y, 16, true);
+			Draw.circle(m.x, m.y, 12, true);
 		}
 	}
 	alarm0() {
@@ -146,8 +161,8 @@ Game.start = () => {
 	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
 	n.depth = -1;
 	OBJ.push(Tank, new Tank(64, 64, C.red));
-	OBJ.push(Tank, new Tank(700, 500, C.magenta));
-	OBJ.push(Tank, new Tank(120, 350, C.springGreen));
+	OBJ.push(Tank, new Tank(Room.w * 0.75, Room.mid.h, C.magenta));
+	OBJ.push(Tank, new Tank(Room.w * 0.2, Room.mid.h, C.springGreen));
 };
 
 BRANTH.start();

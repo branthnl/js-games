@@ -46,7 +46,7 @@ class Tank extends BranthBehaviour {
 		this.weaponR = 2;
 		this.weaponAngle = 0;
 		this.canShoot = true;
-		this.shootInterval = 1000;
+		this.shootInterval = this.isPlayer? 100 : 1000;
 		this.projectileSpeed = this.isPlayer? 10 : 5;
 		this.state = DATA.TANK_STATE.PATROL;
 		this.chaseRange = 200;
@@ -69,8 +69,12 @@ class Tank extends BranthBehaviour {
 	}
 	update() {
 		if (this.isPlayer) {
-			this.speed = 2 * (Input.keyHold(KeyCode.W) - Input.keyHold(KeyCode.S));
-			this.angle += this.speed * (Input.keyHold(KeyCode.D) - Input.keyHold(KeyCode.A));
+			const keyW = Input.keyHold(KeyCode.W) || Input.keyHold(KeyCode.Up);
+			const keyA = Input.keyHold(KeyCode.A) || Input.keyHold(KeyCode.Left);
+			const keyS = Input.keyHold(KeyCode.S) || Input.keyHold(KeyCode.Down);
+			const keyD = Input.keyHold(KeyCode.D) || Input.keyHold(KeyCode.Right);
+			this.speed = 2 * (keyW - keyS);
+			this.angle += this.speed * (keyD - keyA);
 			if (Input.keyDown(KeyCode.Space) || Input.mouseDown(0)) this.shoot();
 			this.weaponAngle = Math.pointdir(this, Input.mousePosition) - this.angle;
 		}
@@ -129,6 +133,18 @@ class Tank extends BranthBehaviour {
 		Draw.roundRectRotated(this.x, this.y, this.w, this.h, this.r, this.angle);
 		Draw.setColor(C.black);
 		Draw.draw(true);
+		let i = 0;
+		while (i++ <= 1) {
+			let l = Vector2.add(this, Math.lendir(this.h * 0.5, this.angle - 90 + 180 * i));
+			Draw.setColor(C.black);
+			Draw.roundRectRotated(l.x, l.y, this.w, this.h * 0.2, this.r, this.angle);
+			l = Vector2.add(l, Math.lendir(this.w * 0.4, this.angle - 180));
+			Draw.setColor(C.red);
+			Draw.setAlpha(0.6);
+			Draw.roundRectRotated(l.x, l.y, this.h * 0.15, this.h * 0.15, this.r, this.angle);
+			Draw.setAlpha(1);
+		}
+		Draw.setColor(C.black);
 		Draw.roundRectRotated(this.x, this.y, this.weaponW, this.weaponH, this.weaponR, this.angle + this.weaponAngle, false, new Vector2(0, 0.5));
 		Draw.circle(this.x, this.y, 5);
 		if (b) {
@@ -160,9 +176,10 @@ Room.add(Game);
 Game.start = () => {
 	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
 	n.depth = -1;
-	OBJ.push(Tank, new Tank(64, 64, C.red));
-	OBJ.push(Tank, new Tank(Room.w * 0.75, Room.mid.h, C.magenta));
-	OBJ.push(Tank, new Tank(Room.w * 0.2, Room.mid.h, C.springGreen));
+	let i = 25;
+	while (--i > 0) {
+		OBJ.push(Tank, new Tank(Math.range(Room.w), Math.range(Room.h), C.random()));
+	}
 };
 
 BRANTH.start();

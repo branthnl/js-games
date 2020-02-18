@@ -19,6 +19,7 @@ class Tank extends BranthObject {
 			new Vector2(this.x, this.y)
 		];
 		this.currentWaypointIndex = Math.irange(this.waypoints.length);
+		this.chaseRange = 150;
 	}
 	update() {
 		if (this.isPlayer) {
@@ -26,15 +27,20 @@ class Tank extends BranthObject {
 			this.angle += this.speed * (Input.keyHold(KeyCode.Right) - Input.keyHold(KeyCode.Left));
 		}
 		else {
-			if (this.waypoints.length > 0) {
+			const distanceToPlayer = Math.pointdis(this, OBJ.take(Tank)[0]);
+			if (distanceToPlayer < this.chaseRange) {
+				this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
+			}
+			else if (this.waypoints.length > 0) {
 				if (Math.pointdis(this, this.waypoints[this.currentWaypointIndex]) < 32) {
 					this.currentWaypointIndex++;
 					if (this.currentWaypointIndex >= this.waypoints.length) {
 						this.currentWaypointIndex = 0;
 					}
 				}
-				this.angle += Math.sin(Math.degtorad(Math.pointdir(this, this.waypoints[this.currentWaypointIndex]) - this.angle)) * 5;
+				this.angleTo = Math.pointdir(this, this.waypoints[this.currentWaypointIndex]);
 			}
+			this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle)) * 5;
 		}
 		const l = Math.lendir(this.speed, this.angle);
 		this.x += l.x;
@@ -49,6 +55,7 @@ class Tank extends BranthObject {
 				Draw.circle(w.x, w.y, 3);
 			}
 			Draw.pointLine(this, this.waypoints[this.currentWaypointIndex]);
+			Draw.circle(this.x, this.y, this.chaseRange, true);
 		}
 		Draw.roundRectRotated(this.x, this.y, this.w, this.h, this.r, this.angle);
 		Draw.setColor(C.black);
@@ -63,10 +70,11 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
+	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
+	n.depth = -1;
 	OBJ.push(Tank, new Tank(64, 64, C.red));
-	OBJ.push(Tank, new Tank(120, 350, C.springGreen));
 	OBJ.push(Tank, new Tank(700, 500, C.magenta));
-	OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
+	OBJ.push(Tank, new Tank(120, 350, C.springGreen));
 };
 
 BRANTH.start();

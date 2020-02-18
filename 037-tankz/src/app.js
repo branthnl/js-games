@@ -6,21 +6,28 @@ const DATA = {
 	}
 };
 
-class Projectile extends BranthObject {
+class Projectile extends BranthBehaviour {
 	constructor(x, y, speed, angle) {
 		super(x, y);
 		this.speed = speed;
 		this.angle = angle;
+		this.alarm[0] = 300;
 	}
 	update() {
 		const l = Math.lendir(this.speed, this.angle);
 		this.x += l.x;
 		this.y += l.y;
-		if (this.x < 0 || this.x > Room.w || this.y < 0 || this.y > Room.h) OBJ.destroy(this.id);
+		if (this.x < 0 || this.x > Room.w || this.y < 0 || this.y > Room.h) this.alarm0();
 	}
 	render() {
 		Draw.setColor(C.red);
 		Draw.roundRectRotated(this.x, this.y, 6, 4, 1, this.angle);
+	}
+	alarm0() {
+		Emitter.preset('puff');
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.emit(5);
+		OBJ.destroy(this.id);
 	}
 }
 
@@ -107,9 +114,11 @@ class Tank extends BranthBehaviour {
 				const w = this.waypoints[i];
 				Draw.circle(w.x, w.y, 3);
 			}
-			Draw.pointLine(this, this.waypoints[this.currentWaypointIndex]);
+			Draw.pointLine(this, this.state === DATA.TANK_STATE.PATROL? this.waypoints[this.currentWaypointIndex] : OBJ.take(Tank)[0]);
 			Draw.circle(this.x, this.y, this.chaseRange, true);
+			Draw.setAlpha(0.4);
 			Draw.circle(this.x, this.y, this.attackRange);
+			Draw.setAlpha(1);
 		}
 		Draw.roundRectRotated(this.x, this.y, this.w, this.h, this.r, this.angle);
 		Draw.setColor(C.black);

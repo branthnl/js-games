@@ -13,12 +13,12 @@ class Tank extends BranthObject {
 		this.weaponR = 2;
 		this.weaponAngle = 0;
 		this.waypoints = [
-			new Vector2(300, 300),
-			new Vector2(300, 64),
-			new Vector2(64, 300),
-			new Vector2(64, 64)
+			new Vector2(this.x + 200, this.y + 200),
+			new Vector2(this.x + 200, this.y),
+			new Vector2(this.x, this.y + 200),
+			new Vector2(this.x, this.y)
 		];
-		this.currentWaypointIndex = 0;
+		this.currentWaypointIndex = Math.irange(this.waypoints.length);
 	}
 	update() {
 		if (this.isPlayer) {
@@ -43,11 +43,12 @@ class Tank extends BranthObject {
 	render() {
 		const l = Vector2.add(this, Math.lendir(this.w * 0.25, this.angle));
 		Draw.setColor(this.color);
-		if (!this.isPlayer) {
+		if (!this.isPlayer && GLOBAL.debugMode) {
 			for (let i = 0; i < this.waypoints.length; i++) {
 				const w = this.waypoints[i];
 				Draw.circle(w.x, w.y, 3);
 			}
+			Draw.pointLine(this, this.waypoints[this.currentWaypointIndex]);
 		}
 		Draw.roundRectRotated(this.x, this.y, this.w, this.h, this.r, this.angle);
 		Draw.setColor(C.black);
@@ -63,6 +64,8 @@ Room.add(Game);
 
 Game.start = () => {
 	OBJ.push(Tank, new Tank(64, 64, C.red));
+	OBJ.push(Tank, new Tank(120, 350, C.springGreen));
+	OBJ.push(Tank, new Tank(700, 500, C.magenta));
 	OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
 };
 

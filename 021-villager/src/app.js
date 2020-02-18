@@ -22,13 +22,30 @@ const DATA = {
 	GRID_LEVEL: [{
 		BLOCK: [
 			// x, y, w, h
-			[0, 0, 10, 10],
-			[0, 30, 5, 10]
+			[0, 0, 30, 1],
+			[0, 21, 30, 1],
+			[0, 0, 1, 21],
+			[30, 0, 1, 8],
+			[30, 10, 1, 12],
+			[20, 10, 1, 11],
+			[21, 10, 5, 1],
+			// [0, 30, 5, 10]
 		],
 		WATER: [
-			[10, 10, 20, 20]
+			// [10, 10, 20, 20]
 		]
 	}]
+};
+
+const Tile = {
+	w: 32,
+	h: 32,
+	get mid() {
+		return {
+			w: this.w * 0.5,
+			h: this.h * 0.5
+		};
+	}
 };
 
 const Grid = {
@@ -40,17 +57,17 @@ const Grid = {
 		return this.g[0].length;
 	},
 	toGrid(x, y) {
-		return new GridPoint(~~(x / 8), ~~(y / 8));
+		return new GridPoint(~~(x / Tile.w), ~~(y / Tile.h));
 	},
 	toWorld(c, r, center = false) {
 		const o = 0.45 * center;
-		return new Vector2((c + o) * 8, (r + o) * 8);
+		return new Vector2((c + o) * Tile.w, (r + o) * Tile.h);
 	},
 	setup(levelData = null) {
 		this.g = [];
-		for (let i = 0; i < ~~(Room.w / 8); i++) {
+		for (let i = 0; i < ~~(Room.w / Tile.w) - 1; i++) {
 			this.g.push([]);
-			for (let j = 0; j < ~~(Room.h / 8); j++) {
+			for (let j = 0; j < ~~(Room.h / Tile.h) - 1; j++) {
 				this.g[i].push(DATA.GRID_TYPE.EMPTY);
 			}
 		}
@@ -75,10 +92,10 @@ const Grid = {
 			for (let j = 0; j < this.g[i].length; j++) {
 				switch (this.g[i][j]) {
 					case DATA.GRID_TYPE.EMPTY: Draw.setColor(C.white); break;
-					case DATA.GRID_TYPE.BLOCK: Draw.setColor(C.black); break;
+					case DATA.GRID_TYPE.BLOCK: Draw.setColor(C.gray); break;
 					case DATA.GRID_TYPE.WATER: Draw.setColor(C.blue); break;
 				}
-				Draw.rect(i * 8, j * 8, 7, 7);
+				Draw.rect(i * Tile.w, j * Tile.h, Tile.w, Tile.h);
 			}
 		}
 	}
@@ -94,6 +111,9 @@ class Unit extends BranthBehaviour {
 		this.moveInterval = 300;
 		this.waypoints = [];
 		this.pathfinder = {
+			step: 1,
+			gCost: 10,
+			gDiagCost: 14,
 			start: new GridPoint(this.c, this.r),
 			goal: new GridPoint(this.c, this.r),
 			openSet: [],
@@ -122,7 +142,7 @@ class Unit extends BranthBehaviour {
 				const n = new GridPoint(c, r);
 				if (n.equal(this.goal) || Grid.g[c][r] === DATA.GRID_TYPE.EMPTY) {
 					if (!this.includes(this.closedSet, n)) {
-						const h = ~~(Math.abs(this.goal.c - n.c) + Math.abs(this.goal.r - n.r));
+						const h = ~~(Math.abs(this.goal.c - n.c) + Math.abs(this.goal.r - n.r)) * this.gCost;
 						if (!this.includes(this.openSet, n)) {
 							this.fScore.push(g + h);
 							this.gScore.push(g);
@@ -199,7 +219,7 @@ class Unit extends BranthBehaviour {
 			case DATA.UNIT_STATE.CALCULATING_PATH:
 				// Update
 				if (this.pathfinder.openSet.length > 0) {
-					let step = 1;
+					let step = this.pathfinder.step;
 					while (--step >= 0) {
 						let iMin = 0;
 						for (let i = 1; i < this.pathfinder.openSet.length; i++) {
@@ -208,7 +228,7 @@ class Unit extends BranthBehaviour {
 							}
 						}
 						let current = this.pathfinder.openSet[iMin];
-						const g = this.pathfinder.gScore[iMin] + 10;
+						const g = this.pathfinder.gScore[iMin];
 						this.pathfinder.cameFrom.push(this.pathfinder.cameSet[iMin]);
 						this.pathfinder.closedSet.push(current);
 						this.pathfinder.openSet.splice(iMin, 1);
@@ -233,14 +253,14 @@ class Unit extends BranthBehaviour {
 							Right: current.c < Grid.c - 1,
 							Bottom: current.r < Grid.r - 1
 						};
-						if (Exists.Top) this.pathfinder.push(g, current.c, current.r - 1);
-						if (Exists.Left) this.pathfinder.push(g, current.c - 1, current.r);
-						if (Exists.Right) this.pathfinder.push(g, current.c + 1, current.r);
-						if (Exists.Bottom) this.pathfinder.push(g, current.c, current.r + 1);
-						if (Exists.Top && Exists.Left) this.pathfinder.push(g + 4, current.c - 1, current.r - 1);
-						if (Exists.Top && Exists.Right) this.pathfinder.push(g + 4, current.c + 1, current.r - 1);
-						if (Exists.Bottom && Exists.Left) this.pathfinder.push(g + 4, current.c - 1, current.r + 1);
-						if (Exists.Bottom && Exists.Right) this.pathfinder.push(g + 4, current.c + 1, current.r + 1);
+						if (Exists.Top) this.pathfinder.push(g + this.pathfinder.gCost, current.c, current.r - 1);
+						if (Exists.Left) this.pathfinder.push(g + this.pathfinder.gCost, current.c - 1, current.r);
+						if (Exists.Right) this.pathfinder.push(g + this.pathfinder.gCost, current.c + 1, current.r);
+						if (Exists.Bottom) this.pathfinder.push(g + this.pathfinder.gCost, current.c, current.r + 1);
+						if (Exists.Top && Exists.Left) this.pathfinder.push(g + this.pathfinder.gDiagCost, current.c - 1, current.r - 1);
+						if (Exists.Top && Exists.Right) this.pathfinder.push(g + this.pathfinder.gDiagCost, current.c + 1, current.r - 1);
+						if (Exists.Bottom && Exists.Left) this.pathfinder.push(g + this.pathfinder.gDiagCost, current.c - 1, current.r + 1);
+						if (Exists.Bottom && Exists.Right) this.pathfinder.push(g + this.pathfinder.gDiagCost, current.c + 1, current.r + 1);
 					}
 				}
 				// Transition
@@ -250,6 +270,13 @@ class Unit extends BranthBehaviour {
 				if (this.waypoints.length > 0) {
 					this.state = DATA.UNIT_STATE.MOVE;
 				}
+				if (Input.mouseDown(0)) {
+					let m = Input.mousePosition; m = Grid.toGrid(m.x, m.y);
+					this.pathfinder.setup(
+						new GridPoint(this.c, this.r),
+						new GridPoint(m.c, m.r)
+					);
+				}
 				break;
 		}
 		const b = Grid.toWorld(this.c, this.r, true);
@@ -257,36 +284,48 @@ class Unit extends BranthBehaviour {
 		this.y = b.y;
 	}
 	render() {
-		const b = Grid.toWorld(this.pathfinder.goal.c, this.pathfinder.goal.r, true);
-		Draw.setColor(C.green);
-		for (const a of this.pathfinder.openSet) {
-			const b = Grid.toWorld(a.c, a.r);
-			Draw.rect(b.x, b.y, 7, 7);
+		if (GLOBAL.debugMode) {
+			Draw.setColor(C.green);
+			for (const a of this.pathfinder.openSet) {
+				const b = Grid.toWorld(a.c, a.r);
+				Draw.rect(b.x, b.y, Tile.w, Tile.h);
+			}
+			Draw.setColor(C.red);
+			for (const a of this.pathfinder.closedSet) {
+				const b = Grid.toWorld(a.c, a.r);
+				Draw.rect(b.x, b.y, Tile.w, Tile.h);
+			}
+			Draw.primitiveBegin();
+			for (const a of this.waypoints) {
+				const b = Grid.toWorld(a.c, a.r, true);
+				Draw.vertex(b.x, b.y);
+			}
+			Draw.setColor(C.yellow);
+			Draw.primitiveEnd(Primitive.line);
+			const b = Grid.toWorld(this.pathfinder.goal.c, this.pathfinder.goal.r, true);
+			Draw.setColor(C.blue);
+			Draw.circle(b.x, b.y, 10);
 		}
-		Draw.setColor(C.red);
-		for (const a of this.pathfinder.closedSet) {
-			const b = Grid.toWorld(a.c, a.r);
-			Draw.rect(b.x, b.y, 7, 7);
-		}
-		Draw.primitiveBegin();
-		for (const a of this.waypoints) {
-			const b = Grid.toWorld(a.c, a.r, true);
-			Draw.vertex(b.x, b.y);
-		}
-		Draw.setColor(C.yellow);
-		Draw.primitiveEnd(Primitive.line);
-		Draw.setColor(C.blue);
-		Draw.circle(b.x, b.y, 3.5);
 		Draw.setColor(C.pink);
-		Draw.circle(this.x, this.y, 3.5);
+		Draw.circle(this.x, this.y, 10);
 		Draw.setColor(C.black);
 		Draw.draw(true);
 	}
 	renderUI() {
 		Draw.setFont(Font.m);
 		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.b);
-		Draw.text(this.x, this.y, this.state);
+		Draw.setHVAlign(Align.c, Align.m);
+		if (GLOBAL.debugMode) {
+			Draw.text(this.x, this.y + 1, this.state);
+			for (const i in this.pathfinder.openSet) {
+				const a = this.pathfinder.openSet[i];
+				const b = Grid.toWorld(a.c, a.r, true);
+				Draw.text(b.x, b.y, this.pathfinder.fScore[i]);
+			}
+		}
+		else if (this.state === DATA.UNIT_STATE.CALCULATING_PATH) {
+			Draw.text(this.x, this.y - Tile.h, `Calculating path ${~~(this.pathfinder.closedSet.length / this.pathfinder.step / 60)}s`);
+		}
 	}
 	alarm0() {
 		this.canMove = true;
@@ -297,10 +336,7 @@ const Game = new BranthRoom('Game');
 
 Game.start = () => {
 	Grid.setup(DATA.GRID_LEVEL[0]);
-	OBJ.push(Unit, new Unit(5, 24));
-	// OBJ.push(Unit, new Unit(12, 80));
-	// OBJ.push(Unit, new Unit(50, 50));
-	// OBJ.push(Unit, new Unit(110, 63));
+	OBJ.push(Unit, new Unit(5, 5));
 };
 
 Game.render = () => {

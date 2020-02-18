@@ -1,3 +1,10 @@
+const DATA = {
+	TANK_STATE: {
+		CHASE: 'Chase',
+		PATROL: 'Patrol'
+	}
+};
+
 class Tank extends BranthObject {
 	constructor(x, y, color, isPlayer = false) {
 		super(x, y);
@@ -12,6 +19,7 @@ class Tank extends BranthObject {
 		this.weaponH = 7;
 		this.weaponR = 2;
 		this.weaponAngle = 0;
+		this.state = DATA.TANK_STATE.PATROL;
 		this.waypoints = [
 			new Vector2(this.x + 200, this.y + 200),
 			new Vector2(this.x + 200, this.y),
@@ -28,17 +36,27 @@ class Tank extends BranthObject {
 		}
 		else {
 			const distanceToPlayer = Math.pointdis(this, OBJ.take(Tank)[0]);
-			if (distanceToPlayer < this.chaseRange) {
-				this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
-			}
-			else if (this.waypoints.length > 0) {
-				if (Math.pointdis(this, this.waypoints[this.currentWaypointIndex]) < 32) {
-					this.currentWaypointIndex++;
-					if (this.currentWaypointIndex >= this.waypoints.length) {
-						this.currentWaypointIndex = 0;
+			switch (this.state) {
+				case DATA.TANK_STATE.CHASE:
+					// Update
+					this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
+					// Transition
+					if (distanceToPlayer > this.chaseRange) this.state = DATA.TANK_STATE.PATROL;
+					break;
+				case DATA.TANK_STATE.PATROL:
+					// Update
+					if (this.waypoints.length > 0) {
+						if (Math.pointdis(this, this.waypoints[this.currentWaypointIndex]) < 32) {
+							this.currentWaypointIndex++;
+							if (this.currentWaypointIndex >= this.waypoints.length) {
+								this.currentWaypointIndex = 0;
+							}
+						}
+						this.angleTo = Math.pointdir(this, this.waypoints[this.currentWaypointIndex]);
 					}
-				}
-				this.angleTo = Math.pointdir(this, this.waypoints[this.currentWaypointIndex]);
+					// Transition
+					if (distanceToPlayer < this.chaseRange) this.state = DATA.TANK_STATE.CHASE;
+					break;
 			}
 			this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle)) * 5;
 		}
@@ -47,9 +65,10 @@ class Tank extends BranthObject {
 		this.y += l.y;
 	}
 	render() {
-		const l = Vector2.add(this, Math.lendir(this.w * 0.25, this.angle));
+		const b = !this.isPlayer && GLOBAL.debugMode;
+		let l = Vector2.add(this, Math.lendir(this.w * 0.25, this.angle));
 		Draw.setColor(this.color);
-		if (!this.isPlayer && GLOBAL.debugMode) {
+		if (b) {
 			for (let i = 0; i < this.waypoints.length; i++) {
 				const w = this.waypoints[i];
 				Draw.circle(w.x, w.y, 3);
@@ -61,6 +80,12 @@ class Tank extends BranthObject {
 		Draw.setColor(C.black);
 		Draw.draw(true);
 		Draw.roundRectRotated(l.x, l.y, this.weaponW, this.weaponH, this.weaponR, this.angle + this.weaponAngle);
+		if (b) {
+			l = Vector2.add(this, Math.lendir(this.h * 0.5, this.angle - 90));
+			Draw.setFont(Font.m);
+			Draw.setHVAlign(Align.c, Align.b);
+			Draw.textRotated(l.x, l.y, this.state, this.angle);
+		}
 	}
 }
 

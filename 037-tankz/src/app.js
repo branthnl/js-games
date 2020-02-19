@@ -81,13 +81,24 @@ class Tank extends BranthBehaviour {
 		if (count > 0) {
 			this.HP--;
 			if (this.HP <= 0) {
-				Emitter.setDepth(-1);
+				Emitter.setDepth(-2);
 				Emitter.preset('puff');
 				Emitter.setArea(this.x, this.x, this.y, this.y);
 				Emitter.setColor(C.red);
 				Emitter.emit(5);
 				Emitter.setColor(C.orange);
 				Emitter.emit(5);
+				if (this.isPlayer) {
+					GLOBAL.gameOverText = 'OUT OF LIVES...';
+					GLOBAL.gameOver = true;
+				}
+				else {
+					GLOBAL.score++;
+					if (OBJ.take(Tank).length <= 2) {
+						GLOBAL.gameOverText = 'LEVEL CLEARED!';
+						GLOBAL.gameOver = true;
+					}
+				}
 				OBJ.destroy(this.id);
 			}
 		}
@@ -188,10 +199,12 @@ class Tank extends BranthBehaviour {
 		}
 	}
 	renderUI() {
-		Draw.setFont(Font.m);
-		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.m);
-		Draw.text(this.x, this.y - 30, this.HP);
+		if (!GLOBAL.gameOver) {
+			Draw.setFont(Font.m);
+			Draw.setColor(C.black);
+			Draw.setHVAlign(Align.c, Align.m);
+			Draw.text(this.x, this.y - 30, this.HP);
+		}
 		if (this.isPlayer) {
 			const m = Input.mousePosition;
 			Draw.setColor(C.white);
@@ -204,6 +217,10 @@ class Tank extends BranthBehaviour {
 	}
 }
 
+GLOBAL.score = 0;
+GLOBAL.gameOver = false;
+GLOBAL.gameOverText = 'GAME OVER';
+
 OBJ.add(Tank);
 OBJ.add(Projectile);
 
@@ -211,19 +228,46 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
-	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true));
-	n.depth = -1;
-	let i = 25;
-	while (--i > 0) {
+	GLOBAL.score = 0;
+	GLOBAL.gameOver = false;
+	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true)); n.depth = -1;
+	let i = 50;
+	while (i-- > 0) {
 		OBJ.push(Tank, new Tank(Math.range(Room.w * 0.8), Math.range(Room.h * 0.8), C.random()));
 	}
 };
 
+Game.update = () => {
+	if (GLOBAL.gameOver) {
+		if (Input.keyDown(KeyCode.R)) {
+			Room.restart();
+		}
+	}
+};
+
 Game.renderUI = () => {
-	Draw.setFont(Font.m);
-	Draw.setColor(C.black);
-	Draw.setHVAlign(Align.l, Align.b);
-	Draw.text(8, Room.h - 8, 'WASD/Arrow keys to move. SPACE/Left Click to shoot.');
+	if (GLOBAL.gameOver) {
+		Draw.setColor(C.black);
+		Draw.rect(0, 0, Room.w, Room.h);
+		Draw.setColor(C.white);
+		Draw.setFont(Font.xxl);
+		Draw.setHVAlign(Align.c, Align.b);
+		let x = Room.mid.w;
+		Draw.text(x, Room.mid.h - Font.size, GLOBAL.gameOverText);
+		x -= Draw.textWidth(GLOBAL.gameOverText) * 0.5;
+		Draw.setFont(Font.l);
+		Draw.setHVAlign(Align.l, Align.t);
+		Draw.text(x, Room.mid.h, `Score: ${GLOBAL.score}\n\nPress R to restart.`);
+	}
+	else {
+		Draw.setFont(Font.m);
+		Draw.setColor(C.black);
+		Draw.setHVAlign(Align.l, Align.b);
+		Draw.text(8, Room.h - 8, 'WASD/Arrow keys to move. SPACE/Left Click to shoot.');
+		Draw.setFont(Font.xxl);
+		Draw.setVAlign(Align.t);
+		Draw.text(8, 8, `Score: ${GLOBAL.score}`);
+	}
 };
 
 GLOBAL.setProductionMode();

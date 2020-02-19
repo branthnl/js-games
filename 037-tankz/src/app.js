@@ -19,7 +19,8 @@ class Projectile extends BranthBehaviour {
 		this.x += l.x;
 		this.y += l.y;
 		let count = 0;
-		if (this.x < 0 || this.x > Room.w || this.y < 0 || this.y > Room.h) count++;
+		const v = View.toView(this);
+		if (v.x < 0 || v.x > Room.w || v.y < 0 || v.y > Room.h) count++;
 		for (const t of OBJ.take(Tank)) {
 			if (t) {
 				if (Math.pointdis(this, t) < 16) {
@@ -32,12 +33,14 @@ class Projectile extends BranthBehaviour {
 		if (count > 0) this.alarm0();
 	}
 	render() {
+		const v = View.toView(this);
 		Draw.setColor(C.red);
-		Draw.roundRectRotated(this.x, this.y, 6, 4, 1, this.angle);
+		Draw.roundRectRotated(v.x, v.y, 6, 4, 1, this.angle);
 	}
 	alarm0() {
-		Emitter.setDepth(-1);
 		Emitter.preset('puff');
+		Emitter.setDepth(-2);
+		Emitter.setToView(true);
 		Emitter.setArea(this.x, this.x, this.y, this.y);
 		Emitter.setSize(2, 3);
 		Emitter.emit(5);
@@ -59,7 +62,7 @@ class Tank extends BranthBehaviour {
 		this.weaponH = 7;
 		this.weaponR = 2;
 		this.weaponAngle = 0;
-		this.HP = 3 + 12 * this.isPlayer;
+		this.HP = this.isPlayer? GLOBAL.level * 3 : 3;
 		this.canShoot = true;
 		this.shootInterval = this.isPlayer? 100 : 1000;
 		this.projectileSpeed = this.isPlayer? 10 : 5;
@@ -75,30 +78,31 @@ class Tank extends BranthBehaviour {
 		this.currentWaypointIndex = Math.irange(this.waypoints.length);
 	}
 	hit(fromPlayer) {
-		let count = 0;
-		if (fromPlayer) count++;
-		else if (this.isPlayer) count++;
-		if (count > 0) {
+		if (this.isPlayer ^ fromPlayer) {
 			this.HP--;
 			if (this.HP <= 0) {
-				Emitter.setDepth(-2);
 				Emitter.preset('puff');
+				Emitter.setDepth(-2);
+				Emitter.setToView(true);
 				Emitter.setArea(this.x, this.x, this.y, this.y);
 				Emitter.setColor(C.red);
 				Emitter.emit(5);
 				Emitter.setColor(C.orange);
 				Emitter.emit(5);
 				if (this.isPlayer) {
+					View.target(0, 0);
 					GLOBAL.gameOverText = 'OUT OF LIVES...';
 					GLOBAL.gameOver = true;
 				}
 				else {
 					GLOBAL.score++;
 					if (OBJ.take(Tank).length <= 2) {
-						GLOBAL.gameOverText = 'LEVEL CLEARED!';
+						View.target(0, 0);
+						GLOBAL.gameOverText = `LEVEL ${GLOBAL.level} CLEARED!`;
 						GLOBAL.gameOver = true;
 					}
 				}
+				View.shake(5, 200);
 				OBJ.destroy(this.id);
 			}
 		}
@@ -112,15 +116,18 @@ class Tank extends BranthBehaviour {
 		}
 	}
 	update() {
+		if (GLOBAL.gameOver) return;
 		if (this.isPlayer) {
+			View.follow(this, 0.2);
 			const keyW = Input.keyHold(KeyCode.W) || Input.keyHold(KeyCode.Up);
 			const keyA = Input.keyHold(KeyCode.A) || Input.keyHold(KeyCode.Left);
 			const keyS = Input.keyHold(KeyCode.S) || Input.keyHold(KeyCode.Down);
 			const keyD = Input.keyHold(KeyCode.D) || Input.keyHold(KeyCode.Right);
-			this.speed = Math.range(this.speed, 2.5 * (keyW - keyS), 0.1);
+			this.speed = Math.range(this.speed, (2.5 + Input.keyHold(KeyCode.Shift)) * (keyW - keyS), 0.1);
 			this.angle += this.speed * (keyD - keyA);
-			if (Input.keyDown(KeyCode.Space) || Input.mouseDown(0)) this.shoot();
-			this.weaponAngle = Math.pointdir(this, Input.mousePosition) - this.angle;
+			if (Input.keyDown(KeyCode.X) || Input.mouseDown(0)) this.shoot();
+			const v = View.toView(this);
+			this.weaponAngle = Math.pointdir(v, Input.mousePosition) - this.angle;
 		}
 		else {
 			const distanceToPlayer = Math.pointdis(this, OBJ.take(Tank)[0]);
@@ -177,52 +184,55 @@ class Tank extends BranthBehaviour {
 		}
 	}
 	render() {
+		const v = View.toView(this);
 		const b = !this.isPlayer && GLOBAL.debugMode;
 		Draw.setColor(this.color);
 		if (b) {
 			for (let i = 0; i < this.waypoints.length; i++) {
-				const w = this.waypoints[i];
+				const w = View.toView(this.waypoints[i]);
 				Draw.circle(w.x, w.y, 3);
 			}
-			Draw.pointLine(this, this.state === DATA.TANK_STATE.PATROL? this.waypoints[this.currentWaypointIndex] : OBJ.take(Tank)[0]);
-			Draw.circle(this.x, this.y, this.chaseRange, true);
+			Draw.pointLine(v, View.toView(this.state === DATA.TANK_STATE.PATROL? this.waypoints[this.currentWaypointIndex] : OBJ.take(Tank)[0]));
+			Draw.circle(v.x, v.y, this.chaseRange, true);
 			Draw.setAlpha(0.4);
-			Draw.circle(this.x, this.y, this.attackRange);
+			Draw.circle(v.x, v.y, this.attackRange);
 			Draw.setAlpha(1);
 		}
-		Draw.roundRectRotated(this.x, this.y, this.w, this.h, this.r, this.angle);
+		Draw.roundRectRotated(v.x, v.y, this.w, this.h, this.r, this.angle);
 		Draw.setColor(C.black);
 		Draw.draw(true);
 		let i = 0;
 		while (i++ <= 1) {
-			let l = Vector2.add(this, Math.lendir(this.h * 0.5, this.angle - 90 + 180 * i));
+			let l = Vector2.add(v, Math.lendir(this.h * 0.5, this.angle - 90 + 180 * i));
 			Draw.setColor(C.black);
 			Draw.roundRectRotated(l.x, l.y, this.w, this.h * 0.2, this.r, this.angle);
 			l = Vector2.add(l, Math.lendir(this.w * 0.4, this.angle - 180));
 			Draw.setColor(C.red);
-			Draw.setAlpha(0.6);
+			Draw.setAlpha(0.6 + 0.4 * (this.isPlayer && (Input.keyHold(KeyCode.S) || Input.keyHold(KeyCode.Down))));
 			Draw.roundRectRotated(l.x, l.y, this.h * 0.15, this.h * 0.15, this.r, this.angle);
 			Draw.setAlpha(1);
 		}
 		Draw.setColor(C.black);
-		Draw.roundRectRotated(this.x, this.y, this.weaponW, this.weaponH, this.weaponR, this.angle + this.weaponAngle, false, new Vector2(0, 0.5));
-		Draw.circle(this.x, this.y, 5);
+		Draw.roundRectRotated(v.x, v.y, this.weaponW, this.weaponH, this.weaponR, this.angle + this.weaponAngle, false, new Vector2(0, 0.5));
+		Draw.circle(v.x, v.y, 5);
 		if (b) {
-			const l = Vector2.add(this, Math.lendir(this.h * 0.5, this.angle - 90));
+			const l = Vector2.add(v, Math.lendir(this.h * 0.5, this.angle - 90));
 			Draw.setFont(Font.m);
 			Draw.setHVAlign(Align.c, Align.b);
 			Draw.textRotated(l.x, l.y, this.state, this.angle);
 		}
 	}
 	renderUI() {
+		const v = View.toView(this);
 		if (!GLOBAL.gameOver) {
 			Draw.setFont(Font.m);
 			Draw.setColor(C.black);
 			Draw.setHVAlign(Align.c, Align.m);
-			Draw.text(this.x, this.y - 30, this.HP);
+			Draw.text(v.x, v.y - 30, this.HP);
 		}
 		if (this.isPlayer) {
-			const m = Input.mousePosition;
+			let m = Input.mousePosition;
+			if (!GLOBAL.gameOver) m = Vector2.add(v, Math.lendir(Math.min(220, Math.pointdis(v, m)), Math.pointdir(v, m)));
 			Draw.setColor(C.white);
 			Draw.plus(m.x, m.y, 16, true);
 			Draw.circle(m.x, m.y, 12, true);
@@ -234,6 +244,7 @@ class Tank extends BranthBehaviour {
 }
 
 GLOBAL.score = 0;
+GLOBAL.level = 1;
 GLOBAL.gameOver = false;
 GLOBAL.gameOverText = 'GAME OVER';
 
@@ -244,10 +255,9 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
-	GLOBAL.score = 0;
 	GLOBAL.gameOver = false;
 	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true)); n.depth = -1;
-	let i = 50;
+	let i = GLOBAL.level * 5;
 	while (i-- > 0) {
 		OBJ.push(Tank, new Tank(Room.w * Math.choose(Math.range(0.4), Math.range(0.6, 0.8)), Math.range(Room.h * 0.8), C.random()));
 	}
@@ -258,7 +268,21 @@ Game.update = () => {
 		if (Input.keyDown(KeyCode.R)) {
 			Room.restart();
 		}
+		if (Input.keyDown(KeyCode.N)) {
+			GLOBAL.level++;
+			Room.restart();
+		}
 	}
+};
+
+Game.render = () => {
+	const v = View.toView(new Vector2(Room.mid.w, Room.mid.h));
+	Draw.setColor(C.darkSlateBlue);
+	Draw.circle(v.x, v.y, 800);
+	Draw.setColor(C.green);
+	Draw.circle(v.x, v.y, 600);
+	Draw.setColor(C.white);
+	Draw.plus(v.x, v.y, 800);
 };
 
 Game.renderUI = () => {
@@ -268,24 +292,25 @@ Game.renderUI = () => {
 		Draw.setColor(C.white);
 		Draw.setFont(Font.xxl);
 		Draw.setHVAlign(Align.c, Align.b);
-		let x = Room.mid.w;
-		Draw.text(x, Room.mid.h - Font.size, GLOBAL.gameOverText);
-		x -= Draw.textWidth(GLOBAL.gameOverText) * 0.5;
+		let p = View.toView(new Vector2(Room.mid.w, Room.mid.h));
+		Draw.text(p.x, p.y - Font.size, GLOBAL.gameOverText);
+		p.x -= Draw.textWidth(GLOBAL.gameOverText) * 0.5;
 		Draw.setFont(Font.l);
 		Draw.setHVAlign(Align.l, Align.t);
-		Draw.text(x, Room.mid.h, `Score: ${GLOBAL.score}\n\nPress R to restart.`);
+		Draw.text(p.x, p.y, `Total Tank Destroyed: ${GLOBAL.score}\n\nPress R to restart.\n\nPress N to go to the next level.`);
 	}
 	else {
 		Draw.setFont(Font.m);
 		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.l, Align.b);
-		Draw.text(8, Room.h - 8, 'WASD/Arrow keys to move. SPACE/Left Click to shoot.');
+		Draw.setHVAlign(Align.c, Align.b);
+		let y = Room.h - 8;
+		Draw.text(Room.mid.w, y, 'WASD/Arrow keys to move. X/Left Click to shoot. Shift to boost movement speed.');
+		y -= Font.size;
 		Draw.setFont(Font.xxl);
-		Draw.setVAlign(Align.t);
-		Draw.text(8, 8, `Score: ${GLOBAL.score}`);
+		Draw.text(Room.mid.w, y, GLOBAL.score);
 	}
 };
 
 GLOBAL.setProductionMode();
-BRANTH.start();
+BRANTH.start(0, 0, { backgroundColor: C.darkOrchid });
 Room.start('Game');

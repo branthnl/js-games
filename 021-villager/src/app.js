@@ -22,24 +22,29 @@ const DATA = {
 	GRID_LEVEL: [{
 		BLOCK: [
 			// x, y, w, h
-			[0, 0, 30, 1],
-			[0, 21, 30, 1],
-			[0, 0, 1, 21],
-			[30, 0, 1, 8],
-			[30, 10, 1, 12],
-			[20, 10, 1, 11],
-			[21, 10, 5, 1],
-			// [0, 30, 5, 10]
+			// [0, 0, 30, 1],
+			// [0, 21, 30, 1],
+			// [0, 1, 1, 20],
+			// [30, 0, 1, 8],
+			// [30, 10, 1, 12],
+			// [20, 10, 1, 11],
+			// [21, 10, 5, 1],
+			// [8, 15, 10, 1],
+			// [10, 16, 1, 3],
+			// [14, 18, 1, 3],
 		],
 		WATER: [
-			// [10, 10, 20, 20]
+			// [0, 50, 25, 44],
+			// [25, 70, 97, 24],
+			// [150, 70, 30, 24],
+			// [180, 0, 20, 94],
 		]
 	}]
 };
 
 const Tile = {
-	w: 32,
-	h: 32,
+	w: 4,
+	h: 4,
 	get mid() {
 		return {
 			w: this.w * 0.5,
@@ -54,7 +59,10 @@ const Grid = {
 		return this.g.length;
 	},
 	get r() {
-		return this.g[0].length;
+		if (this.g.length > 0) {
+			return this.g[0].length;
+		}
+		return 0;
 	},
 	toGrid(x, y) {
 		return new GridPoint(~~(x / Tile.w), ~~(y / Tile.h));
@@ -65,19 +73,19 @@ const Grid = {
 	},
 	setup(levelData = null) {
 		this.g = [];
-		for (let i = 0; i < ~~(Room.w / Tile.w) - 1; i++) {
+		for (let i = 0; i < ~~(Room.w / Tile.w); i++) {
 			this.g.push([]);
-			for (let j = 0; j < ~~(Room.h / Tile.h) - 1; j++) {
-				this.g[i].push(DATA.GRID_TYPE.EMPTY);
+			for (let j = 0; j < ~~(Room.h / Tile.h); j++) {
+				this.g[i].push(Math.randbool(0.2)? DATA.GRID_TYPE.BLOCK : DATA.GRID_TYPE.EMPTY);
 			}
 		}
 		if (levelData) {
 			for (const v of Object.keys(DATA.GRID_TYPE)) {
 				if (levelData.hasOwnProperty(v)) {
 					for (const d of levelData[v]) {
-						let i = d[2];
+						let i = Math.min(d[2], this.c - d[0]);
 						while (--i >= 0) {
-							let j = d[3];
+							let j = Math.min(d[3], this.r - d[1]);
 							while (--j >= 0) {
 								this.g[d[0] + i][d[1] + j] = DATA.GRID_TYPE[v];
 							}
@@ -90,30 +98,34 @@ const Grid = {
 	render() {
 		for (let i = 0; i < this.g.length; i++) {
 			for (let j = 0; j < this.g[i].length; j++) {
-				switch (this.g[i][j]) {
-					case DATA.GRID_TYPE.EMPTY: Draw.setColor(C.white); break;
-					case DATA.GRID_TYPE.BLOCK: Draw.setColor(C.gray); break;
-					case DATA.GRID_TYPE.WATER: Draw.setColor(C.blue); break;
+				if (this.g[i][j] !== DATA.GRID_TYPE.EMPTY) {
+					switch (this.g[i][j]) {
+						case DATA.GRID_TYPE.BLOCK: Draw.setColor(C.gray); break;
+						case DATA.GRID_TYPE.WATER: Draw.setColor(C.blue); break;
+					}
+					Draw.rect(i * Tile.w, j * Tile.h, Tile.w, Tile.h);
 				}
-				Draw.rect(i * Tile.w, j * Tile.h, Tile.w, Tile.h);
 			}
 		}
 	}
 };
 
 class Unit extends BranthBehaviour {
-	constructor(c, r) {
+	constructor(c, r, color = C.pink) {
 		super(0, 0);
 		this.c = c;
 		this.r = r;
+		this.color = color;
+		this.unitIndex = 0;
 		this.state = DATA.UNIT_STATE.IDLE;
 		this.canMove = true;
-		this.moveInterval = 300;
+		this.moveInterval = 10;
 		this.waypoints = [];
 		this.pathfinder = {
-			step: 1,
+			step: 16,
 			gCost: 10,
 			gDiagCost: 14,
+			time: 0,
 			start: new GridPoint(this.c, this.r),
 			goal: new GridPoint(this.c, this.r),
 			openSet: [],
@@ -160,6 +172,7 @@ class Unit extends BranthBehaviour {
 				}
 			},
 			reset() {
+				this.time = 0;
 				this.start = new GridPoint(this.c, this.r);
 				this.goal = new GridPoint(this.c, this.r);
 				this.openSet = [];
@@ -177,6 +190,9 @@ class Unit extends BranthBehaviour {
 			}
 		};
 	}
+	awake() {
+		Grid.g[this.c][this.r] = DATA.GRID_TYPE.EMPTY;
+	}
 	update() {
 		switch (this.state) {
 			case DATA.UNIT_STATE.IDLE:
@@ -193,17 +209,35 @@ class Unit extends BranthBehaviour {
 				break;
 			case DATA.UNIT_STATE.MOVE:
 				// Update
+				let count = 0;
 				if (this.waypoints.length > 0) {
 					if (this.canMove) {
-						this.c = this.waypoints[0].c;
-						this.r = this.waypoints[0].r;
-						this.waypoints.splice(0, 1);
+						for (const i of OBJ.take(Unit)) {
+							if (i.id !== this.id) {
+								if (this.waypoints[0].equal(i)) {
+									if (i.unitIndex === this.unitIndex && i.state === DATA.UNIT_STATE.IDLE) {
+										count = -1;
+									}
+									else count++;
+									break;
+								}
+							}
+						}
+						if (count === 0) {
+							this.c = this.waypoints[0].c;
+							this.r = this.waypoints[0].r;
+							this.waypoints.splice(0, 1);
+						}
 						this.canMove = false;
 						this.alarm[0] = this.moveInterval;
 					}
 				}
 				// Transition
 				else {
+					this.state = DATA.UNIT_STATE.IDLE;
+				}
+				if (count === -1) {
+					this.waypoints = [];
 					this.state = DATA.UNIT_STATE.IDLE;
 				}
 				if (Input.mouseDown(0)) {
@@ -218,6 +252,7 @@ class Unit extends BranthBehaviour {
 				break;
 			case DATA.UNIT_STATE.CALCULATING_PATH:
 				// Update
+				this.pathfinder.time += Time.deltaTime;
 				if (this.pathfinder.openSet.length > 0) {
 					let step = this.pathfinder.step;
 					while (--step >= 0) {
@@ -300,31 +335,30 @@ class Unit extends BranthBehaviour {
 				const b = Grid.toWorld(a.c, a.r, true);
 				Draw.vertex(b.x, b.y);
 			}
-			Draw.setColor(C.yellow);
+			Draw.setColor(C.orange);
 			Draw.primitiveEnd(Primitive.line);
 			const b = Grid.toWorld(this.pathfinder.goal.c, this.pathfinder.goal.r, true);
 			Draw.setColor(C.blue);
-			Draw.circle(b.x, b.y, 10);
+			Draw.circle(b.x, b.y, Math.min(Tile.mid.w, Tile.mid.h));
 		}
-		Draw.setColor(C.pink);
-		Draw.circle(this.x, this.y, 10);
+		Draw.setColor(this.color);
+		Draw.circle(this.x, this.y, Math.min(Tile.mid.w, Tile.mid.h));
 		Draw.setColor(C.black);
 		Draw.draw(true);
 	}
 	renderUI() {
 		Draw.setFont(Font.m);
 		Draw.setColor(C.black);
-		Draw.setHVAlign(Align.c, Align.m);
+		Draw.setHVAlign(Align.c, Align.b);
 		if (GLOBAL.debugMode) {
-			Draw.text(this.x, this.y + 1, this.state);
-			for (const i in this.pathfinder.openSet) {
-				const a = this.pathfinder.openSet[i];
-				const b = Grid.toWorld(a.c, a.r, true);
-				Draw.text(b.x, b.y, this.pathfinder.fScore[i]);
+			Draw.text(this.x, this.y - Tile.h, this.state);
+			if (this.state === DATA.UNIT_STATE.CALCULATING_PATH) {
+				const txt = `${~~this.pathfinder.time}ms`;
+				const h = Draw.textHeight(txt);
+				Draw.rectRotated(this.x, this.y - Tile.h - h * 0.5 - 2, Draw.textWidth(txt) + 8, h + 4);
+				Draw.setColor(C.white);
+				Draw.text(this.x, this.y - Tile.h, txt);
 			}
-		}
-		else if (this.state === DATA.UNIT_STATE.CALCULATING_PATH) {
-			Draw.text(this.x, this.y - Tile.h, `Calculating path ${~~(this.pathfinder.closedSet.length / this.pathfinder.step / 60)}s`);
 		}
 	}
 	alarm0() {
@@ -332,18 +366,62 @@ class Unit extends BranthBehaviour {
 	}
 }
 
+class PathPointer extends BranthBehaviour {
+	constructor(x, y) {
+		super(x, y);
+		this.alarm[0] = 300;
+	}
+	renderUI() {
+		const t = Math.clamp(1 - this.alarm[0] / 1000, 0, 1);
+		Draw.setColor(C.black);
+		Draw.plus(this.x, this.y, 48 * (1 - t));
+		Draw.circle(this.x, this.y, 10 * t, true);
+	}
+	alarm0() {
+		OBJ.destroy(this.id);
+	}
+}
+
 const Game = new BranthRoom('Game');
 
 Game.start = () => {
 	Grid.setup(DATA.GRID_LEVEL[0]);
-	OBJ.push(Unit, new Unit(5, 5));
+	OBJ.push(Unit, new Unit(5, 5, C.random()));
+	OBJ.push(Unit, new Unit(2, 11, C.random()));
+	OBJ.push(Unit, new Unit(55, 7, C.random()));
+	OBJ.push(Unit, new Unit(27, 28, C.random()));
+	OBJ.push(Unit, new Unit(30, 40, C.random()));
+	OBJ.push(Unit, new Unit(21, 32, C.random()));
+	OBJ.push(Unit, new Unit(23, 31, C.random()));
+	OBJ.push(Unit, new Unit(26, 34, C.random()));
+	OBJ.push(Unit, new Unit(35, 37, C.random()));
+	OBJ.push(Unit, new Unit(40, 20, C.random()));
+};
+
+Game.update = () => {
+	if (Input.mouseDown(0)) {
+		const m = Input.mousePosition;
+		OBJ.create(PathPointer, m.x, m.y);
+	}
 };
 
 Game.render = () => {
 	Grid.render();
 };
 
+Game.renderUI = () => {
+	Draw.setFont(Font.l);
+	Draw.setColor(C.black);
+	Draw.setHVAlign(Align.l, Align.b);
+	Draw.text(8, Room.h - 8, `(${Grid.c}x${Grid.r})`);
+	Draw.setHAlign(Align.r);
+	Draw.text(Room.w - 8, Room.h - 8, `${Time.FPS} / 60`);
+};
+
 OBJ.add(Unit);
+OBJ.add(PathPointer);
+
 Room.add(Game);
-BRANTH.start();
+
+BRANTH.start(0, 0, { backgroundColor: C.white });
 Room.start('Game');

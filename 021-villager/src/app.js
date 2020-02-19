@@ -122,14 +122,14 @@ class Unit extends BranthBehaviour {
 		this.unitIndex = 0;
 		this.state = DATA.UNIT_STATE.IDLE;
 		this.canMove = true;
-		this.canOverlap = true;
+		this.canOverlap = false;
 		this.moveInterval = 10;
 		this.waypoints = [];
 		this.pathfinder = {
-			step: 16,
+			step: 8,
 			gCost: 10,
 			gDiagCost: 14,
-			maxTime: 10000,
+			maxTime: 20000,
 			time: 0,
 			start: new GridPoint(this.c, this.r),
 			goal: new GridPoint(this.c, this.r),
@@ -196,23 +196,37 @@ class Unit extends BranthBehaviour {
 		};
 	}
 	moveTo(c, r) {
-		let goal = new GridPoint(c, r);
+		let count = 0, goal = new GridPoint(c + this.id % 10, r + ~~(this.id / 10));
 		if (r === undefined) goal = new GridPoint(c.c + this.id % 10, c.r + ~~(this.id / 10));
-		this.pathfinder.setup(new GridPoint(this.c, this.r), goal);
+		if (goal.c < 0 || goal.c > Grid.c - 1 || goal.r < 0 || goal.r > Grid.r - 1) {
+			console.log(`Unit ${this.id}: The goal is out of reach.`);
+			count++;
+		}
+		else if (Grid.g[goal.c][goal.r] !== DATA.GRID_TYPE.EMPTY) {
+			console.log(`Unit ${this.id}: The goal is not empty.`);
+			count++;
+		}
+		this.waypoints = [];
+		if (count === 0) {
+			this.pathfinder.setup(new GridPoint(this.c, this.r), goal);
+			this.state = DATA.UNIT_STATE.CALCULATING_PATH;
+		}
+		else {
+			this.pathfinder.reset();
+			this.state = DATA.UNIT_STATE.IDLE;
+		}
 	}
 	awake() {
 		Grid.g[this.c][this.r] = DATA.GRID_TYPE.EMPTY;
 	}
 	update() {
+		this.canOverlap = Input.keyHold(KeyCode.Space);
 		let count = 0;
 		switch (this.state) {
 			case DATA.UNIT_STATE.IDLE:
 				// Update
 				// Transition
-				if (Input.mouseDown(0)) {
-					this.moveTo(Grid.toGrid(Input.mousePosition));
-					this.state = DATA.UNIT_STATE.CALCULATING_PATH;
-				}
+				if (Input.mouseDown(0)) this.moveTo(Grid.toGrid(Input.mousePosition));
 				break;
 			case DATA.UNIT_STATE.MOVE:
 				// Update
@@ -220,11 +234,9 @@ class Unit extends BranthBehaviour {
 					if (this.canMove) {
 						if (!this.canOverlap) {
 							for (const i of OBJ.take(Unit)) {
-								if (i.id !== this.id) {
+								if (i.id !== this.id && i.unitIndex === this.unitIndex) {
 									if (this.waypoints[0].equal(i)) {
-										if (i.unitIndex === this.unitIndex && i.state === DATA.UNIT_STATE.IDLE) {
-											count = -1;
-										}
+										if (i.state === DATA.UNIT_STATE.IDLE) count = -1;
 										else count++;
 										break;
 									}
@@ -248,24 +260,11 @@ class Unit extends BranthBehaviour {
 					this.waypoints = [];
 					this.state = DATA.UNIT_STATE.IDLE;
 				}
-				if (Input.mouseDown(0)) {
-					this.moveTo(Grid.toGrid(Input.mousePosition));
-					this.waypoints = [];
-					this.state = DATA.UNIT_STATE.CALCULATING_PATH;
-				}
+				if (Input.mouseDown(0)) this.moveTo(Grid.toGrid(Input.mousePosition));
 				break;
 			case DATA.UNIT_STATE.CALCULATING_PATH:
 				// Update
-				const goal = this.pathfinder.goal;
-				if (goal.c < 0 || goal.c > Grid.c - 1 || goal.r < 0 || goal.r > Grid.r - 1) {
-					console.log(`Unit ${this.id}: The goal is out of reach.`);
-					count++;
-				}
-				else if (Grid.g[goal.c][goal.r] !== DATA.GRID_TYPE.EMPTY) {
-					console.log(`Unit ${this.id}: The goal is not empty.`);
-					count++;
-				}
-				else if (this.pathfinder.time > this.pathfinder.maxTime) {
+				if (this.pathfinder.time > this.pathfinder.maxTime) {
 					console.log(`Unit ${this.id}: The process of finding a way over time. Try directing the unit little by little.`);
 					count++;
 				}
@@ -326,9 +325,7 @@ class Unit extends BranthBehaviour {
 					this.pathfinder.reset();
 					this.state = DATA.UNIT_STATE.MOVE;
 				}
-				if (Input.mouseDown(0)) {
-					this.moveTo(Grid.toGrid(Input.mousePosition));
-				}
+				if (Input.mouseDown(0)) this.moveTo(Grid.toGrid(Input.mousePosition));
 				break;
 		}
 		const b = Grid.toWorld(this.c, this.r, true);

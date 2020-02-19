@@ -7,25 +7,39 @@ const DATA = {
 };
 
 class Projectile extends BranthBehaviour {
-	constructor(x, y, speed, angle) {
+	constructor(x, y, speed, angle, fromPlayer = false) {
 		super(x, y);
 		this.speed = speed;
 		this.angle = angle;
+		this.fromPlayer = fromPlayer;
 		this.alarm[0] = 300;
 	}
 	update() {
 		const l = Math.lendir(this.speed, this.angle);
 		this.x += l.x;
 		this.y += l.y;
-		if (this.x < 0 || this.x > Room.w || this.y < 0 || this.y > Room.h) this.alarm0();
+		let count = 0;
+		if (this.x < 0 || this.x > Room.w || this.y < 0 || this.y > Room.h) count++;
+		for (const t of OBJ.take(Tank)) {
+			if (t) {
+				if (Math.pointdis(this, t) < 16) {
+					t.hit(this.fromPlayer);
+					count++;
+					break;
+				}
+			}
+		}
+		if (count > 0) this.alarm0();
 	}
 	render() {
 		Draw.setColor(C.red);
 		Draw.roundRectRotated(this.x, this.y, 6, 4, 1, this.angle);
 	}
 	alarm0() {
+		Emitter.setDepth(-1);
 		Emitter.preset('puff');
 		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.setSize(2, 3);
 		Emitter.emit(5);
 		OBJ.destroy(this.id);
 	}
@@ -45,6 +59,7 @@ class Tank extends BranthBehaviour {
 		this.weaponH = 7;
 		this.weaponR = 2;
 		this.weaponAngle = 0;
+		this.HP = 3 + 7 * this.isPlayer;
 		this.canShoot = true;
 		this.shootInterval = this.isPlayer? 100 : 1000;
 		this.projectileSpeed = this.isPlayer? 10 : 5;
@@ -59,10 +74,28 @@ class Tank extends BranthBehaviour {
 		];
 		this.currentWaypointIndex = Math.irange(this.waypoints.length);
 	}
+	hit(fromPlayer) {
+		let count = 0;
+		if (fromPlayer) count++;
+		else if (this.isPlayer) count++;
+		if (count > 0) {
+			this.HP--;
+			if (this.HP <= 0) {
+				Emitter.setDepth(-1);
+				Emitter.preset('puff');
+				Emitter.setArea(this.x, this.x, this.y, this.y);
+				Emitter.setColor(C.red);
+				Emitter.emit(5);
+				Emitter.setColor(C.orange);
+				Emitter.emit(5);
+				OBJ.destroy(this.id);
+			}
+		}
+	}
 	shoot() {
 		if (this.canShoot) {
 			let l = Vector2.add(this, Math.lendir(this.weaponW, this.angle + this.weaponAngle));
-			OBJ.push(Projectile, new Projectile(l.x, l.y, this.projectileSpeed, this.angle + this.weaponAngle));
+			OBJ.push(Projectile, new Projectile(l.x, l.y, this.projectileSpeed, this.angle + this.weaponAngle, this.isPlayer));
 			this.alarm[0] = this.shootInterval;
 			this.canShoot = false;
 		}
@@ -155,6 +188,10 @@ class Tank extends BranthBehaviour {
 		}
 	}
 	renderUI() {
+		Draw.setFont(Font.m);
+		Draw.setColor(C.black);
+		Draw.setHVAlign(Align.c, Align.m);
+		Draw.text(this.x, this.y - 30, this.HP);
 		if (this.isPlayer) {
 			const m = Input.mousePosition;
 			Draw.setColor(C.white);
@@ -178,9 +215,17 @@ Game.start = () => {
 	n.depth = -1;
 	let i = 25;
 	while (--i > 0) {
-		OBJ.push(Tank, new Tank(Math.range(Room.w), Math.range(Room.h), C.random()));
+		OBJ.push(Tank, new Tank(Math.range(Room.w * 0.8), Math.range(Room.h * 0.8), C.random()));
 	}
 };
 
+Game.renderUI = () => {
+	Draw.setFont(Font.m);
+	Draw.setColor(C.black);
+	Draw.setHVAlign(Align.l, Align.b);
+	Draw.text(8, Room.h - 8, 'WASD/Arrow keys to move. SPACE/Left Click to shoot.');
+};
+
+GLOBAL.setProductionMode();
 BRANTH.start();
 Room.start('Game');

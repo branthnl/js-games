@@ -59,7 +59,7 @@ class Tank extends BranthBehaviour {
 		this.weaponH = 7;
 		this.weaponR = 2;
 		this.weaponAngle = 0;
-		this.HP = 3 + 7 * this.isPlayer;
+		this.HP = 3 + 12 * this.isPlayer;
 		this.canShoot = true;
 		this.shootInterval = this.isPlayer? 100 : 1000;
 		this.projectileSpeed = this.isPlayer? 10 : 5;
@@ -117,7 +117,7 @@ class Tank extends BranthBehaviour {
 			const keyA = Input.keyHold(KeyCode.A) || Input.keyHold(KeyCode.Left);
 			const keyS = Input.keyHold(KeyCode.S) || Input.keyHold(KeyCode.Down);
 			const keyD = Input.keyHold(KeyCode.D) || Input.keyHold(KeyCode.Right);
-			this.speed = 2 * (keyW - keyS);
+			this.speed = Math.range(this.speed, 2.5 * (keyW - keyS), 0.1);
 			this.angle += this.speed * (keyD - keyA);
 			if (Input.keyDown(KeyCode.Space) || Input.mouseDown(0)) this.shoot();
 			this.weaponAngle = Math.pointdir(this, Input.mousePosition) - this.angle;
@@ -127,6 +127,7 @@ class Tank extends BranthBehaviour {
 			switch (this.state) {
 				case DATA.TANK_STATE.CHASE:
 					// Update
+					this.speed = Math.range(this.speed, 1, 0.2);
 					this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
 					// Transition
 					if (distanceToPlayer > this.chaseRange) this.state = DATA.TANK_STATE.PATROL;
@@ -134,6 +135,7 @@ class Tank extends BranthBehaviour {
 					break;
 				case DATA.TANK_STATE.ATTACK:
 					// Update
+					this.speed *= 0.98;
 					this.angleTo = Math.pointdir(this, OBJ.take(Tank)[0]);
 					this.shoot();
 					// Transition
@@ -157,8 +159,22 @@ class Tank extends BranthBehaviour {
 			this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle)) * 5;
 		}
 		const l = Math.lendir(this.speed, this.angle);
+		const p = new Vector2(this.x, this.y);
 		this.x += l.x;
 		this.y += l.y;
+		for (const t of OBJ.take(Tank)) {
+			if (t.id !== this.id) {
+				if (Math.pointdis(this, t) < Math.max(this.w, this.h)) {
+					this.x = p.x;
+					this.y = p.y;
+					t.x += l.x;
+					t.y += l.y;
+					if (!this.isPlayer) {
+						t.angleTo += 0.2;
+					}
+				}
+			}
+		}
 	}
 	render() {
 		const b = !this.isPlayer && GLOBAL.debugMode;
@@ -233,7 +249,7 @@ Game.start = () => {
 	const n = OBJ.push(Tank, new Tank(Room.mid.w, Room.mid.h, C.blue, true)); n.depth = -1;
 	let i = 50;
 	while (i-- > 0) {
-		OBJ.push(Tank, new Tank(Math.range(Room.w * 0.8), Math.range(Room.h * 0.8), C.random()));
+		OBJ.push(Tank, new Tank(Room.w * Math.choose(Math.range(0.4), Math.range(0.6, 0.8)), Math.range(Room.h * 0.8), C.random()));
 	}
 };
 

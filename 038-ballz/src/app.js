@@ -40,11 +40,14 @@ class Ball extends BranthObject {
 		this.a = Math.range(this.a, this.isOverlapping, 0.2);
 		Draw.setColor(C.blue);
 		Draw.setAlpha(this.a);
-		Draw.circle(this.x, this.y, this.r);
+		// Draw.circle(this.x, this.y, this.r);
 		Draw.setAlpha(1);
 		Draw.setColor(C.white);
 		Draw.circle(this.x, this.y, this.r, true);
-		Draw.pointLine(this, Vector2.add(this, Math.lendir(this.r, 0)));
+		CTX.beginPath();
+		CTX.arc(this.x, this.y, this.r * 0.8, 1.1 * Math.PI, 1.35 * Math.PI);
+		CTX.stroke();
+		// Draw.pointLine(this, Vector2.add(this, Math.lendir(this.r, 0)));
 	}
 }
 
@@ -64,11 +67,11 @@ Game.start = () => {
 	GLOBAL.balls = [];
 	// GLOBAL.addBall(Room.w * 0.25, Room.mid.h, GLOBAL.ballDefaultRadius);
 	// GLOBAL.addBall(Room.w * 0.75, Room.mid.h, GLOBAL.ballDefaultRadius);
-	for (let i = 0; i < 10; i++) {
+	for (let i = 0; i < 200; i++) {
 		GLOBAL.addBall(
 			GLOBAL.ballDefaultRadius + Math.range(Room.w - GLOBAL.ballDefaultRadius * 2),
 			GLOBAL.ballDefaultRadius + Math.range(Room.h - GLOBAL.ballDefaultRadius * 2),
-			GLOBAL.ballDefaultRadius * Math.range(0.8, 1)
+			GLOBAL.ballDefaultRadius * Math.range(0.4, 1)
 		);
 	}
 };

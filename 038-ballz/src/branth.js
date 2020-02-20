@@ -935,6 +935,11 @@ const Draw = {
 	resetStrokeWeight() {
 		CTX.lineWidth = 1;
 	},
+	arc(x, y, r, startAngle, endAngle, outline = false) {
+		CTX.beginPath();
+		CTX.arc(x, y, r, Math.degtorad(startAngle), Math.degtorad(endAngle));
+		this.draw(outline);
+	},
 	line(x1, y1, x2, y2) {
 		CTX.beginPath();
 		CTX.moveTo(x1, y1);
@@ -1085,6 +1090,7 @@ const OBJ = {
 	ID: 0,
 	list: [],
 	classes: [],
+	destroyCount: 0,
 	add(cls) {
 		this.list.push([]);
 		this.classes.push(cls);
@@ -1135,6 +1141,7 @@ const OBJ = {
 			for (const i in o) {
 				if (o[i].id === id) {
 					o.splice(i, 1);
+					this.destroyCount++;
 				}
 			}
 		}
@@ -1162,12 +1169,15 @@ const OBJ = {
 	},
 	update() {
 		for (const o of this.list) {
-			for (const i of o) {
+			for (let ii = 0; ii < o.length; ii++) {
+				const i = o[ii];
 				if (i) {
 					if (i.active) {
+						this.destroyCount = 0;
 						i.earlyUpdate();
 						i.update();
 						i.lateUpdate();
+						ii -= this.destroyCount;
 					}
 				}
 			}

@@ -41,9 +41,10 @@ const DATA = {
 };
 
 class TextBox extends BranthObject {
-	constructor(x, y, text) {
+	constructor(x, y, index) {
 		super(x, y);
-		this.text = text;
+		this.index = index;
+		this.text = DATA.TEXT[this.index];
 		this.w = 0;
 		this.h = 0;
 		this.gap = 8;
@@ -74,10 +75,17 @@ class TextBox extends BranthObject {
 		let count = 0;
 		if (this.cursor++ >= this.text.length + 5) {
 			if (Input.keyDown(KeyCode.Enter) || (hover && Input.mouseDown(0))) {
-				OBJ.push(TextBox, new TextBox(this.x, this.y, DATA.TEXT[Math.irange(DATA.TEXT.length)]));
+				this.text = DATA.TEXT[++this.index % DATA.TEXT.length];
+				this.w = 0;
+				this.h = 0;
+				this.cursor = 0;
+			}
+			else if (hover && Input.mouseDown(2)) {
 				OBJ.destroy(this.id);
 			}
-			this.cursor = this.text.length + 5;
+			else {
+				this.cursor = this.text.length + 5;
+			}
 			count++;
 		}
 		Draw.circle(this.x + this.w * 0.5, this.y + this.h + this.gap, this.gap * (0.8 + 0.1 * Math.sin(Time.time * (count === 0? 0.0025 : 0.01))), count > 0);
@@ -86,8 +94,8 @@ class TextBox extends BranthObject {
 
 OBJ.add(TextBox);
 
-GLOBAL.message = (txt) => {
-	OBJ.push(TextBox, new TextBox(Math.range(Room.w), Math.range(Room.h), txt));
+GLOBAL.message = (index) => {
+	OBJ.push(TextBox, new TextBox(Math.range(Room.w), Math.range(Room.h), index));
 };
 
 const Game = new BranthRoom('Game');
@@ -95,7 +103,7 @@ Room.add(Game);
 
 Game.update = () => {
 	if (Input.keyDown(KeyCode.Space)) {
-		GLOBAL.message(DATA.TEXT[Math.irange(DATA.TEXT.length)]);
+		GLOBAL.message(Math.irange(DATA.TEXT.length));
 	}
 };
 

@@ -19,8 +19,9 @@ class Ball extends BranthObject {
 	constructor(x, y, r) {
 		super(x, y);
 		this.r = r;
-		this.mass = 1;
+		this.mass = this.r * 10;
 		this.v = new Vector2(0, 0);
+		this.justCollided = [];
 		this.isOverlapping = false;
 	}
 	isOverlap(b) {
@@ -53,7 +54,11 @@ class Ball extends BranthObject {
 					// Displace other ball
 					b.x += overlap * (this.x - b.x) / d;
 					b.y += overlap * (this.y - b.y) / d;
-					GLOBAL.collidingPairs.push(this, b);
+					if (!this.justCollided.includes(b.id)) {
+						GLOBAL.collidingPairs.push(this, b);
+						this.justCollided.push(b.id);
+						b.justCollided.push(this.id);
+					}
 					this.isOverlapping = true;
 					b.isOverlapping = true;
 				}
@@ -76,6 +81,7 @@ Room.add(Game);
 GLOBAL.balls = [];
 GLOBAL.selectedBall = null;
 GLOBAL.collidingPairs = [];
+GLOBAL.justCollidedCount = 0;
 GLOBAL.ballDefaultRadius = 7;
 GLOBAL.addBall = (x, y, r) => {
 	OBJ.push(Ball, new Ball(x, y, r));
@@ -158,6 +164,12 @@ Game.update = () => {
 	GLOBAL.collidingPairs = [];
 	for (const b of OBJ.take(Ball)) {
 		b.isOverlapping = false;
+	}
+	if (++GLOBAL.justCollidedCount > 10) {
+		for (const b of OBJ.take(Ball)) {
+			b.justCollided = [];
+		}
+		GLOBAL.justCollidedCount = 0;
 	}
 };
 

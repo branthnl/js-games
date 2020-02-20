@@ -166,12 +166,16 @@ const World = {
 	},
 	renderUI() {
 		Draw.setFont(Font.l);
-		Draw.setColor(C.red);
-		Draw.setShadow(0, 4, 5, C.black);
-		Draw.setHVAlign(Align.l, Align.b);
+		Draw.setHVAlign(Align.c, Align.b);
 		const g = Grid.convert(this.c, this.r);
-		Draw.text(8, Room.h - 8, `(${this.c}, ${this.r}) —> (${this.cEnd}, ${this.rEnd})\n\nGrid.g[${g.k}][${g.c}][${g.r}]\n\n(${~~Room.w}, ${~~Room.h})\n\n${Time.FPS}`);
-		Draw.resetShadow();
+		const gEnd = Grid.convert(this.cEnd, this.rEnd);
+		const text = `(${this.c}, ${this.r}) —> (${this.cEnd}, ${this.rEnd})\n\nGrid.g[${g.k}][${g.c}][${g.r}] —> Grid.g[${gEnd.k}][${gEnd.c}][${gEnd.r}]`;
+		Draw.setColor(C.black);
+		Draw.setAlpha(0.8);
+		Draw.rectRotated(Room.mid.w, Room.h, Draw.textWidth(text) + 16, -Draw.textHeight(text) - 16, 0, false, new Vector2(0.5, 0));
+		Draw.setAlpha(1);
+		Draw.setColor(C.white);
+		Draw.text(Room.mid.w, Room.h - 8, text);
 	}
 };
 

@@ -11,7 +11,7 @@ class Obj extends BranthObject {
 	}
 	update() {
 		if (Input.mouseDown(0)) {
-			console.log('Update ' + this.id);
+			// console.log('Update ' + this.id);
 			if (this.mouseHover) {
 				let id = Math.pick(OBJ.take(this.constructor)).id;
 				console.log(`${this.constructor.name} (${this.id}) destroys ${OBJ.get(id).constructor.name} (${id})`);
@@ -49,6 +49,15 @@ Game.start = () => {
 		for (let j = Room.h - r; j >= r; j -= r * 2) {
 			OBJ.create(Obj1, i, j);
 		}
+	}
+};
+
+Game.update = () => {
+	if (Input.mouseDouble(0)) {
+		console.log('Left double pressed.');
+	}
+	if (Input.mouseDouble(2)) {
+		console.log('Right double pressed.');
 	}
 };
 

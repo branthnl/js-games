@@ -365,6 +365,11 @@ class BranthKey {
 }
 
 class BranthMouse extends BranthKey {
+	constructor(keyCode) {
+		super(keyCode);
+		this.doubleStep = 0;
+		this.doublePressed = false;
+	}
 	get button() {
 		return this.keyCode;
 	}
@@ -397,6 +402,7 @@ const Input = {
 	list: [[], [], []],
 	mouseMove: false,
 	mousePosition: new Vector2(0, 0),
+	doubleClickStep: 12,
 	touches: [],
 	changedTouches: [],
 	get touchCount() {
@@ -415,6 +421,20 @@ const Input = {
 		}
 		for (let i = 0; i < 10; i++) {
 			this.list[2].push(new BranthTouch(i));
+		}
+	},
+	update() {
+		for (let i = this.list[1].length - 1; i >= 0; i--) {
+			const m = this.list[1][i];
+			m.doublePressed = false;
+			if (m.doubleStep > 0) {
+				if (m.pressed) {
+					m.doublePressed = true;
+					m.doubleStep = 0;
+				}
+				else m.doubleStep--;
+			}
+			else if (m.pressed) m.doubleStep = this.doubleClickStep;
 		}
 	},
 	reset() {
@@ -454,6 +474,9 @@ const Input = {
 	},
 	mouseHold(button) {
 		return this.list[1][button].hold;
+	},
+	mouseDouble(button) {
+		return this.list[1][button].doublePressed;
 	},
 	getTouch(id) {
 		return this.list[2][id];
@@ -1914,6 +1937,7 @@ const BRANTH = {
 	},
 	update(t) {
 		Time.update(t);
+		Input.update();
 		Sound.update();
 		Room.update();
 		View.update();

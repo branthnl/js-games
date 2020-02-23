@@ -48,7 +48,7 @@ const CTX = CANVAS.getContext('2d');
 
 const GLOBAL = {
 	key: '_' + Math.random().toString(36).substr(2, 9),
-	debugMode: true,
+	debugMode: 0,
 	interacted: false,
 	setProductionMode(mode = true) {
 		if (mode) {
@@ -1091,21 +1091,21 @@ const OBJ = {
 	ID: 0,
 	list: [],
 	classes: [],
-	destroyCount: 0,
+	destroyData: [],
 	add(cls) {
 		this.list.push([]);
 		this.classes.push(cls);
 	},
 	get(id) {
-		for (const o of this.list) {
-			for (const i of o) {
-				if (i) {
-					if (i.id === id) {
-						return i;
-					}
+		for (let i = this.list.length - 1; i >= 0; i--) {
+			for (let j = this.list[i].length - 1; j >= 0; j--) {
+				const k = this.list[i][j];
+				if (k.id === id) {
+					return k;
 				}
 			}
 		}
+		return null;
 	},
 	take(cls) {
 		return this.list[this.classes.indexOf(cls)];
@@ -1138,13 +1138,13 @@ const OBJ = {
 		if (GLOBAL.debugMode) console.log(`Class not found: ${cls.name}`);
 	},
 	destroy(id) {
-		for (const o of this.list) {
-			for (const i in o) {
-				if (o[i].id === id) {
-					o[i].onDestroy();
-					o.splice(i, 1);
-					this.destroyCount++;
-					return o[i];
+		for (let i = this.list.length - 1; i >= 0; i--) {
+			for (let j = this.list[i].length - 1; j >= 0; j--) {
+				const k = this.list[i][j];
+				if (k.id === id) {
+					k.onDestroy();
+					this.destroyData.push({ i, j });
+					return this.list[i].splice(j, 1)[0];
 				}
 			}
 		}
@@ -1171,35 +1171,45 @@ const OBJ = {
 		return n;
 	},
 	update() {
-		for (const o of this.list) {
-			for (let ii = 0; ii < o.length; ii++) {
-				const i = o[ii];
-				if (i) {
-					if (i.active) {
-						this.destroyCount = 0;
-						i.earlyUpdate();
-						i.update();
-						i.lateUpdate();
-						ii -= this.destroyCount;
+		for (let i = this.list.length - 1; i >= 0; i--) {
+			for (let j = this.list[i].length - 1; j >= 0; j--) {
+				const k = this.list[i][j];
+				if (k) {
+					if (k.active) {
+						this.destroyData = [];
+						k.earlyUpdate();
+						k.update();
+						k.lateUpdate();
+						if (this.destroyData.length > 0) {
+							let jCost = 0;
+							for (let l = this.destroyData.length - 1; l >= 0; l--) {
+								if (this.destroyData[l].i === i) {
+									if (this.destroyData[l].j < j + 1) {
+										j--;
+									}
+								}
+							}
+						}
 					}
 				}
 			}
 		}
 	},
 	render() {
-		const so = [];
-		for (const o of this.list) {
-			for (const i of o) {
-				if (i) {
-					if (i.visible) {
-						so.push(i);
+		const h = [];
+		for (let i = this.list.length - 1; i >= 0; i--) {
+			for (let j = this.list[i].length - 1; j >= 0; j--) {
+				const k = this.list[i][j];
+				if (k) {
+					if (k.visible) {
+						h.push(k);
 					}
 				}
 			}
 		}
-		so.sort((a, b) => (a.depth > b.depth)? -1 : 1);
-		for (const i of so) {
-			i.render();
+		h.sort((a, b) => (a.depth < b.depth)? -1 : 1);
+		for (let i = h.length - 1; i >= 0; i--) {
+			h[i].render();
 		}
 	}
 };
@@ -1832,11 +1842,12 @@ const View = {
 
 const UI = {
 	render() {
-		for (const o of OBJ.list) {
-			for (const i of o) {
-				if (i) {
-					if (i.visible) {
-						i.renderUI();
+		for (let i = OBJ.list.length - 1; i >= 0; i--) {
+			for (let j = OBJ.list[i].length - 1; j >= 0; j--) {
+				const k = OBJ.list[i][j];
+				if (k) {
+					if (k.visible) {
+						k.renderUI();
 					}
 				}
 			}
@@ -1908,7 +1919,7 @@ const BRANTH = {
 		View.update();
 		Physics.update();
 		OBJ.update();
-		if (Input.keyDown(KeyCode.U)) GLOBAL.debugMode = !GLOBAL.debugMode;
+		if (Input.keyDown(KeyCode.U)) if (++GLOBAL.debugMode > 3) GLOBAL.debugMode = 0;
 		CTX.clearRect(0, 0, Room.w, Room.h);
 		Room.render();
 		OBJ.render();

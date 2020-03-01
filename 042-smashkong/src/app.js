@@ -42,6 +42,7 @@ class Transition extends BranthBehaviour {
 		this.color = color;
 		this.interval = interval;
 		this.alarm[0] = this.interval + delay;
+		this.visible = false;
 	}
 	render() {
 		Draw.setAlpha(Math.clamp(this.alarm[0] / this.interval, 0, 1));
@@ -140,6 +141,10 @@ const Manager = {
 	},
 	leaderboard: {
 		y: 0
+	},
+	renderTransition() {
+		const t = OBJ.take(Transition)[0];
+		if (t) t.render();
 	}
 };
 
@@ -147,10 +152,12 @@ const Menu = new BranthRoom('Menu');
 const Game = new BranthRoom('Game');
 const Credits = new BranthRoom('Credits');
 const Leaderboard = new BranthRoom('Leaderboard');
+const LevelSelect = new BranthRoom('LevelSelect');
 Room.add(Menu);
 Room.add(Game);
 Room.add(Credits);
 Room.add(Leaderboard);
+Room.add(LevelSelect);
 
 Menu.start = () => {
 	if (!Sound.isPlaying('Menu')) Sound.loop('Menu');
@@ -221,10 +228,12 @@ Menu.renderUI = () => {
 	Manager.menu.drawText(16, Room.h - 16, 'Press <Left> or <Right> to select.\nPress <Enter> to confirm.');
 	Draw.setAlpha(1);
 	OBJ.take(Title)[0].render();
+	Manager.renderTransition();
 };
 
 Credits.start = () => {
 	Manager.credits.y = 320;
+	OBJ.push(Transition, new Transition(C.white, 100, 50));
 };
 
 Credits.update = () => {
@@ -246,15 +255,20 @@ Credits.renderUI = () => {
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
+	Draw.setFont(Font.m);
+	Draw.setHAlign(Align.l);
+	Manager.menu.drawText(120, 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nContact\n  branthnl1@gmail.com\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
 	Manager.menu.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
 	Draw.setAlpha(1);
+	Manager.renderTransition();
 };
 
 Leaderboard.start = () => {
 	Manager.leaderboard.y = 320;
+	OBJ.push(Transition, new Transition(C.white, 100, 50));
 };
 
 Leaderboard.update = () => {
@@ -297,7 +311,8 @@ Leaderboard.renderUI = () => {
 	Draw.setAlpha(0.5);
 	Manager.menu.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
 	Draw.setAlpha(1);
+	Manager.renderTransition();
 };
 
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
-Room.start('Leaderboard');
+Room.start('Credits');

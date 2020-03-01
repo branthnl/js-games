@@ -1,3 +1,9 @@
+Sound.add('Menu', 'src/snd/Menu.mp3');
+Sound.add('Text', 'src/snd/Text.wav');
+Sound.add('Pound', 'src/snd/Pound.wav');
+Sound.add('Cursor', 'src/snd/Cursor.wav');
+Sound.add('Decision', 'src/snd/Decision.wav');
+
 const Manager = {
 	menu: {
 		cursor: 0,
@@ -46,6 +52,7 @@ class Title extends BranthBehaviour {
 		this.scale = 20;
 		this.counter = 0;
 		this.alarm[0] = 400;
+		Sound.play('Pound');
 	}
 	render() {
 		if (this.scale > 18) this.scale -= 0.16;
@@ -54,9 +61,9 @@ class Title extends BranthBehaviour {
 		const txt = 'Smash for your life.'.slice(0, this.counter);
 		for (let i = 1; i >= 0; i--) {
 			Draw.setColor(i > 0? C.black : C.white);
-			Draw.setFont(Font.m, Font.italic);
-			Draw.setHVAlign(Align.r, Align.t);
-			Draw.textRotated(Room.mid.w + Draw.textWidth(txt) * 0.5 + i, 90 + i, txt, Math.sin(Time.time * 0.01) * -4);
+			Draw.setFont(Font.sm, Font.italic);
+			Draw.setHVAlign(Align.r, Align.b);
+			Draw.textRotated(Room.mid.w + Draw.textWidth(txt) * 0.5 + i, 110 + i, txt, Math.sin(Time.time * 0.01) * -4);
 			Draw.setFont(Font.xxl, Font.bold);
 			Draw.setHVAlign(Align.c, Align.t);
 			Draw.textTransformed(Room.mid.w + i, 32 + (6 - 4 * i) * Math.sin(Time.time * 0.01), 'SMASH KONG', this.scale, this.scale);
@@ -64,6 +71,7 @@ class Title extends BranthBehaviour {
 	}
 	alarm0() {
 		this.counter++;
+		Sound.play('Text');
 		if (this.counter < 20) this.alarm[0] = 20;
 	}
 }
@@ -76,21 +84,26 @@ Room.add(Menu);
 Room.add(Game);
 
 Menu.start = () => {
+	if (!Sound.isPlaying('Menu')) Sound.loop('Menu');
+	Manager.menu.cursor = 0;
 	OBJ.create(Title);
 };
 
 Menu.update = () => {
 	const keyA = Input.keyDown(KeyCode.A) || Input.keyDown(KeyCode.Left);
 	const keyD = Input.keyDown(KeyCode.D) || Input.keyDown(KeyCode.Right);
+	const keyEnter = Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space);
 	if (keyA) {
-		if (--Manager.menu.cursor < 0) {
-			Manager.menu.cursor = Manager.menu.items.length - 1;
-		}
+		if (--Manager.menu.cursor < 0) Manager.menu.cursor = Manager.menu.items.length - 1;
+		Sound.play('Cursor');
 	}
 	if (keyD) {
-		if (++Manager.menu.cursor > Manager.menu.items.length - 1) {
-			Manager.menu.cursor = 0;
-		}
+		if (++Manager.menu.cursor > Manager.menu.items.length - 1) Manager.menu.cursor = 0;
+		Sound.play('Cursor');
+	}
+	if (keyEnter) {
+		Manager.menu.items[Manager.menu.cursor].onClick();
+		Sound.play('Decision');
 	}
 	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 10;
 };

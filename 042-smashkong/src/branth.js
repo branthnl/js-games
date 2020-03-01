@@ -755,6 +755,10 @@ const Font = {
 		this.size = 10;
 		return this.font;
 	},
+	get sm() {
+		this.size = 14;
+		return this.font;
+	},
 	get m() {
 		this.size = 16;
 		return this.font;

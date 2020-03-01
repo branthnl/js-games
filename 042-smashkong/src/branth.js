@@ -1738,6 +1738,23 @@ const Emitter = {
 				this.setOutline(false);
 				this.setToView(true);
 				break;
+			case 'fire':
+				this.setSpeed(1, 5);
+				this.setSpeedInc(0, 0);
+				this.setSize(10, 20);
+				this.setSizeInc(-0.001, -0.001);
+				this.setDirection(270, 270);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.15, 0.15);
+				this.setColor(Math.choose(C.red, C.fireBrick));
+				this.setLife(12000, 12000);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				this.setOutline(false);
+				this.setToView(false);
+				break;
 		}
 	},
 	emit(n) {

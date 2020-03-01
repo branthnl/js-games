@@ -4,6 +4,59 @@ Sound.add('Pound', 'src/snd/Pound.wav');
 Sound.add('Cursor', 'src/snd/Cursor.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
 
+class Title extends BranthBehaviour {
+	constructor() {
+		super(0, 0);
+		this.scale = 20;
+		this.counter = 0;
+		this.alarm[0] = 400;
+		this.visible = false;
+		Sound.play('Pound');
+	}
+	render() {
+		if (this.scale > 18) this.scale -= 0.16;
+		else if (this.scale > 1) this.scale = Math.range(this.scale, 0, 0.5);
+		else this.scale = Math.range(this.scale, 1, 0.2);
+		const t = Math.sin(Time.time * 0.005);
+		const txt = 'Smash for your life.'.slice(0, this.counter);
+		for (let i = 1; i >= 0; i--) {
+			Draw.setColor(i > 0? C.black : C.white);
+			Draw.setFont(Font.sm, Font.italic);
+			Draw.setHVAlign(Align.r, Align.b);
+			Draw.textRotated(Room.mid.w + Draw.textWidth(txt) * 0.5 + i, 124 + i, txt, -4 * t);
+			Draw.setFont(Font.xxl, Font.bold);
+			Draw.setHVAlign(Align.c, Align.t);
+			Draw.textTransformed(Room.mid.w + i, 48 + (6 - 4 * i) * t, 'SMASH KONG', this.scale, this.scale);
+		}
+	}
+	alarm0() {
+		this.counter++;
+		Sound.play('Text');
+		if (this.counter < 20) this.alarm[0] = 20;
+	}
+}
+
+class Transition extends BranthBehaviour {
+	constructor(color = C.white, interval = 200, delay = 100) {
+		super(0, 0);
+		this.color = color;
+		this.interval = interval;
+		this.alarm[0] = this.interval + delay;
+	}
+	render() {
+		Draw.setAlpha(Math.clamp(this.alarm[0] / this.interval, 0, 1));
+		Draw.setColor(this.color);
+		Draw.rect(0, 0, Room.w, Room.h);
+		Draw.setAlpha(1);
+	}
+	alarm0() {
+		OBJ.destroy(this.id);
+	}
+}
+
+OBJ.add(Title);
+OBJ.add(Transition);
+
 const Manager = {
 	menu: {
 		cursor: 0,
@@ -27,6 +80,7 @@ const Manager = {
 				color: C.lemonChiffon,
 				description: 'See the best player at smashing!',
 				onClick() {
+					Room.start('Leaderboard');
 				}
 			},
 			{
@@ -41,74 +95,91 @@ const Manager = {
 				color: C.tomato,
 				description: 'See credits.',
 				onClick() {
+					Room.start('Credits');
 				}
 			}
-		]
-	}
-};
-
-class Title extends BranthBehaviour {
-	awake() {
-		this.scale = 20;
-		this.counter = 0;
-		this.alarm[0] = 400;
-		Sound.play('Pound');
-	}
-	render() {
-		if (this.scale > 18) this.scale -= 0.16;
-		else if (this.scale > 1) this.scale = Math.range(this.scale, 0.9, 0.5);
-		else this.scale = Math.range(this.scale, 1, 0.5);
-		const txt = 'Smash for your life.'.slice(0, this.counter);
-		for (let i = 1; i >= 0; i--) {
-			Draw.setColor(i > 0? C.black : C.white);
-			Draw.setFont(Font.sm, Font.italic);
-			Draw.setHVAlign(Align.r, Align.b);
-			Draw.textRotated(Room.mid.w + Draw.textWidth(txt) * 0.5 + i, 110 + i, txt, Math.sin(Time.time * 0.01) * -4);
-			Draw.setFont(Font.xxl, Font.bold);
-			Draw.setHVAlign(Align.c, Align.t);
-			Draw.textTransformed(Room.mid.w + i, 32 + (6 - 4 * i) * Math.sin(Time.time * 0.01), 'SMASH KONG', this.scale, this.scale);
+		],
+		get keyA() {
+			return Input.keyDown(KeyCode.A) || Input.keyDown(KeyCode.Left);
+		},
+		get keyD() {
+			return Input.keyDown(KeyCode.D) || Input.keyDown(KeyCode.Right);
+		},
+		get keyEnter() {
+			return Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space);
+		},
+		get keyEscape() {
+			return Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace);
 		}
-	}
-	alarm0() {
-		this.counter++;
-		Sound.play('Text');
-		if (this.counter < 20) this.alarm[0] = 20;
-	}
-}
-
-OBJ.add(Title);
+	},
+	game: {
+		drawWallAround() {
+			Draw.setColor(C.darkGray);
+			Draw.rect(0, 0, Room.w, 32);
+			Draw.rect(0, 0, 32, Room.h);
+			Draw.rect(0, Room.h - 32, Room.w, 32);
+			Draw.rect(Room.w - 32, 0, 32, Room.h);
+			Draw.setColor(C.gray);
+			Draw.circle(16, 16, 4, true);
+			Draw.circle(Room.w - 16, 16, 4, true);
+			Draw.circle(16, Room.h - 16, 4, true);
+			Draw.circle(Room.w - 16, Room.h - 16, 4, true);
+			Draw.setColor(C.black);
+			Draw.rect(1, 1, Room.w - 2, Room.h - 2, true);
+			Draw.rect(32, 32, Room.w - 64, Room.h - 64, true);
+		}
+	},
+	credits: {
+		drawText(x, y, text) {
+			for (let i = 1; i >= 0; i--) {
+				Draw.setColor(i > 0? C.black : C.white);
+				Draw.text(x + i, y + i, text);
+			}
+		}
+	},
+	leaderboard: {}
+};
 
 const Menu = new BranthRoom('Menu');
 const Game = new BranthRoom('Game');
+const Credits = new BranthRoom('Credits');
+const Leaderboard = new BranthRoom('Leaderboard');
 Room.add(Menu);
 Room.add(Game);
+Room.add(Credits);
+Room.add(Leaderboard);
 
 Menu.start = () => {
 	if (!Sound.isPlaying('Menu')) Sound.loop('Menu');
 	Manager.menu.cursor = 0;
+	Manager.menu.rotation = -72;
+	OBJ.push(Transition, new Transition(C.white));
 	OBJ.create(Title);
 };
 
 Menu.update = () => {
-	const keyA = Input.keyDown(KeyCode.A) || Input.keyDown(KeyCode.Left);
-	const keyD = Input.keyDown(KeyCode.D) || Input.keyDown(KeyCode.Right);
-	const keyEnter = Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space);
-	if (keyA) {
+	if (Manager.menu.keyA) {
 		if (--Manager.menu.cursor < 0) Manager.menu.cursor = Manager.menu.items.length - 1;
 		Sound.play('Cursor');
 	}
-	if (keyD) {
+	if (Manager.menu.keyD) {
 		if (++Manager.menu.cursor > Manager.menu.items.length - 1) Manager.menu.cursor = 0;
 		Sound.play('Cursor');
 	}
-	if (keyEnter) {
+	if (Manager.menu.keyEnter) {
 		Manager.menu.items[Manager.menu.cursor].onClick();
 		Sound.play('Decision');
 	}
 	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 10;
+	if (Room.name === 'Menu') {
+		Emitter.preset('fire');
+		Emitter.setColor(Math.choose(C.indigo, C.darkSlateBlue));
+		Emitter.setArea(0, Room.w, Room.h, Room.h);
+		Emitter.emit(1);
+	}
 };
 
-Menu.render = () => {
+Menu.renderUI = () => {
 	const menu = {
 		x: Room.mid.w,
 		y: Room.mid.h,
@@ -140,11 +211,65 @@ Menu.render = () => {
 	}
 	Draw.setFont(Font.m);
 	Draw.setVAlign(Align.b);
-	for (let i = 1; i >= 0; i--) {
-		Draw.setColor(i > 0? C.black : C.white);
-		Draw.text(menu.x + i, Room.h - 32 + i + Math.sin(Time.time * 0.01) * 2, Manager.menu.items[Manager.menu.cursor].description);
+	Manager.credits.drawText(menu.x, Room.h - 48 + Math.sin(Time.time * 0.01) * 2, Manager.menu.items[Manager.menu.cursor].description);
+	Draw.setFont(Font.s);
+	Draw.setHAlign(Align.l);
+	Draw.setAlpha(0.5);
+	Manager.credits.drawText(16, Room.h - 16, 'Press <Left> or <Right> to select.\nPress <Enter> to confirm.');
+	Draw.setAlpha(1);
+	OBJ.take(Title)[0].render();
+};
+
+Credits.update = () => {
+	if (Manager.menu.keyEscape) {
+		Room.start('Menu');
+		Manager.menu.cursor = 4;
+		Manager.menu.rotation = 0;
+	}
+	if (Room.name === 'Credits') {
+		Emitter.preset('fire');
+		Emitter.setArea(0, Room.w, Room.h, Room.h);
+		Emitter.emit(1);
 	}
 };
 
-BRANTH.start(960, 540);
+Credits.renderUI = () => {
+	const t = Math.sin(Time.time * 0.005);
+	Draw.setFont(Font.xxl);
+	Draw.setHVAlign(Align.c, Align.t);
+	Manager.credits.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
+	Draw.setFont(Font.s);
+	Draw.setHVAlign(Align.l, Align.b);
+	Draw.setAlpha(0.5);
+	Manager.credits.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
+	Draw.setAlpha(1);
+};
+
+Leaderboard.update = () => {
+	if (Manager.menu.keyEscape) {
+		Room.start('Menu');
+		Manager.menu.cursor = 2;
+		Manager.menu.rotation = -216;
+	}
+	if (Room.name === 'Leaderboard') {
+		Emitter.preset('fire');
+		Emitter.setColor(Math.choose(C.lemonChiffon, C.yellow));
+		Emitter.setArea(0, Room.w, Room.h, Room.h);
+		Emitter.emit(1);
+	}
+};
+
+Leaderboard.renderUI = () => {
+	const t = Math.sin(Time.time * 0.005);
+	Draw.setFont(Font.xxl);
+	Draw.setHVAlign(Align.c, Align.t);
+	Manager.credits.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
+	Draw.setFont(Font.s);
+	Draw.setHVAlign(Align.l, Align.b);
+	Draw.setAlpha(0.5);
+	Manager.credits.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
+	Draw.setAlpha(1);
+};
+
+BRANTH.start(960, 540, { HAlign: true, VAlign: true });
 Room.start('Menu');

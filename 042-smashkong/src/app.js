@@ -110,6 +110,12 @@ const Manager = {
 		},
 		get keyEscape() {
 			return Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace);
+		},
+		drawText(x, y, text) {
+			for (let i = 1; i >= 0; i--) {
+				Draw.setColor(i > 0? C.black : C.white);
+				Draw.text(x + i, y + i, text);
+			}
 		}
 	},
 	game: {
@@ -130,14 +136,11 @@ const Manager = {
 		}
 	},
 	credits: {
-		drawText(x, y, text) {
-			for (let i = 1; i >= 0; i--) {
-				Draw.setColor(i > 0? C.black : C.white);
-				Draw.text(x + i, y + i, text);
-			}
-		}
+		y: 0
 	},
-	leaderboard: {}
+	leaderboard: {
+		y: 0
+	}
 };
 
 const Menu = new BranthRoom('Menu');
@@ -211,13 +214,17 @@ Menu.renderUI = () => {
 	}
 	Draw.setFont(Font.m);
 	Draw.setVAlign(Align.b);
-	Manager.credits.drawText(menu.x, Room.h - 48 + Math.sin(Time.time * 0.01) * 2, Manager.menu.items[Manager.menu.cursor].description);
+	Manager.menu.drawText(menu.x, Room.h - 48 + Math.sin(Time.time * 0.01) * 2, Manager.menu.items[Manager.menu.cursor].description);
 	Draw.setFont(Font.s);
 	Draw.setHAlign(Align.l);
 	Draw.setAlpha(0.5);
-	Manager.credits.drawText(16, Room.h - 16, 'Press <Left> or <Right> to select.\nPress <Enter> to confirm.');
+	Manager.menu.drawText(16, Room.h - 16, 'Press <Left> or <Right> to select.\nPress <Enter> to confirm.');
 	Draw.setAlpha(1);
 	OBJ.take(Title)[0].render();
+};
+
+Credits.start = () => {
+	Manager.credits.y = 320;
 };
 
 Credits.update = () => {
@@ -231,21 +238,27 @@ Credits.update = () => {
 		Emitter.setArea(0, Room.w, Room.h, Room.h);
 		Emitter.emit(1);
 	}
+	Manager.credits.y = Math.range(Manager.credits.y, 0, 0.2);
 };
 
 Credits.renderUI = () => {
 	const t = Math.sin(Time.time * 0.005);
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
-	Manager.credits.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
+	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
-	Manager.credits.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
+	Manager.menu.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
 	Draw.setAlpha(1);
 };
 
+Leaderboard.start = () => {
+	Manager.leaderboard.y = 320;
+};
+
 Leaderboard.update = () => {
+	Manager.leaderboard.t += Time.deltaTime;
 	if (Manager.menu.keyEscape) {
 		Room.start('Menu');
 		Manager.menu.cursor = 2;
@@ -257,19 +270,34 @@ Leaderboard.update = () => {
 		Emitter.setArea(0, Room.w, Room.h, Room.h);
 		Emitter.emit(1);
 	}
+	Manager.leaderboard.y = Math.range(Manager.leaderboard.y, 0, 0.2);
 };
 
 Leaderboard.renderUI = () => {
 	const t = Math.sin(Time.time * 0.005);
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
-	Manager.credits.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
+	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
+	Draw.setFont(Font.m);
+	for (let i = 0; i < 10; i++) {
+		const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
+		const h = (10 - i) * 34;
+		const y = Manager.leaderboard.y + Room.h - h;
+		Draw.setColor(C.goldenRod);
+		Draw.roundRect(x, y, 40, h + 32, 4);
+		Draw.setVAlign(Align.t);
+		Manager.menu.drawText(x + 20, y + 6, i + 1);
+		Draw.setVAlign(Align.b);
+		Draw.setColor(C.blue);
+		Draw.rect(x + 8, y, 24, -24);
+		Manager.menu.drawText(x + 20, y - 30, `${'Greyhunter'}\n${(11 - i) * 10000}`);
+	}
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
-	Manager.credits.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
+	Manager.menu.drawText(16, Room.h - 16, 'Press <Backspace> to back.');
 	Draw.setAlpha(1);
 };
 
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
-Room.start('Menu');
+Room.start('Leaderboard');

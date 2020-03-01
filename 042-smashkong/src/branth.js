@@ -232,7 +232,7 @@ const Sound = {
 	update() {
 		for (const s of this.list) {
 			if (s.loop) {
-				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration * s.loopTo) {
+				if (s.currentTime >= s.duration * s.loopTo) {
 					s.currentTime = s.duration * s.loopFrom;
 				}
 			}

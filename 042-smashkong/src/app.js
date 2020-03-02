@@ -1,3 +1,8 @@
+let database = null;
+if (firebase) {
+	database = firebase.database().ref('042');
+}
+
 Draw.add(new Vector2(0.5, 0.5), 'Gun', 'src/img/Gun.png');
 Draw.add(new Vector2(0.5, 0.5), 'MachineGun', 'src/img/MachineGun.png');
 Draw.add(new Vector2(0.5, 0.5), 'Beamer', 'src/img/Beamer.png');
@@ -582,19 +587,21 @@ const Manager = {
 						}
 					}
 					else {
-						if (document.exitFullscreen) {
-							document.exitFullscreen();
+						if (document.fullscreen) {
+							if (document.exitFullscreen) {
+								document.exitFullscreen();
+							}
+							else if (document.msExitFullscreen) {
+								document.msExitFullscreen();
+							}
+							else if (document.mozCancelFullscreen) {
+								document.mozCancelFullscreen();
+							}
+							else if (document.webkitExitFullscreen) {
+								document.webkitExitFullscreen();
+							}
+							else count++;
 						}
-						else if (document.msExitFullscreen) {
-							document.msExitFullscreen();
-						}
-						else if (document.mozCancelFullscreen) {
-							document.mozCancelFullscreen();
-						}
-						else if (document.webkitExitFullscreen) {
-							document.webkitExitFullscreen();
-						}
-						else count++;
 						if (count === 0) {
 							this.text = 'Windowed';
 							this.description = 'Set screen mode to fullscreen.';
@@ -698,7 +705,22 @@ const Manager = {
 		y: 0
 	},
 	leaderboard: {
-		y: 0
+		y: 0,
+		hs: [],
+		updateHS() {
+			if (firebase) {
+				database.child('hs').once('value', snap => {
+					Manager.leaderboard.hs = [];
+					snap.forEach(i => {
+						Manager.leaderboard.hs.push({
+							name: i.val().name,
+							score: i.val().score
+						});
+					});
+					Manager.leaderboard.hs.sort((a, b) => a.score > b.score? -1 : 1);
+				});
+			}
+		}
 	},
 	renderTransition() {
 		const t = OBJ.take(Transition)[0];
@@ -886,6 +908,7 @@ Credits.renderUI = () => {
 };
 
 Leaderboard.start = () => {
+	Manager.leaderboard.updateHS();
 	Manager.leaderboard.y = 320;
 	OBJ.create(Transition, C.black, 100, 50);
 };
@@ -915,27 +938,40 @@ Leaderboard.renderUI = () => {
 	Draw.setHVAlign(Align.c, Align.t);
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
 	Draw.setFont(Font.m);
-	for (let i = 0; i < 10; i++) {
-		const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
-		const h = (10 - i) * podium.h;
-		const y = Manager.leaderboard.y + Room.h - h;
-		Draw.setColor(C.white);
-		Draw.roundRect(x, y, 40, h + 32, 4);
-		Draw.setColor(C.blue);
-		Draw.rect(x + 8, y, 24, -24);
-		Draw.setVAlign(Align.b);
-		Manager.menu.drawText(x + 20, y - 30, `${'Branth'}\n${(11 - i) * 10000}`);
+	if (firebase) {
+		for (let i = 0; i < 10; i++) {
+			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
+			const h = (10 - i) * podium.h;
+			const y = Manager.leaderboard.y + Room.h - h;
+			Draw.setColor(C.white);
+			Draw.roundRect(x, y, 40, h + 32, 4);
+			Draw.setColor(C.blue);
+			Draw.rect(x + 8, y, 24, -24);
+			Draw.setVAlign(Align.b);
+			if (Manager.leaderboard.hs.length > i) {
+				const j = Manager.leaderboard.hs[i];
+				let k = j.name;
+				while (Draw.textWidth(k) > 95) {
+					k = k.slice(0, k.length - 1);
+				}
+				Manager.menu.drawText(x + 20, y - 30, `${k}${k.length < j.name.length? '...' : ''}\n${j.score}`);
+			}
+		}
+		Draw.setFont(Font.l, Font.bold);
+		for (let i = 0; i < 10; i++) {
+			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
+			const h = (10 - i) * podium.h;
+			const y = Manager.leaderboard.y + Room.h - h;
+			Draw.setColor(C.black);
+			Draw.setVAlign(Align.t);
+			Draw.text(x + 20, y + 6, i + 1);
+		}
+		Draw.resetFontStyle();
 	}
-	Draw.setFont(Font.l, Font.bold);
-	for (let i = 0; i < 10; i++) {
-		const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
-		const h = (10 - i) * podium.h;
-		const y = Manager.leaderboard.y + Room.h - h;
-		Draw.setColor(C.black);
-		Draw.setVAlign(Align.t);
-		Draw.text(x + 20, y + 6, i + 1);
+	else {
+		Draw.setVAlign(Align.m);
+		Draw.text(Room.mid.w, Room.mid.h, 'Failed to connect to database.');
 	}
-	Draw.resetFontStyle();
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -1008,5 +1044,6 @@ PlayerSelect.renderUI = () => {
 
 Level1.start = () => {};
 
+Manager.leaderboard.updateHS();
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
 Room.start('Menu');

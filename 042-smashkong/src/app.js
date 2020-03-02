@@ -1,5 +1,10 @@
+Draw.add(new Vector2(0.5, 0.5), 'Gun', 'src/img/Gun.png');
+Draw.add(new Vector2(0.5, 0.5), 'MachineGun', 'src/img/MachineGun.png');
+Draw.add(new Vector2(0.5, 0.5), 'Beamer', 'src/img/Beamer.png');
 Draw.addStrip(new Vector2(0.5, 0.5), 'Bullet', 'src/img/Bullet.png', 2);
 Draw.addStrip(new Vector2(0.5, 0.5), 'Missile', 'src/img/Missile.png', 2);
+Draw.addStrip(new Vector2(0.5, 0.5), 'RotateGun', 'src/img/RotateGun.png', 2);
+Draw.addStrip(new Vector2(0.5, 0.5), 'MissileLauncher', 'src/img/MissileLauncher.png', 2);
 
 Sound.add('Menu', 'src/snd/Menu.mp3');
 Sound.add('Game', 'src/snd/Game.mp3');
@@ -10,6 +15,7 @@ Sound.add('Pound', 'src/snd/Pound.wav');
 Sound.add('Pound0', 'src/snd/Pound.wav');
 Sound.add('Pound1', 'src/snd/Pound.wav');
 Sound.add('Cursor', 'src/snd/Cursor.wav');
+Sound.add('Cancel', 'src/snd/Cancel.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
 
 class Kong extends BranthBehaviour {
@@ -53,6 +59,7 @@ class Kong extends BranthBehaviour {
 		}
 	}
 	update() {
+		if (Manager.game.pause) return;
 		const keyWR = Input.keyUp(this.keyCodeW);
 		const keyWP = Input.keyDown(this.keyCodeW);
 		const keyA = Input.keyHold(this.keyCodeA);
@@ -218,6 +225,7 @@ class Bullet extends BranthBehaviour {
 		this.alarm[0] = 60;
 	}
 	update() {
+		if (Manager.game.pause) return;
 		const l = Math.lendir(this.spd, this.angle);
 		this.x += l.x;
 		this.y += l.y;
@@ -269,6 +277,7 @@ class Missile extends Bullet {
 		this.alarm[1] = this.interval;
 	}
 	beforeUpdate() {
+		if (Manager.game.pause) return;
 		if (this.target) this.angle += Math.sin(Math.degtorad(Math.pointdir(this, Vector2.add(this.target, this.offset)) - this.angle)) * 5;
 	}
 	render() {
@@ -317,10 +326,39 @@ class Beam extends BranthBehaviour {
 }
 
 class Gun extends BranthBehaviour {
-	constructor(type, x, y) {
+	constructor(wid, x, y, angle) {
 		super(x, y);
-		this.type = type;
-		this.shotInterval
+		this.depth = -2;
+		this.weaponIndex = wid;
+		this.angle = angle;
+		this.xto = this.x;
+		this.yto = this.y;
+		this.angleTo = this.angle;
+		this.canShoot = true;
+		this.shootPoint = Vector2.zero;
+		this.shootInterval = 400;
+		this.shootBackForce = 0;
+	}
+	shoot() {
+		OBJ.create(Bullet, this.shootPoint.x, this.shootPoint.y, this.angle);
+	}
+	update() {
+		if (Manager.game.pause) return;
+		this.shootPoint = Vector2.add(this, Math.lendir(16, this.angle));
+		if (this.canShoot) {
+			this.shoot();
+			this.canShoot = false;
+			this.shootBackForce = 5;
+			this.alarm[0] = this.shootInterval;
+		}
+		this.shootBackForce *= 0.98;
+		this.x = Math.range(this.x, this.xto, 0.2);
+		this.y = Math.range(this.y, this.yto, 0.2);
+		this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle));
+	}
+	render() {
+		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
+		Draw.image('Gun', v.x, v.y, 1, 1, this.angle);
 	}
 	alarm0() {
 		this.canShoot = true;
@@ -331,12 +369,99 @@ class RotateGun extends Gun {
 }
 
 class MachineGun extends Gun {
+	awake() {
+		this.shootInterval = 50;
+	}
+	render() {
+		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
+		Draw.image('MachineGun', v.x, v.y, 1, 1, this.angle);
+	}
 }
 
 class MissileLauncher extends Gun {
+	awake() {
+		this.shootInterval = 4000;
+	}
+	shoot() {
+		OBJ.create(Missile, this.shootPoint.x, this.shootPoint.y, Math.range(this.angle - 30, this.angle + 30), Math.pick(OBJ.take(Kong)));
+	}
+	render() {
+		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
+		Draw.strip('MissileLauncher', 0, v.x, v.y, 1, 1, this.angle);
+		Draw.strip('MissileLauncher', 1, v.x, v.y, 1, 1, this.angle);
+	}
 }
 
-class Beamer extends BranthBehaviour {
+class Beamer extends Gun {
+	render() {
+		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
+		Draw.image('Beamer', v.x, v.y, 1, 1, this.angle);
+	}
+}
+
+class WeaponHandler extends BranthBehaviour {
+	constructor(weaponsSpawnIndex) {
+		super(0, 0);
+		this.weaponsSpawnIndex = weaponsSpawnIndex;
+		this.step = 0;
+		this.alarm[0] = 10;
+		this.alarm[1] = 10;
+		this.weapons = [null, null, null, null, null, null, null, null, null];
+		this.weaponsAngle = [90, 90, 90, 90, 90, 90, 90, 90, 90];
+	}
+	update() {
+		if (Manager.game.pause) return;
+		for (let i = this.weapons.length; i >= 0; i--) {
+			const j = this.weapons[i];
+			if (j instanceof Gun) {
+				j.yto = 40;
+				j.angleTo = this.weaponsAngle[i];
+			}
+		}
+	}
+	alarm0() {
+		if (!Manager.game.pause) {
+			switch (this.weaponsSpawnIndex.shift()) {
+				case 0: this.weapons[0] = OBJ.create(Gun, 0, Room.w * 0.1, -48, 90); break;
+				case 1: this.weapons[1] = OBJ.create(Beamer, 1, Room.w * 0.22, -48, 90); break;
+				case 2: this.weapons[2] = OBJ.create(Gun, 2, Room.w * 0.3, -48, 90); break;
+				case 3: this.weapons[3] = OBJ.create(MissileLauncher, 3, Room.w * 0.4, -48, 90); break;
+				case 4: this.weapons[4] = OBJ.create(MachineGun, 4, Room.w * 0.5, -48, 90); break;
+				case 5: this.weapons[5] = OBJ.create(MissileLauncher, 5, Room.w * 0.6, -48, 90); break;
+				case 6: this.weapons[6] = OBJ.create(Gun, 6, Room.w * 0.7, -48, 90); break;
+				case 7: this.weapons[7] = OBJ.create(Beamer, 7, Room.w * 0.78, -48, 90); break;
+				case 8: this.weapons[8] = OBJ.create(Gun, 8, Room.w * 0.9, -48, 90); break;
+			}
+			Sound.play('Decision');
+		}
+		if (this.weaponsSpawnIndex.length > 0) this.alarm[0] = 1000;
+	}
+	alarm1() {
+		this.step++;
+		if (this.step % 2 === 0) {
+			this.weaponsAngle[0] = 25;
+			this.weaponsAngle[1] = 90;
+			this.weaponsAngle[2] = 115;
+			this.weaponsAngle[3] = 90;
+			this.weaponsAngle[4] = 90;
+			this.weaponsAngle[5] = 90;
+			this.weaponsAngle[6] = 65;
+			this.weaponsAngle[7] = 90;
+			this.weaponsAngle[8] = 155;
+		}
+		else {
+			this.weaponsAngle[0] = 105;
+			this.weaponsAngle[1] = 90;
+			this.weaponsAngle[2] = 65;
+			this.weaponsAngle[3] = 90;
+			this.weaponsAngle[4] = 90;
+			this.weaponsAngle[5] = 90;
+			this.weaponsAngle[6] = 115;
+			this.weaponsAngle[7] = 90;
+			this.weaponsAngle[8] = 75;
+		}
+		this.alarm[1] = 2000;
+	}
 }
 
 class Title extends BranthBehaviour {
@@ -399,6 +524,7 @@ OBJ.add(RotateGun);
 OBJ.add(MachineGun);
 OBJ.add(MissileLauncher);
 OBJ.add(Beamer);
+OBJ.add(WeaponHandler);
 OBJ.add(Title);
 OBJ.add(Transition);
 
@@ -435,13 +561,44 @@ const Manager = {
 				color: C.lightGreen,
 				description: 'Set screen mode to fullscreen.',
 				onClick() {
+					let count = 0;
 					if (this.text === 'Windowed') {
-						this.text = 'Fullscreen';
-						this.description = 'Set screen mode to windowed.';
+						if (CANVAS.requestFullscreen) {
+							CANVAS.requestFullscreen();
+						}
+						else if (CANVAS.msRequestFullscreen) {
+							CANVAS.msRequestFullscreen();
+						}
+						else if (CANVAS.mozRequestFullscreen) {
+							CANVAS.mozRequestFullscreen();
+						}
+						else if (CANVAS.webkitRequestFullscreen) {
+							CANVAS.webkitRequestFullscreen();
+						}
+						else count++;
+						if (count === 0) {
+							this.text = 'Fullscreen';
+							this.description = 'Set screen mode to windowed.';
+						}
 					}
 					else {
-						this.text = 'Windowed';
-						this.description = 'Set screen mode to fullscreen.';
+						if (document.exitFullscreen) {
+							document.exitFullscreen();
+						}
+						else if (document.msExitFullscreen) {
+							document.msExitFullscreen();
+						}
+						else if (document.mozCancelFullscreen) {
+							document.mozCancelFullscreen();
+						}
+						else if (document.webkitExitFullscreen) {
+							document.webkitExitFullscreen();
+						}
+						else count++;
+						if (count === 0) {
+							this.text = 'Windowed';
+							this.description = 'Set screen mode to fullscreen.';
+						}
 					}
 				}
 			},
@@ -476,12 +633,19 @@ const Manager = {
 	game: {
 		gravity: 0.65,
 		friction: 0.5,
+		pause: false,
+		pauseAlpha: 0,
 		gameOver: false,
 		goingDown: false,
 		floor: 10,
 		floorHP: 0,
 		floorBaseHP: 50,
 		floorAmount: 10,
+		setup() {
+			this.pause = false;
+			this.gameOver = false;
+			this.goingDown = false;
+		},
 		getFloorHP(floor) {
 			return (this.floorAmount - floor + 1) * this.floorBaseHP;
 		},
@@ -489,6 +653,22 @@ const Manager = {
 			this.floorHP -= amount;
 			if (this.floorHP <= 0) {
 				this.floorHP = this.getFloorHP(--this.floor);
+			}
+		},
+		renderPause() {
+			this.pauseAlpha = Math.range(this.pauseAlpha, this.pause * 0.5, 0.2);
+			Sound.setVolume('Game', Math.range(Sound.getVolume('Game'), !this.pause, 0.1));
+			Draw.setColor(C.black);
+			Draw.setAlpha(this.pauseAlpha);
+			Draw.rect(0, 0, Room.w, Room.h);
+			Draw.setAlpha(1);
+			if (this.pause) {
+				Draw.setFont(Font.xl);
+				Draw.setHVAlign(Align.c, Align.b);
+				Manager.menu.drawText(Room.mid.w, Room.mid.h - 48, 'PAUSE');
+				Draw.setFont(Font.m);
+				Draw.setVAlign(Align.m);
+				Manager.menu.drawText(Room.mid.w, Room.mid.h, 'Press <Enter> to back to menu.');
 			}
 		},
 		drawBackground() {
@@ -532,19 +712,25 @@ const Credits = new BranthRoom('Credits');
 const Leaderboard = new BranthRoom('Leaderboard');
 const LevelSelect = new BranthRoom('LevelSelect');
 const PlayerSelect = new BranthRoom('PlayerSelect');
+const Level1 = new BranthRoom('Level1');
+const Level2 = new BranthRoom('Level2');
+const Level3 = new BranthRoom('Level3');
 Room.add(Menu);
 Room.add(Game);
 Room.add(Credits);
 Room.add(Leaderboard);
 Room.add(LevelSelect);
 Room.add(PlayerSelect);
+Room.add(Level1);
+Room.add(Level2);
+Room.add(Level3);
 
 Menu.start = () => {
 	Sound.stop('Game');
 	if (!Sound.isPlaying('Menu')) Sound.loop('Menu');
 	Manager.menu.cursor = 0;
 	Manager.menu.rotation = -72;
-	OBJ.push(Transition, new Transition(C.white));
+	OBJ.create(Transition, C.white);
 	OBJ.create(Title);
 };
 
@@ -575,7 +761,8 @@ Menu.renderUI = () => {
 		x: Room.mid.w,
 		y: Room.mid.h,
 		w: Room.w * 0.6,
-		h: Room.h * 0.1
+		h: Room.h * 0.1,
+		boxSize: Room.h * 0.15
 	};
 	const h = [];
 	for (let i = Manager.menu.items.length - 1; i >= 0; i--) {
@@ -588,9 +775,9 @@ Menu.renderUI = () => {
 		const k = j.i === Manager.menu.cursor;
 		const l = 0.25 + 0.75 * ((j.y - menu.y + Math.lendirx(menu.h * 0.5, 0)) / menu.h);
 		Draw.setColor(Manager.menu.items[j.i].color);
-		Draw.rectTransformed(j.x, j.y, 80, 80, false, l, l);
+		Draw.rectTransformed(j.x, j.y, menu.boxSize, menu.boxSize, false, l, l);
 		Draw.setAlpha(0.5);
-		Draw.rectTransformed(j.x, menu.y + 90 * l, 200, 20, false, l, l);
+		Draw.rectTransformed(j.x, menu.y + menu.boxSize * 1.125 * l, 200, 20, false, l, l);
 		Draw.setAlpha(1);
 	}
 	const t = 1 + Math.max(0, Math.sin(Time.time * 0.01) * 0.1);
@@ -598,7 +785,7 @@ Menu.renderUI = () => {
 	Draw.setHVAlign(Align.c, Align.m);
 	for (let i = 1; i >= 0; i--) {
 		Draw.setColor(i > 0? C.black : C.white);
-		Draw.textTransformed(menu.x + i, menu.y + 90 + i, Manager.menu.items[Manager.menu.cursor].text, t, t, Math.range(-1, 1));
+		Draw.textTransformed(menu.x + i, menu.y + menu.boxSize * 1.125 + i, Manager.menu.items[Manager.menu.cursor].text, t, t, Math.range(-1, 1));
 	}
 	Draw.setFont(Font.m);
 	Draw.setVAlign(Align.b);
@@ -613,32 +800,44 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
+	Manager.game.setup();
 	Sound.stop('Menu');
 	Sound.loop('Game');
-	OBJ.push(Kong, new Kong(0, Room.w * 0.25, Room.mid.h, C.royalBlue, {
+	OBJ.create(Kong, 0, Room.w * 0.25, Room.mid.h, C.royalBlue, {
 		W: KeyCode.Up,
 		A: KeyCode.Left,
 		S: KeyCode.Down,
 		D: KeyCode.Right
-	}));
-	OBJ.push(Kong, new Kong(1, Room.w * 0.75, Room.mid.h, C.crimson, {
+	});
+	OBJ.create(Kong, 1, Room.w * 0.75, Room.mid.h, C.crimson, {
 		W: KeyCode.W,
 		A: KeyCode.A,
 		S: KeyCode.S,
 		D: KeyCode.D
-	}));
-	OBJ.push(Transition, new Transition(C.white));
+	});
+	OBJ.create(WeaponHandler, [0, 8, 2, 6]);
+	OBJ.create(Transition, C.white);
 };
 
 Game.update = () => {
-	if (Manager.menu.keyEnter) {
-		OBJ.push(Bullet, new Bullet(Room.mid.w, Room.mid.h, Math.range(360)));
-		OBJ.push(Missile, new Missile(Room.mid.w, Room.mid.h, Math.range(360), Math.pick(OBJ.take(Kong))));
-		// OBJ.push(Beam, new Beam(Room.mid.w, Room.mid.h, Math.range(360)));
+	if (Manager.menu.keyEscape) {
+		if (Manager.game.pause) {
+			Manager.game.pause = false;
+			Sound.play('Cancel');
+		}
+		else {
+			Manager.game.pause = true;
+			Sound.play('Cancel');
+		}
 	}
 };
 
 Game.render = () => {
+	if (Manager.menu.keyEnter) {
+		if (Manager.game.pause) {
+			Room.start('Menu');
+		}
+	}
 	Manager.game.drawBackground();
 };
 
@@ -647,12 +846,13 @@ Game.renderUI = () => {
 	for (const i of OBJ.take(Kong)) {
 		i.renderUI();
 	}
+	Manager.game.renderPause();
 	Manager.renderTransition();
 };
 
 Credits.start = () => {
 	Manager.credits.y = 320;
-	OBJ.push(Transition, new Transition(C.black, 100, 50));
+	OBJ.create(Transition, C.black, 100, 50);
 };
 
 Credits.update = () => {
@@ -676,7 +876,7 @@ Credits.renderUI = () => {
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
 	Draw.setFont(Font.m);
 	Draw.setHAlign(Align.l);
-	Manager.menu.drawText(120, Manager.credits.y + 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nContact\n  branthnl1@gmail.com\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
+	Manager.menu.drawText(120, Manager.credits.y + 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nWebsite\n  branthnl.itch.io\n  github.com/branthnl\n\nContact\n  branthnl1@gmail.com\n\nSource Code\n  github.com/branthnl/js-games/042-smashkong\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -687,7 +887,7 @@ Credits.renderUI = () => {
 
 Leaderboard.start = () => {
 	Manager.leaderboard.y = 320;
-	OBJ.push(Transition, new Transition(C.black, 100, 50));
+	OBJ.create(Transition, C.black, 100, 50);
 };
 
 Leaderboard.update = () => {
@@ -708,25 +908,28 @@ Leaderboard.update = () => {
 
 Leaderboard.renderUI = () => {
 	const t = Math.sin(Time.time * 0.005);
+	const podium = {
+		h: Room.h * 0.062
+	};
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
 	Draw.setFont(Font.m);
 	for (let i = 0; i < 10; i++) {
 		const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
-		const h = (10 - i) * 34;
+		const h = (10 - i) * podium.h;
 		const y = Manager.leaderboard.y + Room.h - h;
 		Draw.setColor(C.white);
 		Draw.roundRect(x, y, 40, h + 32, 4);
 		Draw.setColor(C.blue);
 		Draw.rect(x + 8, y, 24, -24);
 		Draw.setVAlign(Align.b);
-		Manager.menu.drawText(x + 20, y - 30, `${'Greyhunter'}\n${(11 - i) * 10000}`);
+		Manager.menu.drawText(x + 20, y - 30, `${'Branth'}\n${(11 - i) * 10000}`);
 	}
 	Draw.setFont(Font.l, Font.bold);
 	for (let i = 0; i < 10; i++) {
 		const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
-		const h = (10 - i) * 34;
+		const h = (10 - i) * podium.h;
 		const y = Manager.leaderboard.y + Room.h - h;
 		Draw.setColor(C.black);
 		Draw.setVAlign(Align.t);
@@ -742,7 +945,7 @@ Leaderboard.renderUI = () => {
 };
 
 LevelSelect.start = () => {
-	OBJ.push(Transition, new Transition(C.white));
+	OBJ.create(Transition, C.black, 100, 50);
 };
 
 LevelSelect.update = () => {
@@ -751,9 +954,19 @@ LevelSelect.update = () => {
 		Manager.menu.cursor = 0;
 		Manager.menu.rotation = -72;
 	}
+	if (Room.name === 'LevelSelect') {
+		Emitter.preset('fire');
+		Emitter.setColor(Math.choose(C.indigo, C.darkSlateBlue));
+		Emitter.setArea(0, Room.w, Room.h, Room.h);
+		Emitter.emit(1);
+	}
 };
 
 LevelSelect.renderUI = () => {
+	const t = Math.sin(Time.time * 0.005);
+	Draw.setFont(Font.xxl);
+	Draw.setHVAlign(Align.c, Align.t);
+	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'SELECT MISSION');
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -763,7 +976,7 @@ LevelSelect.renderUI = () => {
 };
 
 PlayerSelect.start = () => {
-	OBJ.push(Transition, new Transition(C.white));
+	OBJ.create(Transition, C.black, 100, 50);
 };
 
 PlayerSelect.update = () => {
@@ -776,6 +989,12 @@ PlayerSelect.update = () => {
 		Room.start('Game');
 		Sound.play('Decision');
 	}
+	if (Room.name === 'PlayerSelect') {
+		Emitter.preset('fire');
+		Emitter.setColor(Math.choose(C.lemonChiffon, C.yellow));
+		Emitter.setArea(0, Room.w, Room.h, Room.h);
+		Emitter.emit(1);
+	}
 };
 
 PlayerSelect.renderUI = () => {
@@ -787,5 +1006,7 @@ PlayerSelect.renderUI = () => {
 	Manager.renderTransition();
 };
 
+Level1.start = () => {};
+
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
-Room.start('Game');
+Room.start('Menu');

@@ -22,6 +22,7 @@ Sound.add('Pound1', 'src/snd/Pound.wav');
 Sound.add('Cursor', 'src/snd/Cursor.wav');
 Sound.add('Cancel', 'src/snd/Cancel.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
+Sound.add('Explosion', 'src/snd/Explosion.wav');
 
 class Kong extends BranthBehaviour {
 	constructor(pid, x, y, color, keyCodes) {
@@ -96,7 +97,7 @@ class Kong extends BranthBehaviour {
 				this.vsp = this.jmpSpd;
 				this.jmpHold = true;
 				this.alarm[0] = 666;
-				Sound.play(`Jump${this.playerIndex}`);
+				if (!Manager.game.goingDown) Sound.play(`Jump${this.playerIndex}`);
 			}
 		}
 		if (keyWR) this.jmpHold = false;
@@ -124,7 +125,7 @@ class Kong extends BranthBehaviour {
 						this.vsp = this.jmpSpd * 0.7;
 					}
 				}
-				Sound.play(`Jump${this.playerIndex}`);
+				if (!Manager.game.goingDown) Sound.play(`Jump${this.playerIndex}`);
 			}
 			this.jmpHold = true;
 			this.alarm[0] = 666;
@@ -368,6 +369,20 @@ class Gun extends BranthBehaviour {
 	alarm0() {
 		this.canShoot = true;
 	}
+	onDestroy() {
+		Emitter.preset('puff');
+		Emitter.setSize(4, 8);
+		Emitter.setAlpha(0.8, 0.8);
+		Emitter.setArea(this.x, this.x, this.y, this.y);
+		Emitter.setColor(C.tomato);
+		Emitter.setOutline(true);
+		Emitter.emit(Math.range(10, 12));
+		Emitter.setOutline(false);
+		Emitter.emit(Math.range(10, 12));
+		Emitter.setColor(C.lemonChiffon);
+		Emitter.emit(Math.range(10, 12));
+		View.shake(2, 400);
+	}
 }
 
 class RotateGun extends Gun {
@@ -413,6 +428,16 @@ class WeaponHandler extends BranthBehaviour {
 		this.alarm[1] = 10;
 		this.weapons = [null, null, null, null, null, null, null, null, null];
 		this.weaponsAngle = [90, 90, 90, 90, 90, 90, 90, 90, 90];
+	}
+	destroy() {
+		for (let i = this.weapons.length; i >= 0; i--) {
+			const j = this.weapons[i];
+			if (j instanceof Gun) {
+				OBJ.destroy(j.id);
+			}
+		}
+		OBJ.destroy(this.id);
+		Sound.play('Explosion');
 	}
 	update() {
 		if (Manager.game.pause) return;
@@ -520,6 +545,62 @@ class Transition extends BranthBehaviour {
 	}
 }
 
+class FestiveMaker extends BranthBehaviour {
+	constructor() {
+		super(0, 0);
+		this.alarm[0] = 30;
+		this.spot = [
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32)),
+			new Vector2(Math.range(32, Room.w - 32), Math.range(32, Room.h - 32))
+		];
+	}
+	puff() {
+		switch (Math.choose(0, 1, 2)) {
+			case 0:
+				Emitter.setColor(C.tomato);
+				Emitter.setOutline(true);
+				Emitter.emit(1);
+				break;
+			case 1:
+				Emitter.setColor(C.tomato);
+				Emitter.setOutline(false);
+				Emitter.emit(1);
+				break;
+			case 2:
+				Emitter.setColor(C.lemonChiffon);
+				Emitter.setOutline(false);
+				Emitter.emit(1);
+				break;
+		}
+	}
+	update() {
+		Emitter.preset('puff');
+		Emitter.setSize(4, 8);
+		Emitter.setAlpha(0.8, 0.8);
+		for (const i of this.spot) {
+			Emitter.setArea(i.x, i.x, i.y, i.y);
+			this.puff();
+		}
+	}
+	alarm0() {
+		this.alarm[0] = Math.range(500, 2500);
+		View.shake(2, 400);
+		Sound.play('Explosion');
+		for (const i of this.spot) {
+			i.x = Math.range(32, Room.w - 32);
+			i.y = Math.range(32, Room.h - 32);
+		}
+	}
+}
+
 OBJ.add(Kong);
 OBJ.add(Bullet);
 OBJ.add(Missile);
@@ -532,6 +613,7 @@ OBJ.add(Beamer);
 OBJ.add(WeaponHandler);
 OBJ.add(Title);
 OBJ.add(Transition);
+OBJ.add(FestiveMaker);
 
 const Manager = {
 	menu: {
@@ -644,14 +726,28 @@ const Manager = {
 		pauseAlpha: 0,
 		gameOver: false,
 		goingDown: false,
-		floor: 10,
+		goingDownAlarm: 0,
+		floor: 5,
 		floorHP: 0,
 		floorBaseHP: 50,
-		floorAmount: 10,
-		setup() {
+		floorAmount: 5,
+		message: '',
+		messageCounter: 0,
+		guideText: '',
+		guideIndex: 0,
+		setup(floorAmount = 5) {
 			this.pause = false;
+			this.pauseAlpha = 0;
 			this.gameOver = false;
 			this.goingDown = false;
+			this.goingDownAlarm = 0;
+			this.floorAmount = floorAmount;
+			this.floor = this.floorAmount;
+			this.floorHP = this.getFloorHP(this.floor);
+			this.message = '';
+			this.messageCounter = 0;
+			this.guideText = '';
+			this.guideIndex = 0;
 		},
 		getFloorHP(floor) {
 			return (this.floorAmount - floor + 1) * this.floorBaseHP;
@@ -659,10 +755,62 @@ const Manager = {
 		takeDamage(amount) {
 			this.floorHP -= amount;
 			if (this.floorHP <= 0) {
-				this.floorHP = this.getFloorHP(--this.floor);
+				if (this.floor <= 1) {
+					if (!this.gameOver) {
+						const o = OBJ.take(WeaponHandler);
+						if (o.length > 0) {
+							o[0].destroy();
+						}
+						OBJ.create(FestiveMaker);
+						this.gameOver = true;
+					}
+				}
+				else {
+					this.goingDown = true;
+					this.goingDownAlarm = 3000;
+					const o = OBJ.take(WeaponHandler);
+					if (o.length > 0) {
+						o[0].destroy();
+					}
+					if (this.floor === 2) {
+						this.showMessage(`Going down to ground floor`);
+					}
+					else {
+						this.showMessage(`Going down to floor ${this.floor - 1}`);
+					}
+				}
+			}
+		},
+		goingDownComplete() {
+			this.floorHP = this.getFloorHP(--this.floor);
+		},
+		renderInfo() {
+			const v = View.getView(0, 0);
+			Draw.setColor(C.gray);
+			Draw.circle(v.x + Room.mid.w, v.y + 16, 10);
+			Draw.setFont(Font.s, Font.bold);
+			Draw.setColor(C.darkGray);
+			Draw.setHVAlign(Align.c, Align.m);
+			Draw.text(v.x + Room.mid.w, v.y + 16, this.gameOver? '-' : this.floor);
+			Draw.resetFontStyle();
+			if (!this.gameOver && !this.goingDown) {
+				const t = this.floorHP / this.getFloorHP(this.floor);
+				Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 1)`);
+				Draw.rect(Room.w * 0.1, 64, t * Room.w * 0.8, 24);
+				Draw.setColor(C.black);
+				Draw.rect(Room.w * 0.1, 64, Room.w * 0.8, 24, true);
 			}
 		},
 		renderPause() {
+			if (this.gameOver) {
+				Draw.setFont(Font.xl);
+				Draw.setColor(C.black);
+				Draw.setHVAlign(Align.c, Align.b);
+				Draw.text(Room.mid.w, Room.h * 0.4 - 48, 'BUILDING DESTROYED');
+				Draw.setFont(Font.m);
+				Draw.setVAlign(Align.m);
+				Draw.text(Room.mid.w, Room.h * 0.4, 'Press <Enter> to continue.');
+			}
 			this.pauseAlpha = Math.range(this.pauseAlpha, this.pause * 0.5, 0.2);
 			Sound.setVolume('Game', Math.range(Sound.getVolume('Game'), !this.pause, 0.1));
 			Draw.setColor(C.black);
@@ -672,10 +820,42 @@ const Manager = {
 			if (this.pause) {
 				Draw.setFont(Font.xl);
 				Draw.setHVAlign(Align.c, Align.b);
-				Manager.menu.drawText(Room.mid.w, Room.mid.h - 48, 'PAUSE');
+				Manager.menu.drawText(Room.mid.w, Room.h * 0.4 - 48, 'PAUSE');
 				Draw.setFont(Font.m);
 				Draw.setVAlign(Align.m);
-				Manager.menu.drawText(Room.mid.w, Room.mid.h, 'Press <Enter> to back to menu.');
+				Manager.menu.drawText(Room.mid.w, Room.h * 0.4, 'Press <Enter> to back to menu.');
+			}
+		},
+		showMessage(text) {
+			this.message = text;
+			this.messageCounter = 180;
+		},
+		renderMessage() {
+			Draw.setHVAlign(Align.c, Align.m);
+			Draw.setFont(Font.l);
+			Draw.setColor(C.black);
+			Draw.text(Room.mid.w, Room.mid.h, this.guideText);
+			if (this.messageCounter > 0) {
+				let a = 0;
+				const t = this.messageCounter / 180;
+				if (t > 0.9) {
+					a = Math.clamp((1 - t) / 0.1, 0, 1);
+				}
+				else if (t > 0.1) {
+					a = 1;
+				}
+				else {
+					a = Math.clamp(t / 0.1, 0, 1);
+				}
+				const b = 1 + 0.2 * (1 - a);
+				Draw.setAlpha(a);
+				Draw.setColor(C.black);
+				Draw.rectTransformed(Room.mid.w, Room.mid.h, Room.w, 64, false, b, b);
+				Draw.setFont(Font.xl);
+				Draw.setColor(C.white);
+				Draw.textTransformed(Room.mid.w, Room.mid.h, this.message, b, b);
+				Draw.setAlpha(1);
+				this.messageCounter--;
 			}
 		},
 		drawBackground() {
@@ -722,6 +902,43 @@ const Manager = {
 			}
 		}
 	},
+	levelSelect: {
+		x: 0,
+		xto: 0,
+		cursor: 0,
+		rotation: 0,
+		get boxSize() {
+			return Room.w * 0.17;
+		},
+		items: [{
+				text: 'Standby',
+				color: C.skyBlue,
+				image: 'Gun',
+				description: 'Learn how it works! (Single Player)',
+				onClick() {
+					Room.start('Level1');
+				}
+			},
+			{
+				text: 'Warming Up',
+				color: C.pink,
+				image: 'MachineGun',
+				description: 'Reinforcement arrived! (Local Multiplayer)',
+				onClick() {
+					Room.start('Level2');
+				}
+			},
+			{
+				text: `Let's Get Rich`,
+				color: C.moccasin,
+				image: 'MissileLauncher',
+				description: 'Collect as many bananas as possible! (Local Multiplayer)',
+				onClick() {
+					Room.start('Level3');
+				}
+			}
+		]
+	},
 	renderTransition() {
 		const t = OBJ.take(Transition)[0];
 		if (t) t.render();
@@ -730,6 +947,7 @@ const Manager = {
 
 const Menu = new BranthRoom('Menu');
 const Game = new BranthRoom('Game');
+const Result = new BranthRoom('Result');
 const Credits = new BranthRoom('Credits');
 const Leaderboard = new BranthRoom('Leaderboard');
 const LevelSelect = new BranthRoom('LevelSelect');
@@ -739,6 +957,7 @@ const Level2 = new BranthRoom('Level2');
 const Level3 = new BranthRoom('Level3');
 Room.add(Menu);
 Room.add(Game);
+Room.add(Result);
 Room.add(Credits);
 Room.add(Leaderboard);
 Room.add(LevelSelect);
@@ -822,7 +1041,7 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
-	Manager.game.setup();
+	Manager.game.setup(20);
 	Sound.stop('Menu');
 	Sound.loop('Game');
 	OBJ.create(Kong, 0, Room.w * 0.25, Room.mid.h, C.royalBlue, {
@@ -838,11 +1057,12 @@ Game.start = () => {
 		D: KeyCode.D
 	});
 	OBJ.create(WeaponHandler, [0, 8, 2, 6]);
+	Manager.game.showMessage(`Welcome to floor ${Manager.game.floor}`);
 	OBJ.create(Transition, C.white);
 };
 
 Game.update = () => {
-	if (Manager.menu.keyEscape) {
+	if (Manager.menu.keyEscape && !Manager.game.gameOver) {
 		if (Manager.game.pause) {
 			Manager.game.pause = false;
 			Sound.play('Cancel');
@@ -852,11 +1072,21 @@ Game.update = () => {
 			Sound.play('Cancel');
 		}
 	}
+	if (Manager.game.goingDown) {
+		if (Manager.game.goingDownAlarm < 0) {
+			Manager.game.goingDownComplete();
+			Manager.game.goingDown = false;
+		}
+		else Manager.game.goingDownAlarm -= Time.deltaTime;
+	}
 };
 
 Game.render = () => {
 	if (Manager.menu.keyEnter) {
-		if (Manager.game.pause) {
+		if (Manager.game.gameOver) {
+			Room.start('Result');
+		}
+		else if (Manager.game.pause) {
 			Room.start('Menu');
 		}
 	}
@@ -865,9 +1095,11 @@ Game.render = () => {
 
 Game.renderUI = () => {
 	Manager.game.drawWallAround();
+	Manager.game.renderInfo();
 	for (const i of OBJ.take(Kong)) {
 		i.renderUI();
 	}
+	Manager.game.renderMessage();
 	Manager.game.renderPause();
 	Manager.renderTransition();
 };
@@ -898,7 +1130,7 @@ Credits.renderUI = () => {
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
 	Draw.setFont(Font.m);
 	Draw.setHAlign(Align.l);
-	Manager.menu.drawText(120, Manager.credits.y + 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nWebsite\n  branthnl.itch.io\n  github.com/branthnl\n\nContact\n  branthnl1@gmail.com\n\nSource Code\n  github.com/branthnl/js-games/042-smashkong\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
+	Manager.menu.drawText(120, Manager.credits.y + 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nWebsite\n  branthnl.itch.io\n  github.com/branthnl\n\nContact\n  branthnl1@gmail.com\n\nSource Code\n  github.com/branthnl/js-games/tree/master/042-smashkong\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -981,15 +1213,43 @@ Leaderboard.renderUI = () => {
 };
 
 LevelSelect.start = () => {
+	Manager.levelSelect.x = Manager.levelSelect.xto = Room.mid.w - Manager.levelSelect.cursor * Manager.levelSelect.boxSize;
+	Manager.levelSelect.x += Manager.levelSelect.boxSize * 0.07;
 	OBJ.create(Transition, C.black, 100, 50);
 };
 
 LevelSelect.update = () => {
+	if (Manager.menu.keyA) {
+		if (Manager.levelSelect.cursor > 0) {
+			Manager.levelSelect.cursor--;
+			Sound.play('Cursor');
+		}
+		else {
+			Manager.levelSelect.xto += Manager.levelSelect.boxSize * 0.07;
+			Sound.play('Cancel');
+		}
+	}
+	if (Manager.menu.keyD) {
+		if (Manager.levelSelect.cursor < Manager.levelSelect.items.length - 1) {
+			Manager.levelSelect.cursor++;
+			Sound.play('Cursor');
+		}
+		else {
+			Manager.levelSelect.xto -= Manager.levelSelect.boxSize * 0.07;
+			Sound.play('Cancel');
+		}
+	}
 	if (Manager.menu.keyEscape) {
 		Room.start('Menu');
 		Manager.menu.cursor = 0;
 		Manager.menu.rotation = -72;
 	}
+	else if (Manager.menu.keyEnter) {
+		Manager.levelSelect.items[Manager.levelSelect.cursor].onClick();
+		Sound.play('Decision');
+	}
+	Manager.levelSelect.xto = Math.range(Manager.levelSelect.xto, Room.mid.w - Manager.levelSelect.cursor * Manager.levelSelect.boxSize, 0.3);
+	Manager.levelSelect.x = Math.range(Manager.levelSelect.x, Manager.levelSelect.xto, 0.3);
 	if (Room.name === 'LevelSelect') {
 		Emitter.preset('fire');
 		Emitter.setColor(Math.choose(C.indigo, C.darkSlateBlue));
@@ -1003,6 +1263,25 @@ LevelSelect.renderUI = () => {
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'SELECT MISSION');
+	for (let i = Manager.levelSelect.items.length - 1; i >= 0; i--) {
+		const x = Manager.levelSelect.x + i * Manager.levelSelect.boxSize;
+		const j = 0.5 + 0.5 * (1 - Math.abs(Room.mid.w - x) / Room.mid.w);
+		Draw.setColor(Manager.levelSelect.items[i].color);
+		Draw.roundRectTransformed(x, Room.mid.h - 20, Manager.levelSelect.boxSize, Manager.levelSelect.boxSize, Manager.levelSelect.boxSize * 0.1, false, j, j);
+	}
+	const h = Manager.levelSelect.items[Manager.levelSelect.cursor];
+	Draw.setFont(Font.l);
+	let y = Room.mid.h + Manager.levelSelect.boxSize * 0.5 + 4;
+	Manager.menu.drawText(Room.mid.w, y, h.text);
+	y += Font.size * 1.5;
+	Draw.setFont(Font.m);
+	Manager.menu.drawText(Room.mid.w, y, `/`);
+	Draw.setHAlign(Align.r);
+	Manager.menu.drawText(Room.mid.w - 10, y, Manager.levelSelect.cursor + 1);
+	Draw.setHAlign(Align.l);
+	Manager.menu.drawText(Room.mid.w + 10, y, Manager.levelSelect.items.length);
+	Draw.setHVAlign(Align.c, Align.b);
+	Manager.menu.drawText(Room.mid.w, Room.h - 48, h.description);
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -1042,7 +1321,103 @@ PlayerSelect.renderUI = () => {
 	Manager.renderTransition();
 };
 
-Level1.start = () => {};
+Level1.start = () => {
+	Manager.game.setup(5);
+	Sound.stop('Menu');
+	Sound.loop('Game');
+	const n = OBJ.create(Kong, 0, Room.w * 0.5, Room.h - 32, C.royalBlue, {
+		W: KeyCode.Up,
+		A: KeyCode.Left,
+		S: KeyCode.Down,
+		D: KeyCode.Right
+	});
+	n.vsp = 0;
+	Manager.game.guideText = 'Press <Left> or <Right> to move.';
+	Manager.game.guideIndex = 0;
+	Sound.play('Cursor');
+	OBJ.create(Transition, C.white);
+};
+
+Level1.update = () => {
+	Game.update();
+	if (Manager.game.pause) return;
+	const updt = {
+		'0'() {
+			if (Input.keyDown(KeyCode.Left) || Input.keyDown(KeyCode.Right)) {
+				Manager.game.guideText = 'Press <Up> to jump and double jump.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'1'() {
+			if (Input.keyDown(KeyCode.Up)) {
+				Manager.game.guideText = 'Keep jumping as high as possible and\nthen let it fall into the floor.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'2'() {
+			if (Manager.game.floor < 5) {
+				Manager.game.guideText = 'You have just destroyed 1 floor! Keep jump and\nfall until this floor is destroyed!';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'3'() {
+			if (Manager.game.floor < 4) {
+				Manager.game.guideText = 'You can jump to the wall to be able to jump higher.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'4'() {
+			if (Manager.game.floor < 3) {
+				Manager.game.guideText = 'Caution! This floor is armed by weapons.\nAvoid their bullets to stay alive!';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+				OBJ.create(WeaponHandler, [0, 8, 2, 6]);
+			}
+		},
+		'5'() {
+			if (Manager.game.floor < 2) {
+				Manager.game.guideText = 'Yes! You have destroyed the armed floor.\nAll the next floors should be easy.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+				OBJ.create(WeaponHandler, [8, 6, 2, 0]);
+			}
+		},
+		'6'() {
+			if (Manager.game.gameOver) {
+				Manager.game.guideText = '';
+			}
+		}
+	}[Manager.game.guideIndex];
+	updt();
+};
+
+Level1.render = () => {
+	Game.render();
+};
+
+Level2.update = () => {
+	Game.update();
+};
+
+Level2.render = () => {
+	Game.render();
+};
+
+Level3.update = () => {
+	Game.update();
+};
+
+Level3.render = () => {
+	Game.render();
+};
+
+Level1.renderUI = Game.renderUI;
+Level2.renderUI = Game.renderUI;
+Level3.renderUI = Game.renderUI;
 
 Manager.leaderboard.updateHS();
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });

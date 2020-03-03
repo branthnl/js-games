@@ -24,6 +24,21 @@ class Vector2 {
 	static get zero() {
 		return new Vector2(0, 0);
 	}
+	static get up() {
+		return new Vector2(0, -1);
+	}
+	static get left() {
+		return new Vector2(-1, 0);
+	}
+	static get down() {
+		return new Vector2(0, 1);
+	}
+	static get right() {
+		return new Vector2(1, 0);
+	}
+	static get center() {
+		return new Vector2(0.5, 0.5);
+	}
 }
 
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
@@ -220,7 +235,7 @@ const Sound = {
 	update() {
 		for (const s of this.list) {
 			if (s.loop) {
-				if (s.currentTime + Time.deltaTime * 0.005 >= s.duration * s.loopTo) {
+				if (s.currentTime >= s.duration * s.loopTo) {
 					s.currentTime = s.duration * s.loopFrom;
 				}
 			}
@@ -743,6 +758,10 @@ const Font = {
 		this.size = 10;
 		return this.font;
 	},
+	get sm() {
+		this.size = 14;
+		return this.font;
+	},
 	get m() {
 		this.size = 16;
 		return this.font;
@@ -775,7 +794,7 @@ const Cap = {
 	round: 'round'
 };
 
-const Line = {
+const LineJoin = {
 	miter: 'miter',
 	round: 'round',
 	bevel: 'bevel'
@@ -793,7 +812,7 @@ const Primitive = {
 
 const Draw = {
 	fontFamily: '',
-	fontDefault: ['Arvo', 'Fresca', 'Sniglet'],
+	fontDefault: ['Montserrat', 'Arvo', 'Fresca', 'Sniglet'],
 	primitiveType: '',
 	vertices: [],
 	list: [[], []],
@@ -946,7 +965,7 @@ const Draw = {
 		CTX.lineJoin = line;
 	},
 	resetLineJoin() {
-		CTX.lineJoin = Line.miter;
+		CTX.lineJoin = LineJoin.miter;
 	},
 	setStrokeWeight(n) {
 		CTX.lineWidth = n;
@@ -1142,9 +1161,9 @@ const OBJ = {
 		}
 		if (!GLOBAL.productionMode) console.log(`Class not found: ${cls.name}`);
 	},
-	create(cls, x, y) {
+	create(cls, ...payload) {
 		if (this.classes.includes(cls)) {
-			const i = new cls(x || 0, y || 0);
+			const i = new cls(...payload);
 			this.list[this.classes.indexOf(cls)].push(i);
 			i.awake();
 			if (i._active) {
@@ -1721,6 +1740,23 @@ const Emitter = {
 				this.setGravity(0, 0);
 				this.setOutline(false);
 				this.setToView(true);
+				break;
+			case 'fire':
+				this.setSpeed(1, 5);
+				this.setSpeedInc(0, 0);
+				this.setSize(10, 20);
+				this.setSizeInc(-0.001, -0.001);
+				this.setDirection(270, 270);
+				this.setDirectionInc(0, 0);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.15, 0.15);
+				this.setColor(Math.choose(C.red, C.fireBrick));
+				this.setLife(12000, 12000);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				this.setOutline(false);
+				this.setToView(false);
 				break;
 		}
 	},

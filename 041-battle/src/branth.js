@@ -812,7 +812,7 @@ const Primitive = {
 
 const Draw = {
 	fontFamily: '',
-	fontDefault: ['Montserrat', 'Arvo', 'Fresca', 'Sniglet'],
+	fontDefault: ['Montserrat'],
 	primitiveType: '',
 	vertices: [],
 	list: [[], []],

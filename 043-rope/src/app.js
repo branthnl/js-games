@@ -1,144 +1,77 @@
 class Rope extends BranthObject {
-	constructor(x, y) {
+	constructor(n, x, y) {
 		super(x, y);
-		this.n = 20; // Number of segments
-		this.l = 200; // Length of rope
-		this.sl = this.l / this.n; // Length of one segment
-		this.k = 1; // Rope stiffness (0 -> 1)
-		this.b = 0.3; // Rope bending prop
-		this.d = 0.01; // Damping
-		this.vt = 0.05; // Velocity threshold
-		this.rtime = 2; // If the repeat time is bigger the simulation is better but uses more CPU
-		this.bt = 0; // Bend type (0-nobendcalc, 1-bendcalclow, 2-bendcalchigh) more bend calculations -> more CPU
-		this.sx = this.x; // startx, x of first segment
-		this.sy = this.y; // starty, y of first segment
-		this.g = 0.1; // Gravity
-		this.segx = [];
-		this.segy = [];
-		this.segvx = [];
-		this.segvy = [];
-		this.segInit(); // Initializes all segments
-		this.ddm = 0; // Debug draw mode - 0(circles) 1(lines) 2(both) 3(texture)
-	}
-	segInit() {
-		for (let i = 0; i < this.n; i++) {
-			this.segx.push(this.sx); // segment x
-			this.segy.push(this.sy + i * this.sl); // segment y
-			this.segvx.push(0); // segment x velocity
-			this.segvy.push(0); // segment y velocity
+		this.a = 200; // length of rope
+		this.b = 0.3; // rope bending prop
+		this.c = 1; // rope stiffness 0-1
+		this.d = 0.01; // damping
+		this.e = 0.05; // velocity threshold
+		this.f = 2; // repeat time
+		this.g = 0.1; // gravity
+		this.h = -1;
+		this.seg = [];
+		const j = this.a / n;
+		for (let i = 0; i < n; i++) {
+			this.seg.push({
+				p: new Vector2(this.x, this.y + i * j),
+				v: Vector2.zero
+			});
 		}
 	}
-	segStep() {
-		for (let i = this.n - 1; i > 0; i--) {
-			this.segMove1(i, i - 1);
-			if (this.bt > 0 && i - 2 >= 0) this.segMove2(i, i - 2);
-			if (this.bt > 1 && i - 3 >= 0) this.segMove3(i, i - 3);
-		}
-	}
-	segMove1(i, j, s = 1) {
-		const len = Math.linedis(this.segx[j], this.segy[j], this.segx[i], this.segy[i]);
-		const dir = Math.linedir(this.segx[j], this.segy[j], this.segx[i], this.segy[i]);
-		let xx = this.segx[i];
-		let yy = this.segy[i];
-		let l = Math.lendir(((len - this.sl * s) / 2) * (s === 1? this.k : this.b), dir);
-		this.segx[i] -= l.x;
-		this.segy[i] -= l.y;
-		this.segvx[i] += this.segx[i] - xx;
-		this.segvy[i] += this.segy[i] - yy + (s === 1? this.g / this.rtime : 0);
-		xx = this.segx[j];
-		yy = this.segy[j];
-		l = Math.lendir(((len - this.sl * s) / 2) * (s === 1? this.k : this.b), dir);
-		this.segx[j] += l.x;
-		this.segy[j] += l.y;
-		this.segvx[j] += this.segx[j] - xx;
-		this.segvy[j] += this.segy[j] - yy + (s === 1? this.g / this.rtime : 0);
-		if (s === 1) {
-			this.segvx[i] -= this.segvx[i] * this.d / this.rtime;
-			this.segvy[i] -= this.segvy[i] * this.d / this.rtime;
-			this.segvx[j] -= this.segvx[j] * this.d / this.rtime;
-			this.segvy[j] -= this.segvy[j] * this.d / this.rtime;
-			const h = this.vt / this.rtime;
-			if (Math.abs(this.segvx[i]) < h && Math.abs(this.segvy[i]) < h) {
-				this.segvx[i] = 0;
-				this.segvy[i] = 0;
-			}
-			if (Math.abs(this.segvx[j]) < h && Math.abs(this.segvy[j]) < h) {
-				this.segvx[j] = 0;
-				this.segvy[j] = 0;
-			}
-			this.segx[i] += this.segvx[i] / this.rtime / 2;
-			this.segy[i] += this.segvy[i] / this.rtime / 2;
-			this.segx[j] += this.segvx[j] / this.rtime / 2;
-			this.segy[j] += this.segvy[j] / this.rtime / 2;
-		}
-	}
-	segMove2(i, j) {
-		this.segMove1(i, j, 2);
-	}
-	segMove3(i, j) {
-		this.segMove1(i, j, 3);
-	}
-	getClosestSeg(x, y) {
-		let g = 0;
-		let h = Math.linedis(x, y, this.segx[g], this.segy[g]);
-		for (let i = this.n - 1; i > 0; i--) {
-			const j = Math.linedis(x, y, this.segx[i], this.segy[i]);
-			if (j < h) {
-				h = j;
-				g = i;
+	getClosestSegment(p) {
+		let q = 0, r = Math.pointdis(p, this.seg[0].p);
+		for (let s = this.seg.length - 1; s > 0; s--) {
+			const t = Math.pointdis(p, this.seg[s].p);
+			if (t < r) {
+				r = t;
+				q = s;
 			}
 		}
-		return g;
-	}
-	drawDebug(circles, lines, cover, lover) {
-		Draw.setColor(C.black);
-		if (circles === 1) {
-			Draw.circle(this.segx[0], this.segy[0], 3, true);
-		}
-		if (this.segvx[0] === 0 && this.segvy[0] === 0) {
-			if (cover === 1) {
-				Draw.circle(this.segx[0], this.segy[0], 5, true);
-			}
-		}
-		for (let i = this.n - 1; i > 0; i--) {
-			if (lines === 1) Draw.line(this.segx[i], this.segy[i], this.segx[i - 1], this.segy[i - 1]);
-			if (circles === 1) Draw.circle(this.segx[i], this.segy[i], 3, true);
-			if (this.segvx[i] === 0 && this.segvy[i] === 0) {
-				if (cover === 1) Draw.circle(this.segx[i], this.segy[i], 5, true);
-				if (lover === 1) {
-					Draw.setStrokeWeight(3);
-					Draw.line(this.segx[i], this.segy[i], this.segx[i - 1], this.segy[i - 1]);
-					Draw.resetStrokeWeight();
-				}
-			}
-		}
-	}
-	draw() {
-		Draw.setColor(C.black);
+		return this.seg[q];
 	}
 	update() {
-		let p = -1;
-		const m = Input.mousePosition;
-		if (Input.mouseDown(0)) {
-			p = this.getClosestSeg(m.x, m.y);
-		}
-		if (Input.mouseHold(0)) {
-			p = this.getClosestSeg(m.x, m.y);
-			this.segvx[p] = m.x - this.segx[p];
-			this.segvy[p] = m.y - this.segy[p];
-		}
-		for (let i = 0; i < this.rtime; i++) {
-			this.segStep();
-		}
-		if (Input.keyDown(KeyCode.M)) {
-			if (++this.ddm > 3) this.ddm = 0;
+		if (Input.mouseDown(0)) this.h = this.getClosestSegment(Input.mousePosition);
+		if (Input.mouseHold(0)) this.h.v = Vector2.subtract(Input.mousePosition, this.h.p);
+		let f = this.f;
+		while (f-- > 0) {
+			const g = this.seg.length;
+			for (let h = g - 1; h > 0; h--) {
+				const i = this.seg[h];
+				const j = this.seg[h - 1];
+				let m = Math.lendir((Math.pointdis(j.p, i.p) - this.a / g) * 0.5 * this.c, Math.pointdir(j.p, i.p));
+				let n = Vector2.subtract(i.p, new Vector2(0, this.g / this.f));
+				i.p.minus(m);
+				i.v.plus(Vector2.subtract(i.p, n));
+				n = Vector2.subtract(j.p, new Vector2(0, this.g / this.f));
+				j.p.plus(m);
+				j.v.plus(Vector2.subtract(j.p, n));
+				i.v.minus(Vector2.multiply(i.v, this.d / this.f));
+				j.v.minus(Vector2.multiply(j.v, this.d / this.f));
+				n = this.e / this.f;
+				if (Math.abs(i.v.x) < n && Math.abs(i.v.y) < n) i.v = Vector2.zero;
+				if (Math.abs(j.v.x) < n && Math.abs(j.v.y) < n) j.v = Vector2.zero;
+				i.p.plus(Vector2.divide(i.v, this.f));
+				j.p.plus(Vector2.divide(j.v, this.f));
+				m = Math.lendir((Math.pointdis(j.p, i.p) - this.a / g * 2) * 0.5 * this.b, Math.pointdir(j.p, i.p));
+				n = Vector2.subtract(i.p, new Vector2(0, this.g / this.f));
+				i.p.minus(m);
+				i.v.plus(Vector2.subtract(i.p, n));
+				n = Vector2.subtract(j.p, new Vector2(0, this.g / this.f));
+				j.p.plus(m);
+				j.v.plus(Vector2.subtract(j.p, n));
+			}
 		}
 	}
 	render() {
-		if (this.ddm === 0) this.drawDebug(1, 0, 1, 0);
-		if (this.ddm === 1) this.drawDebug(0, 1, 0, 1);
-		if (this.ddm === 2) this.drawDebug(1, 1, 1, 1);
-		if (this.ddm === 3) this.draw();
+		Draw.setColor(C.black);
+		for (let i = this.seg.length - 1; i >= 0; i--) {
+			if (GLOBAL.debugMode !== 1) {
+				Draw.circle(this.seg[i].p.x, this.seg[i].p.y, 3, true);
+			}
+			if (GLOBAL.debugMode > 0 && i > 0) {
+				Draw.pointLine(this.seg[i].p, this.seg[i - 1].p);
+			}
+		}
 	}
 }
 
@@ -148,7 +81,7 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
-	OBJ.create(Rope, Room.mid.w, Room.mid.h);
+	OBJ.create(Rope, 20, Room.mid.w, Room.mid.h);
 };
 
 BRANTH.start();

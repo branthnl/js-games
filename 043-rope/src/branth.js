@@ -6,20 +6,39 @@ class Vector2 {
 	equal(v) {
 		return this.x === v.x && this.y === v.y;
 	}
+	plus(v) {
+		this.x += v.x;
+		this.y += v.y;
+	}
+	minus(v) {
+		this.x -= v.x;
+		this.y -= v.y;
+	}
+	times(v) {
+		this.x *= v.x;
+		this.y *= v.y;
+	}
+	div(v) {
+		this.x /= v.x;
+		this.y /= v.y;
+	}
 	static add(v1, v2) {
-		return new Vector2(v1.x + v2.x, v1.y + v2.y);
+		return v2 instanceof Vector2? new Vector2(v1.x + v2.x, v1.y + v2.y) : new Vector2(v1.x + v2, v1.y + v2);
 	}
 	static subtract(v1, v2) {
-		return new Vector2(v1.x - v2.x, v1.y - v2.y);
+		return v2 instanceof Vector2? new Vector2(v1.x - v2.x, v1.y - v2.y) : new Vector2(v1.x - v2, v1.y - v2);
 	}
 	static multiply(v1, v2) {
-		return new Vector2(v1.x * v2.x, v1.y * v2.y);
+		return v2 instanceof Vector2? new Vector2(v1.x * v2.x, v1.y * v2.y) : new Vector2(v1.x * v2, v1.y * v2);
 	}
 	static divide(v1, v2) {
-		return new Vector2(v1.x / v2.x, v1.y / v2.y);
+		return v2 instanceof Vector2? new Vector2(v1.x / v2.x, v1.y / v2.y) : new Vector2(v1.x / v2, v1.y / v2);
 	}
 	static dot(v1, v2) {
 		return v1.x * v2.x + v1.y * v2.y;
+	}
+	static copy(v) {
+		return new Vector2(v.x, v.y);
 	}
 	static get zero() {
 		return new Vector2(0, 0);

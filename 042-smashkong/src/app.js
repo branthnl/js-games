@@ -24,6 +24,9 @@ Sound.add('Cancel', 'src/snd/Cancel.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
 Sound.add('Explosion', 'src/snd/Explosion.wav');
 
+Sound.setVolume('Jump0', 0.5);
+Sound.setVolume('Jump1', 0.5);
+
 class Kong extends BranthBehaviour {
 	constructor(pid, x, y, color, keyCodes) {
 		super(x, y);
@@ -163,11 +166,11 @@ class Kong extends BranthBehaviour {
 		Draw.primitiveBegin();
 		Draw.vertex(v.x - this.w * 0.5, v.y);
 		Draw.vertex(v.x + this.w * 0.5, v.y);
-		Draw.vertex(v.x + 10, v.y - this.h);
-		Draw.vertex(v.x - 10, v.y - this.h);
+		Draw.vertex(v.x + this.w * 0.5, v.y - this.h);
+		Draw.vertex(v.x - this.w * 0.5, v.y - this.h);
 		Draw.setColor(C.black);
 		Draw.primitiveEnd();
-		Draw.setColor(C.bisque);
+		// Draw.setColor(C.bisque);
 		Draw.circle(v.x - 6, v.y - 18, 2);
 		Draw.circle(v.x + 6, v.y - 18, 2);
 		Draw.rect(v.x - 5, v.y - 5, 10, 3);
@@ -216,6 +219,9 @@ class Kong extends BranthBehaviour {
 		Emitter.setColor(C.lemonChiffon);
 		Emitter.emit(Math.range(10, 12));
 		View.shake(2, 400);
+		if (OBJ.take(Kong).length < 2 && Manager.game.credits <= 0) {
+			Manager.game.gameOver = true;
+		}
 	}
 }
 
@@ -224,7 +230,7 @@ class Bullet extends BranthBehaviour {
 		super(x, y);
 		this.spd = 5;
 		this.angle = angle;
-		this.damage = 1;
+		this.damage = 3;
 		this.spriteName = 'Bullet';
 		this.imageIndex = 0;
 		this.imageScale = Math.range(0.8, 1);
@@ -247,6 +253,7 @@ class Bullet extends BranthBehaviour {
 			}
 		}
 		if (this.x <= 32 || this.x >= Room.w - 32 || this.y <= 32 || this.y >= Room.h - 32) count++;
+		if (Manager.game.goingDown || Manager.game.gameOver) count++;
 		if (count > 0) OBJ.destroy(this.id);
 	}
 	drawSelf() {
@@ -277,7 +284,7 @@ class Missile extends Bullet {
 		super(x, y, angle);
 		this.target = target;
 		this.offset = new Vector2(Math.range(-10, 10), Math.range(-2, -22));
-		this.damage = 3;
+		this.damage = 8;
 		this.spriteName = 'Missile';
 		this.interval = Math.range(2000, 2500);
 		this.alarm[1] = this.interval;
@@ -344,6 +351,7 @@ class Gun extends BranthBehaviour {
 		this.shootPoint = Vector2.zero;
 		this.shootInterval = 400;
 		this.shootBackForce = 0;
+		this.angleSpd = 1;
 	}
 	shoot() {
 		OBJ.create(Bullet, this.shootPoint.x, this.shootPoint.y, this.angle);
@@ -351,7 +359,7 @@ class Gun extends BranthBehaviour {
 	update() {
 		if (Manager.game.pause) return;
 		this.shootPoint = Vector2.add(this, Math.lendir(16, this.angle));
-		if (this.canShoot) {
+		if (this.canShoot && OBJ.take(Kong).length > 0) {
 			this.shoot();
 			this.canShoot = false;
 			this.shootBackForce = 5;
@@ -360,7 +368,7 @@ class Gun extends BranthBehaviour {
 		this.shootBackForce *= 0.98;
 		this.x = Math.range(this.x, this.xto, 0.2);
 		this.y = Math.range(this.y, this.yto, 0.2);
-		this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle));
+		this.angle += Math.sin(Math.degtorad(this.angleTo - this.angle)) * this.angleSpd;
 	}
 	render() {
 		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
@@ -390,6 +398,7 @@ class RotateGun extends Gun {
 
 class MachineGun extends Gun {
 	awake() {
+		this.angleSpd = 2.5;
 		this.shootInterval = 50;
 	}
 	render() {
@@ -400,7 +409,7 @@ class MachineGun extends Gun {
 
 class MissileLauncher extends Gun {
 	awake() {
-		this.shootInterval = 4000;
+		this.shootInterval = 1500;
 	}
 	shoot() {
 		OBJ.create(Missile, this.shootPoint.x, this.shootPoint.y, Math.range(this.angle - 30, this.angle + 30), Math.pick(OBJ.take(Kong)));
@@ -450,7 +459,7 @@ class WeaponHandler extends BranthBehaviour {
 		}
 	}
 	alarm0() {
-		if (!Manager.game.pause) {
+		if (!Manager.game.pause && OBJ.take(Kong).length > 0) {
 			switch (this.weaponsSpawnIndex.shift()) {
 				case 0: this.weapons[0] = OBJ.create(Gun, 0, Room.w * 0.1, -48, 90); break;
 				case 1: this.weapons[1] = OBJ.create(Beamer, 1, Room.w * 0.22, -48, 90); break;
@@ -464,7 +473,7 @@ class WeaponHandler extends BranthBehaviour {
 			}
 			Sound.play('Decision');
 		}
-		if (this.weaponsSpawnIndex.length > 0) this.alarm[0] = 1000;
+		if (this.weaponsSpawnIndex.length > 0) this.alarm[0] = 250;
 	}
 	alarm1() {
 		this.step++;
@@ -473,7 +482,7 @@ class WeaponHandler extends BranthBehaviour {
 			this.weaponsAngle[1] = 90;
 			this.weaponsAngle[2] = 115;
 			this.weaponsAngle[3] = 90;
-			this.weaponsAngle[4] = 90;
+			this.weaponsAngle[4] = 165;
 			this.weaponsAngle[5] = 90;
 			this.weaponsAngle[6] = 65;
 			this.weaponsAngle[7] = 90;
@@ -484,7 +493,7 @@ class WeaponHandler extends BranthBehaviour {
 			this.weaponsAngle[1] = 90;
 			this.weaponsAngle[2] = 65;
 			this.weaponsAngle[3] = 90;
-			this.weaponsAngle[4] = 90;
+			this.weaponsAngle[4] = 15;
 			this.weaponsAngle[5] = 90;
 			this.weaponsAngle[6] = 115;
 			this.weaponsAngle[7] = 90;
@@ -632,7 +641,7 @@ const Manager = {
 				color: C.gold,
 				description: 'Compete against each other for banana!',
 				onClick() {
-					Room.start('PlayerSelect');
+					Room.start('Game');
 				}
 			},
 			{
@@ -726,7 +735,9 @@ const Manager = {
 		pauseAlpha: 0,
 		gameOver: false,
 		goingDown: false,
+		buildingIsDestroyed: false,
 		goingDownAlarm: 0,
+		credits: 4,
 		floor: 5,
 		floorHP: 0,
 		floorBaseHP: 50,
@@ -740,7 +751,9 @@ const Manager = {
 			this.pauseAlpha = 0;
 			this.gameOver = false;
 			this.goingDown = false;
+			this.buildingIsDestroyed = false;
 			this.goingDownAlarm = 0;
+			this.credits = 4;
 			this.floorAmount = floorAmount;
 			this.floor = this.floorAmount;
 			this.floorHP = this.getFloorHP(this.floor);
@@ -748,6 +761,14 @@ const Manager = {
 			this.messageCounter = 0;
 			this.guideText = '';
 			this.guideIndex = 0;
+		},
+		playerExists(index) {
+			for (const i of OBJ.take(Kong)) {
+				if (i.playerIndex === index) {
+					return true;
+				}
+			}
+			return false;
 		},
 		getFloorHP(floor) {
 			return (this.floorAmount - floor + 1) * this.floorBaseHP;
@@ -757,20 +778,19 @@ const Manager = {
 			if (this.floorHP <= 0) {
 				if (this.floor <= 1) {
 					if (!this.gameOver) {
-						const o = OBJ.take(WeaponHandler);
-						if (o.length > 0) {
-							o[0].destroy();
+						for (const i of OBJ.take(WeaponHandler)) {
+							i.destroy();
 						}
 						OBJ.create(FestiveMaker);
 						this.gameOver = true;
+						this.buildingIsDestroyed = true;
 					}
 				}
 				else {
 					this.goingDown = true;
 					this.goingDownAlarm = 3000;
-					const o = OBJ.take(WeaponHandler);
-					if (o.length > 0) {
-						o[0].destroy();
+					for (const i of OBJ.take(WeaponHandler)) {
+						i.destroy();
 					}
 					if (this.floor === 2) {
 						this.showMessage(`Going down to ground floor`);
@@ -781,19 +801,27 @@ const Manager = {
 				}
 			}
 		},
+		onStartFloor() {},
 		goingDownComplete() {
 			this.floorHP = this.getFloorHP(--this.floor);
+			this.onStartFloor();
 		},
 		renderInfo() {
 			const v = View.getView(0, 0);
+			Draw.setFont(Font.s, Font.bold);
+			const txt = `Credits: ${this.credits}`;
 			Draw.setColor(C.gray);
 			Draw.circle(v.x + Room.mid.w, v.y + 16, 10);
-			Draw.setFont(Font.s, Font.bold);
-			Draw.setColor(C.darkGray);
+			Draw.roundRect(v.x + 32, v.y + Room.h - 26, Draw.textWidth(txt) + 8, 20, 5);
 			Draw.setHVAlign(Align.c, Align.m);
-			Draw.text(v.x + Room.mid.w, v.y + 16, this.gameOver? '-' : this.floor);
+			if (!this.playerExists(0)) Draw.text(v.x + Room.w * 0.75, v.y + Room.h - 16, 'Press <Down> to start P1');
+			if (!this.playerExists(1) && Room.name !== 'Level1') Draw.text(v.x + Room.w * 0.25, v.y + Room.h - 16, 'Press <S> to start P2');
+			Draw.setColor(C.darkGray);
+			Draw.text(v.x + Room.mid.w, v.y + 16, this.buildingIsDestroyed? '-' : this.floor);
 			Draw.resetFontStyle();
-			if (!this.gameOver && !this.goingDown) {
+			Draw.setHAlign(Align.l);
+			Draw.text(v.x + 36, v.y + Room.h - 16, txt);
+			if (!this.gameOver && !this.goingDown && !this.pause) {
 				const t = this.floorHP / this.getFloorHP(this.floor);
 				Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 1)`);
 				Draw.rect(Room.w * 0.1, 64, t * Room.w * 0.8, 24);
@@ -806,7 +834,7 @@ const Manager = {
 				Draw.setFont(Font.xl);
 				Draw.setColor(C.black);
 				Draw.setHVAlign(Align.c, Align.b);
-				Draw.text(Room.mid.w, Room.h * 0.4 - 48, 'BUILDING DESTROYED');
+				Draw.text(Room.mid.w, Room.h * 0.4 - 48, this.buildingIsDestroyed? 'BUILDING DESTROYED' : 'OUT OF CREDITS');
 				Draw.setFont(Font.m);
 				Draw.setVAlign(Align.m);
 				Draw.text(Room.mid.w, Room.h * 0.4, 'Press <Enter> to continue.');
@@ -820,10 +848,13 @@ const Manager = {
 			if (this.pause) {
 				Draw.setFont(Font.xl);
 				Draw.setHVAlign(Align.c, Align.b);
-				Manager.menu.drawText(Room.mid.w, Room.h * 0.4 - 48, 'PAUSE');
+				Manager.menu.drawText(Room.mid.w, Room.mid.h - 48, 'PAUSE');
 				Draw.setFont(Font.m);
 				Draw.setVAlign(Align.m);
-				Manager.menu.drawText(Room.mid.w, Room.h * 0.4, 'Press <Enter> to back to menu.');
+				const txt = 'Press <Enter> to back to menu.';
+				Manager.menu.drawText(Room.mid.w, Room.mid.h + Font.size, txt);
+				Draw.setHAlign(Align.l);
+				Manager.menu.drawText(Room.mid.w - Draw.textWidth(txt) * 0.5, Room.mid.h, 'Press <Backspace> to resume.');
 			}
 		},
 		showMessage(text) {
@@ -831,6 +862,7 @@ const Manager = {
 			this.messageCounter = 180;
 		},
 		renderMessage() {
+			if (this.pause || this.gameOver) return;
 			Draw.setHVAlign(Align.c, Align.m);
 			Draw.setFont(Font.l);
 			Draw.setColor(C.black);
@@ -1042,15 +1074,16 @@ Menu.renderUI = () => {
 
 Game.start = () => {
 	Manager.game.setup(20);
+	Manager.game.credits = 99;
 	Sound.stop('Menu');
 	Sound.loop('Game');
-	OBJ.create(Kong, 0, Room.w * 0.25, Room.mid.h, C.royalBlue, {
+	OBJ.create(Kong, 0, Room.w * 0.75, Room.mid.h, C.royalBlue, {
 		W: KeyCode.Up,
 		A: KeyCode.Left,
 		S: KeyCode.Down,
 		D: KeyCode.Right
 	});
-	OBJ.create(Kong, 1, Room.w * 0.75, Room.mid.h, C.crimson, {
+	OBJ.create(Kong, 1, Room.w * 0.25, Room.mid.h, C.crimson, {
 		W: KeyCode.W,
 		A: KeyCode.A,
 		S: KeyCode.S,
@@ -1072,12 +1105,40 @@ Game.update = () => {
 			Sound.play('Cancel');
 		}
 	}
-	if (Manager.game.goingDown) {
+	if (Manager.game.goingDown && !Manager.game.pause) {
 		if (Manager.game.goingDownAlarm < 0) {
 			Manager.game.goingDownComplete();
 			Manager.game.goingDown = false;
 		}
 		else Manager.game.goingDownAlarm -= Time.deltaTime;
+	}
+	if (!Manager.game.pause && Manager.game.credits > 0) {
+		if (Input.keyDown(KeyCode.Down)) {
+			let count = 0;
+			if (Manager.game.playerExists(0)) count++;
+			if (count === 0) {
+				OBJ.create(Kong, 0, Room.w * 0.75, Room.mid.h, C.royalBlue, {
+					W: KeyCode.Up,
+					A: KeyCode.Left,
+					S: KeyCode.Down,
+					D: KeyCode.Right
+				});
+				Manager.game.credits--;
+			}
+		}
+		else if (Room.name !== 'Level1' && Input.keyDown(KeyCode.S)) {
+			let count = 0;
+			if (Manager.game.playerExists(1)) count++;
+			if (count === 0) {
+				OBJ.create(Kong, 1, Room.w * 0.25, Room.mid.h, C.crimson, {
+					W: KeyCode.W,
+					A: KeyCode.A,
+					S: KeyCode.S,
+					D: KeyCode.D
+				});
+				Manager.game.credits--;
+			}
+		}
 	}
 };
 
@@ -1088,6 +1149,10 @@ Game.render = () => {
 		}
 		else if (Manager.game.pause) {
 			Room.start('Menu');
+			if (Room.previous.name === 'Game') {
+				Manager.menu.cursor = 1;
+				Manager.menu.rotation = -144;
+			}
 		}
 	}
 	Manager.game.drawBackground();
@@ -1331,6 +1396,7 @@ Level1.start = () => {
 		S: KeyCode.Down,
 		D: KeyCode.Right
 	});
+	Manager.game.credits--;
 	n.vsp = 0;
 	Manager.game.guideText = 'Press <Left> or <Right> to move.';
 	Manager.game.guideIndex = 0;
@@ -1399,16 +1465,111 @@ Level1.render = () => {
 	Game.render();
 };
 
+Level2.start = () => {
+	Manager.game.setup(10);
+	Sound.stop('Menu');
+	Sound.loop('Game');
+	Manager.game.guideText = 'Press <Down> to start P1.';
+	Manager.game.guideIndex = 0;
+	Sound.play('Cursor');
+	OBJ.create(WeaponHandler, [0, 8, 2, 6]);
+	OBJ.create(Transition, C.white);
+	Manager.game.onStartFloor = () => {
+		switch (Manager.game.floor) {
+			case 9: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); break;
+			case 8: OBJ.create(WeaponHandler, [3, 5, 4, 2, 6, 0, 8]); break;
+			case 7: OBJ.create(WeaponHandler, [4, 3, 5, 0, 8, 6, 2]); break;
+			case 6: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 5: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 4: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 3: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 2: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 1: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+		}
+	};
+};
+
 Level2.update = () => {
 	Game.update();
+	if (Manager.game.pause) return;
+	const updt = {
+		'0'() {
+			if (Input.keyDown(KeyCode.Down)) {
+				Manager.game.guideText = 'Press <S> to start P2.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'1'() {
+			if (OBJ.take(Kong).length > 1) {
+				Manager.game.guideText = 'Destroy this floor together!';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'2'() {
+			if (Manager.game.floor < 10) {
+				Manager.game.guideText = 'Watch out for machine gun!\nIt shoots rapidly.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'3'() {
+			if (Manager.game.floor < 9) {
+				Manager.game.guideText = 'Watch out for missile!\nIts projectile looking at you.';
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'4'() {
+			if (Manager.game.goingDown) {
+				Manager.game.guideText = '';
+			}
+		}
+	}[Manager.game.guideIndex];
+	updt();
 };
 
 Level2.render = () => {
 	Game.render();
 };
 
+Level3.start = () => {
+	Manager.game.setup(10);
+	Sound.stop('Menu');
+	Sound.loop('Game');
+	Manager.game.guideText = 'Collect banana that drop after smashing.';
+	Manager.game.guideIndex = 0;
+	Sound.play('Cursor');
+	OBJ.create(WeaponHandler, [0, 8, 2, 6]);
+	OBJ.create(Transition, C.white);
+	Manager.game.onStartFloor = () => {
+		switch (Manager.game.floor) {
+			case 9: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); break;
+			case 8: OBJ.create(WeaponHandler, [3, 5, 4, 2, 6, 0, 8]); break;
+			case 7: OBJ.create(WeaponHandler, [4, 3, 5, 0, 8, 6, 2]); break;
+			case 6: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 5: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 4: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 3: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 2: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 1: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+		}
+	};
+};
+
 Level3.update = () => {
 	Game.update();
+	if (Manager.game.pause) return;
+	const updt = {
+		'0'() {
+			if (Manager.game.floor < 9) {
+				Manager.game.guideText = '';
+				Sound.play('Cursor');
+			}
+		}
+	}[Manager.game.guideIndex];
+	updt();
 };
 
 Level3.render = () => {

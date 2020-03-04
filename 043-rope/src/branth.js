@@ -3,24 +3,59 @@ class Vector2 {
 		this.x = x;
 		this.y = y;
 	}
+	add(v) {
+		if (v instanceof Vector2) {
+			this.x += v.x;
+			this.y += v.y;
+		}
+		else {
+			this.x += v;
+			this.y += v;
+		}
+	}
+	subtract(v) {
+		if (v instanceof Vector2) {
+			this.x -= v.x;
+			this.y -= v.y;
+		}
+		else {
+			this.x -= v;
+			this.y -= v;
+		}
+	}
+	multiply(v) {
+		if (v instanceof Vector2) {
+			this.x *= v.x;
+			this.y *= v.y;
+		}
+		else {
+			this.x *= v;
+			this.y *= v;
+		}
+	}
+	divide(v) {
+		if (v instanceof Vector2) {
+			this.x /= v.x;
+			this.y /= v.y;
+		}
+		else {
+			this.x /= v;
+			this.y /= v;
+		}
+	}
 	equal(v) {
 		return this.x === v.x && this.y === v.y;
 	}
-	plus(v) {
-		this.x += v.x;
-		this.y += v.y;
+	normalize() {
+		const l = this.length;
+		if (l !== 0) this.divide(l);
 	}
-	minus(v) {
-		this.x -= v.x;
-		this.y -= v.y;
+	get length() {
+		return Math.hypot(this.x, this.y);
 	}
-	times(v) {
-		this.x *= v.x;
-		this.y *= v.y;
-	}
-	div(v) {
-		this.x /= v.x;
-		this.y /= v.y;
+	set length(val) {
+		const l = this.length;
+		if (l !== 0) this.multiply(val / l);
 	}
 	static add(v1, v2) {
 		return v2 instanceof Vector2? new Vector2(v1.x + v2.x, v1.y + v2.y) : new Vector2(v1.x + v2, v1.y + v2);
@@ -36,6 +71,12 @@ class Vector2 {
 	}
 	static dot(v1, v2) {
 		return v1.x * v2.x + v1.y * v2.y;
+	}
+	static cross(v1, v2) {
+		return v1.x * v2.y - v1.y * v2.x;
+	}
+	static distance(v1, v2) {
+		return Math.hypot(v2.x - v1.x, v2.y - v1.y);
 	}
 	static copy(v) {
 		return new Vector2(v.x, v.y);

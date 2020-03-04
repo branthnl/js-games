@@ -1,7 +1,9 @@
+Draw.add(Vector2.zero, 'Banner', 'src/img/Banner.png');
+
 class Rope extends BranthObject {
 	constructor(n, x, y) {
 		super(x, y);
-		this.a = 100; // length of rope
+		this.a = 567; // length of rope
 		// this.b = 0.3; // rope bending prop
 		this.c = 1; // rope stiffness 0-1
 		this.d = 0.01; // damping
@@ -61,22 +63,12 @@ class Rope extends BranthObject {
 		Draw.setColor(C.black);
 		if (GLOBAL.debugMode > 2) {
 			// Cloth simulation
-			let w = 18;
+			const f = Draw.getImage('Banner');
+			const g = f.width * 0.5;
+			const h = f.height / (this.seg.length - 1);
 			for (let i = this.seg.length - 1; i > 0; i--) {
-				const j = this.seg[i].p;
-				const k = this.seg[i - 1].p;
-				const l = [
-					Vector2.add(j, Math.lendir(w, 0)),
-					Vector2.add(k, Math.lendir(w, 0)),
-					Vector2.add(k, Math.lendir(w, 180)),
-					Vector2.add(j, Math.lendir(w, 180))
-				];
-				Draw.primitiveBegin();
-				Draw.vertex(l[0].x, l[0].y);
-				Draw.vertex(l[1].x, l[1].y);
-				Draw.vertex(l[2].x, l[2].y);
-				Draw.vertex(l[3].x, l[3].y);
-				Draw.primitiveEnd();
+				const l = Vector2.add(this.seg[i - 1].p, Math.lendir(g, 180));
+				CTX.drawImage(f, 0, h * (i - 1), f.width, h, l.x, l.y, f.width, h);
 			}
 		}
 		else {

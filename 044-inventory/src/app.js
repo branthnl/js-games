@@ -81,22 +81,23 @@ class GameManager extends BranthBehaviour {
 		this.p = OBJ.create(Player, Room.mid.w, Room.mid.h);
 	}
 	renderUI() {
-		const x = Room.mid.w, y = Room.mid.h, s = 32;
-		Draw.setAlpha(0.5)
+		const m = ~~(Math.sqrt(DATA.Loot.Amount)) + 2;
+		const x = Room.mid.w, y = Room.mid.h, s = 32, w = Math.min(m * 2, DATA.Loot.Amount * 2), h = Math.ceil(DATA.Loot.Amount / m) + 1 + Math.floor((DATA.Loot.Amount - 1) / m);
+		Draw.setAlpha(0.5);
 		Draw.setColor(C.black);
-		Draw.rect(x - s * 4, y - s * 3, s * 8, s * 6);
+		Draw.rect(x - s * w * 0.5, y - s * h * 0.5, s * w, s * h);
 		Draw.setAlpha(1)
 		Draw.setFont(Font.sm);
 		Draw.setHVAlign(Align.l, Align.t);
-		const h = this.p.loot.length;
+		const l = this.p.loot.length;
 		for (let i = DATA.Loot.Amount - 1; i >= 0; i--) {
 			const j = {
-				x: x - s * (3.5 - 2 * (i % 4)),
-				y: y - s * (2.5 - 2 * ~~(i / 4))
+				x: x - s * (w * 0.5 - 0.5 - 2 * (i % m)),
+				y: y - s * (h * 0.5 - 0.5 - 2 * ~~(i / m))
 			};
 			Draw.setColor(C.slateBlue);
 			Draw.rect(j.x, j.y, s, s);
-			if (h > i) {
+			if (l > i) {
 				Draw.strip('Loot', this.p.lootIndexes[i], j.x + s * 0.5, j.y + s * 0.5);
 				Draw.textWB(j.x + 4, j.y + 4, this.p.loot[i]);
 			}
@@ -104,7 +105,7 @@ class GameManager extends BranthBehaviour {
 		Draw.setFont(Font.m);
 		Draw.setColor(C.black);
 		Draw.setHVAlign(Align.c, Align.b);
-		Draw.text(x, y - s * 3 - 8, 'INVENTORY');
+		Draw.text(x, y - s * h * 0.5 - 8, 'INVENTORY');
 	}
 	alarm0() {
 		if (OBJ.take(Loot).length < 50) {

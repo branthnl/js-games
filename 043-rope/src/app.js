@@ -3,13 +3,13 @@ Draw.add(Vector2.zero, 'Banner', 'src/img/Banner.png');
 class Rope extends BranthObject {
 	constructor(n, x, y) {
 		super(x, y);
-		this.a = 567; // length of rope
+		this.a = 100; // length of rope
 		// this.b = 0.3; // rope bending prop
 		this.c = 1; // rope stiffness 0-1
 		this.d = 0.01; // damping
 		this.e = 0.05; // velocity threshold
-		this.f = 10; // repeat time
-		this.g = 0.01; // gravity
+		this.f = 20; // repeat time
+		this.g = 0.1; // gravity
 		this.h = null;
 		this.seg = [];
 		const j = this.a / n;
@@ -33,7 +33,8 @@ class Rope extends BranthObject {
 	}
 	update() {
 		if (Input.mouseDown(0)) this.h = this.getClosestSegment(Input.mousePosition);
-		if (Input.mouseHold(0)) this.h.v = Vector2.subtract(Input.mousePosition, this.h.p);
+		if (Input.keyHold(KeyCode.Space)) this.seg[0].v = Vector2.subtract(Vector2.add(Vector2.multiply(Input.mousePosition, Vector2.right), new Vector2(0, Room.h * 0.25)), this.seg[0].p);
+		else if (Input.mouseHold(0)) this.h.v = Vector2.subtract(Input.mousePosition, this.h.p);
 		let f = this.f;
 		const g = this.seg.length;
 		while (f-- > 0) {
@@ -60,18 +61,43 @@ class Rope extends BranthObject {
 		}
 	}
 	render() {
-		Draw.setColor(C.black);
 		if (GLOBAL.debugMode > 2) {
 			// Cloth simulation
-			const f = Draw.getImage('Banner');
-			const g = f.width * 0.5;
-			const h = f.height / (this.seg.length - 1);
-			for (let i = this.seg.length - 1; i > 0; i--) {
-				const l = Vector2.add(this.seg[i - 1].p, Math.lendir(g, 180));
-				CTX.drawImage(f, 0, h * (i - 1), f.width, h, l.x, l.y, f.width, h);
+			let w = this.seg.length - 0.5;
+			for (let i = 1; i < w; i++) {
+				const j = this.seg[i].p;
+				const k = this.seg[i - 1].p;
+				const l = [
+					Vector2.add(j, Math.lendir(w - i, 0)),
+					Vector2.add(k, Math.lendir(w - i + 1.5 * (i > 1), 0)),
+					Vector2.add(k, Math.lendir(w - i + 1.5 * (i > 1), 180)),
+					Vector2.add(j, Math.lendir(w - i, 180))
+				];
+				if (i === 1) {
+					if (Input.keyHold(KeyCode.Space)) {
+						Draw.setColor(C.white);
+						if (Input.mouseHold(0)) {
+							const m = Input.mousePosition;
+							Draw.line(l[1].x + 3, l[1].y, m.x, m.y);
+							Draw.line(l[2].x - 3, l[2].y, m.x, m.y);
+						}
+						Draw.line(l[1].x + 5, l[1].y, l[2].x - 5, l[2].y);
+						Draw.circle(l[1].x + 5, l[1].y, 1.5);
+						Draw.circle(l[2].x - 5, l[2].y, 1.5);
+					}
+				}
+				const m = Math.sign(l[0].y - l[1].y);
+				Draw.setColor(`rgba(${i}, ${50 - i}, 50, 1)`);
+				Draw.primitiveBegin();
+				Draw.vertex(l[0].x, l[0].y + m);
+				Draw.vertex(l[1].x, l[1].y - m);
+				Draw.vertex(l[2].x, l[2].y - m);
+				Draw.vertex(l[3].x, l[3].y + m);
+				Draw.primitiveEnd();
 			}
 		}
 		else {
+			Draw.setColor(C.black);
 			for (let i = this.seg.length - 1; i >= 0; i--) {
 				if (GLOBAL.debugMode !== 1) {
 					Draw.circle(this.seg[i].p.x, this.seg[i].p.y, 3, true);
@@ -81,9 +107,12 @@ class Rope extends BranthObject {
 				}
 			}
 		}
-		Draw.setFont(Font.m);
+		Draw.setFont(Font.s);
 		Draw.setHVAlign(Align.l, Align.t);
 		Draw.text(8, 8, `${Time.FPS}\nDebug mode: ${GLOBAL.debugMode}\n - Press <U> to change debug mode.`);
+		Draw.setAlpha(0.5 + 0.5 * Input.keyHold(KeyCode.Space));
+		Draw.text(8, 8 + Font.size * 3, ` - Hold <Space> to pin the first segment.`);
+		Draw.setAlpha(1);
 	}
 }
 
@@ -93,8 +122,10 @@ const Game = new BranthRoom('Game');
 Room.add(Game);
 
 Game.start = () => {
+	Room.scale = 4;
+	Room.resize();
 	OBJ.create(Rope, 50, Room.mid.w, Room.mid.h);
 };
 
-BRANTH.start(960, 540, { HAlign: true, VAlign: true });
+BRANTH.start();
 Room.start('Game');

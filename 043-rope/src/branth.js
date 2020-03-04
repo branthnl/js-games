@@ -849,7 +849,7 @@ const Align = {
 	m: 'middle'
 };
 
-const Cap = {
+const LineCap = {
 	butt: 'butt',
 	round: 'round'
 };
@@ -1002,6 +1002,9 @@ const Draw = {
 			case Align.b: baseline = -Font.size * (t.length - 1); break;
 		}
 		for (let i = 0; i < t.length; i++) {
+			CTX.fillStyle = C.black;
+			CTX.fillText(t[i], x + 0.5, y + baseline + Font.size * i + 0.5);
+			CTX.fillStyle = C.white;
 			CTX.fillText(t[i], x, y + baseline + Font.size * i);
 		}
 	},
@@ -1019,10 +1022,10 @@ const Draw = {
 		CTX.lineCap = cap;
 	},
 	resetLineCap() {
-		CTX.lineCap = Cap.butt;
+		CTX.lineCap = LineCap.butt;
 	},
-	setLineJoin(line) {
-		CTX.lineJoin = line;
+	setLineJoin(join) {
+		CTX.lineJoin = join;
 	},
 	resetLineJoin() {
 		CTX.lineJoin = LineJoin.miter;
@@ -1099,7 +1102,7 @@ const Draw = {
 	primitiveEnd(primitiveType) {
 		this.primitiveType = primitiveType || Primitive.fill;
 		const [q, c, o] = [this.primitiveType.quantity, this.primitiveType.closePath, this.primitiveType.outline];
-		if (q === 1) this.setLineCap(Cap.round);
+		if (q === 1) this.setLineCap(LineCap.round);
 		CTX.beginPath();
 		for (let i = 0; i < this.vertices.length; i++) {
 			const v = this.vertices[i];

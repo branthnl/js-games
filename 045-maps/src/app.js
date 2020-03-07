@@ -1,137 +1,64 @@
-class GridData {
-	constructor(type, pass) {
-		this.type = type;
-		this.pass = pass;
-	}
-}
-
 const DATA = {
+	Cell: {
+		Size: 8
+	},
 	Grid: {
-		Size: 1000
+		Seed: 5,
+		get Width() {
+			return Room.w / DATA.Cell.Size;
+		},
+		get Height() {
+			return Room.h / DATA.Cell.Size;
+		},
+		GetColorZ(z) {
+			return z < 50? `rgba(0, ${50 + z * 4}, 0, 1)` : `rgba(0, 0, ${50 + (z - 50) * 4}, 1)`;
+		},
+		randomSeed(range, xx) {
+			let seed = this.Seed + xx;
+		},
+		GetPerlinNoise2D(x, y, range) {
+			let chunkSize = 16;
+			let noise = 0;
+			range *= 0.5;
+			let r00 = this.randomSeed(range);
+			while (chunkSize-- > 0) {
+			}
+		},
+		GeneratePerlinNoise(grid) {
+			for (let i = 0; i < this.Width; i++) {
+				for (let j = 0; j < this.Height; j++) {
+					let zz = Math.range(100);
+					grid[i][j] = zz;
+				}
+			}
+		}
 	}
 };
 
 const Manager = {
 	Game: {
 		Grid: [],
-		Grid2: [],
 		setup() {
-			// Creating and loading grid
-			let t = 0;
-			const rtime = 10;
-			const total1 = {
-				creating: 0,
-				looping: 0
-			};
-			const total2 = {
-				creating: 0,
-				looping: 0
-			};
-			const arr = [];
-			for (let h = 0; h < rtime * 2; h++) {
-				this.Grid = [];
-				this.Grid2 = [];
-				const type = h % 2 === 0? '1 ArrClass' : '2 ArrNumbers';
-				if (type === '1 ArrClass') {
-					// Creating
-					t = performance.now();
-					for (let i = 0; i < DATA.Grid.Size; i++) {
-						this.Grid.push([]);
-						for (let j = 0; j < DATA.Grid.Size; j++) {
-							// this.Grid[i].push({
-							// 	type: Math.irange(0, 8),
-							// 	pass: Math.choose(0, 1, 2)
-							// });
-							this.Grid[i].push(new GridData(Math.irange(0, 8), Math.choose(0, 1, 2)));
-						}
-					}
-					t = performance.now() - t;
-					// arr.push({
-					// 	type: `Creating ${type}`,
-					// 	time: t
-					// });
-					total1.creating += t;
-					// Set all properties to 0
-					t = performance.now();
-					for (let i = 0; i < DATA.Grid.Size; i++) {
-						for (let j = 0; j < DATA.Grid.Size; j++) {
-							this.Grid[i][j].type = 0;
-							this.Grid[i][j].pass = 0;
-						}
-					}
-					t = performance.now() - t;
-					// arr.push({
-					// 	type: `Set all properties to 0`,
-					// 	time: t
-					// });
-					total1.looping += t;
-				}
-				else {
-					// Creating
-					t = performance.now();
-					for (let i = 0; i < DATA.Grid.Size; i++) {
-						this.Grid.push([]);
-						this.Grid2.push([]);
-						for (let j = 0; j < DATA.Grid.Size; j++) {
-							this.Grid[i].push(Math.irange(0, 8));
-							this.Grid2[i].push(Math.choose(0, 1, 2));
-						}
-					}
-					t = performance.now() - t;
-					// arr.push({
-					// 	type: `Creating ${type}`,
-					// 	time: t
-					// });
-					total2.creating += t;
-					// Set all properties to 0
-					t = performance.now();
-					for (let i = 0; i < DATA.Grid.Size; i++) {
-						for (let j = 0; j < DATA.Grid.Size; j++) {
-							this.Grid[i][j] = 0;
-							this.Grid2[i][j] = 0;
-						}
-					}
-					t = performance.now() - t;
-					// arr.push({
-					// 	type: `Set all properties to 0`,
-					// 	time: t
-					// });
-					total2.looping += t;
+			for (let i = 0; i < DATA.Grid.Width; i++) {
+				this.Grid.push([]);
+				for (let j = 0; j < DATA.Grid.Height; j++) {
+					this.Grid[i].push(0);
 				}
 			}
-			arr.push({
-				type: `Creating (${rtime}) 1 ArrClass TOTAL`,
-				time: total1.creating
-			});
-			arr.push({
-				type: `Creating (${rtime}) 2 ArrNumbers TOTAL`,
-				time: total2.creating
-			});
-			arr.push({
-				type: `Looping (${rtime}) 1 ArrClass TOTAL`,
-				time: total1.looping
-			});
-			arr.push({
-				type: `Looping (${rtime}) 2 ArrNumbers TOTAL`,
-				time: total2.looping
-			});
-			arr.push({
-				type: `Creating 1 ArrClass AVERAGE`,
-				time: total1.creating / rtime
-			});
-			arr.push({
-				type: `Creating 2 ArrNumbers AVERAGE`,
-				time: total2.creating / rtime
-			});
-			arr.push({
-				type: `Looping 1 ArrClass AVERAGE`,
-				time: total1.looping / rtime
-			});
-			arr.push({
-				type: `Looping 2 ArrNumbers AVERAGE`,
-				time: total2.looping / rtime
-			});
-			console.table(arr, ['type', 'time']);
+			DATA.Grid.GeneratePerlinNoise(this.Grid);
+		},
+		render() {
+			for (let i = 0; i < DATA.Grid.Width; i++) {
+				const xx = i * DATA.Cell.Size;
+				for (let j = 0; j < DATA.Grid.Height; j++) {
+					const yy = j * DATA.Cell.Size;
+					Draw.setColor(DATA.Grid.GetColorZ(this.Grid[i][j]));
+					Draw.rect(xx, yy, DATA.Cell.Size, DATA.Cell.Size);
+				}
+			}
+			if (Input.keyDown(KeyCode.Space)) {
+				DATA.Grid.GeneratePerlinNoise(this.Grid);
+			}
 		}
 	}
 };
@@ -143,6 +70,11 @@ Room.add(Game);
 
 Boot.start = () => {
 	Manager.Game.setup();
+	Room.start('Game');
+};
+
+Game.render = () => {
+	Manager.Game.render();
 };
 
 BRANTH.start();

@@ -35,38 +35,48 @@ Sound.setVolume('Jump1', 0.5);
 
 class FloatingHand extends BranthGameObject {
 	awake() {
+		this.depth = -5;
 		this.spriteName = 'Smasher';
 		this.imageIndex = 1;
-		this.hspeed = Math.choose(-1, 1);
+		this.hspeed = Math.choose(-2, 2);
+		this.imageXScale = 0;
+		this.imageYScale = this.imageXScale;
 		Physics.add(this);
 	}
 	update() {
+		this.imageXScale = Math.range(this.imageXScale, 1, 0.2);
+		this.imageYScale = this.imageXScale;
+		this.y += Math.sin(Time.time * 0.02);
 		if (Manager.game.pause) {
 			this.freeze = true;
 		}
 		else {
 			this.freeze = false;
 			if (this.x < 48) {
-				this.hspeed = 1;
+				this.hspeed = 2;
 			}
 			if (this.x > Room.w - 48) {
-				this.hspeed = -1;
+				this.hspeed = -2;
 			}
-			for (const i of OBJ.take(Kong)) {
-				if (Math.linedis(this.x, this.y, i.x, i.y - 12) < 32) {
-					Manager.game.smasherAmount++;
-					Sound.play('GetSmasher' + i.playerIndex);
-					Emitter.preset('sparkle');
-					Emitter.setArea(this.x, this.x, this.y, this.y);
-					Emitter.setColor(C.tomato);
-					Emitter.setOutline(true);
-					Emitter.emit(Math.range(10, 12));
-					Emitter.setOutline(false);
-					Emitter.emit(Math.range(10, 12));
-					Emitter.setColor(C.lemonChiffon);
-					Emitter.emit(Math.range(10, 12));
-					OBJ.destroy(this.id);
-					break;
+			if (this.hspeed !== 0) {
+				for (const i of OBJ.take(Kong)) {
+					if (!i.isUsingSmasher) {
+						if (Math.linedis(this.x, this.y, i.x, i.y - 12) < 48) {
+							Manager.game.smasherAmount++;
+							Sound.play('GetSmasher' + i.playerIndex);
+							Emitter.preset('sparkle');
+							Emitter.setArea(this.x, this.x, this.y, this.y);
+							Emitter.setColor(C.tomato);
+							Emitter.setOutline(true);
+							Emitter.emit(Math.range(5, 7));
+							Emitter.setOutline(false);
+							Emitter.emit(Math.range(5, 7));
+							Emitter.setColor(C.lemonChiffon);
+							Emitter.emit(Math.range(5, 7));
+							OBJ.destroy(this.id);
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -79,11 +89,13 @@ class FloatingHand extends BranthGameObject {
 class Smasher extends BranthGameObject {
 	constructor(carriedObject) {
 		super(carriedObject.x, carriedObject.y);
+		this.depth = -9;
 		this.carriedObject = carriedObject;
 		this.spriteName = 'Smasher';
-		Physics.add(this);
-		this.emergenceInterval = 500;
-		this.wavingInterval = 500;
+		this.emergenceInterval = 200;
+		this.wavingInterval = 800;
+		this.xto = Room.mid.w;
+		this.yto = Manager.game.smasherYThreshold + 12;
 		// Start emergence
 		this.alarm[0] = this.emergenceInterval;
 	}
@@ -94,11 +106,10 @@ class Smasher extends BranthGameObject {
 			this.imageXScale = 1 + 0.2 * t;
 			this.imageYScale = this.imageXScale;
 		}
-		if (this.alarm[1] > 0) {
-			if (this.vspeed < 0) {
-				this.vspeed = -5;
-			}
-		}
+		this.x = Math.range(this.x, this.xto, 0.2);
+		this.y = Math.range(this.y, this.yto + Math.sin(Time.time * 0.005) * 10, 0.2);
+		this.carriedObject.x = this.x;
+		this.carriedObject.y = this.y + 12;
 		if (Manager.game.pause) {
 			this.freeze = true;
 		}
@@ -109,22 +120,17 @@ class Smasher extends BranthGameObject {
 	alarm0() {
 		// Close hand
 		this.imageIndex = 1;
+		// Move up
+		this.yto = Room.h * 0.25;
 		// Start waving
-		this.vspeed = -1;
 		this.alarm[1] = this.wavingInterval;
 	}
 	alarm1() {
-		Physics.remove(this.id);
-		// Move up
-		this.yto = this.y - 20;
-		this.alarm[2] = 200;
+		this.yto = Room.h * 0.75;
+		this.alarm[2] = 50;
 	}
 	alarm2() {
 		// SMASH
-		this.yto += Room.mid.w;
-		this.alarm[3] = 200;
-	}
-	alarm3() {
 		this.carriedObject.vsp = 80;
 		OBJ.destroy(this.id);
 	}
@@ -170,6 +176,7 @@ class Kong extends BranthBehaviour {
 		if (Manager.game.smasherAmount > 0) {
 			Manager.game.smasherAmount--;
 			this.isUsingSmasher = true;
+			OBJ.create(Smasher, this);
 			this.alarm[1] = 1500;
 			Sound.play(`Smasher${this.playerIndex}`);
 		}
@@ -220,6 +227,7 @@ class Kong extends BranthBehaviour {
 		const wallL = this.bound.l <= 32;
 		const wallR = this.bound.r >= Room.w - 32;
 		if (!this.onGround && (wallL || wallR)) {
+			this.jmpCount = 1;
 			if (keyWP) {
 				if (wallL) {
 					if (keyA) {
@@ -341,6 +349,7 @@ class Kong extends BranthBehaviour {
 		Emitter.setColor(C.lemonChiffon);
 		Emitter.emit(Math.range(10, 12));
 		View.shake(2, 400);
+		Sound.play('Explosion');
 		if (OBJ.take(Kong).length < 2 && Manager.game.credits <= 0) {
 			Manager.game.gameOver = true;
 		}
@@ -521,7 +530,7 @@ class RotateGun extends Gun {
 class MachineGun extends Gun {
 	awake() {
 		this.angleSpd = 2.5;
-		this.shootInterval = 50;
+		this.shootInterval = 100;
 	}
 	render() {
 		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
@@ -874,9 +883,7 @@ const Manager = {
 		kebal: false,
 		lastDamage: 0,
 		smasherAmount: 0,
-		get smasherYThreshold() {
-			return Room.h * 0.25;
-		},
+		smasherYThreshold: 0,
 		setup(floorAmount = 5) {
 			this.pause = false;
 			this.pauseAlpha = 0;
@@ -896,6 +903,7 @@ const Manager = {
 			this.kebal = false;
 			this.lastDamage = 0;
 			this.smasherAmount = 0;
+			this.smasherYThreshold = Room.h * 0.35;
 		},
 		playerExists(index) {
 			for (const i of OBJ.take(Kong)) {
@@ -909,7 +917,7 @@ const Manager = {
 			return (this.floorAmount - floor + 1) * this.floorBaseHP;
 		},
 		takeDamage(amount) {
-			lastDamage = amount;
+			this.lastDamage = amount;
 			if (this.kebal) return;
 			this.floorHP -= amount;
 			if (this.floorHP <= 0) {
@@ -1786,30 +1794,30 @@ OBJ.add(BackgroundObject);
 
 let tutorialBasicTimer = 0;
 let tutorialFloatingHand = null;
+let tutorialNotKebalTimer = 0;
 
 TempLevel1.start = () => {
 	// Setup game
 	tutorialBasicTimer = 0;
-	Manager.game.setup(20);
+	Manager.game.setup(10);
 	Sound.stop('Menu');
 	// Sound.loop('Game');
 	Manager.game.kebal = true;
-	Manager.game.guideText = `Press <Enter> to continue`;
+	Manager.game.guideText = `Press <Enter> to continue.`;
 	Manager.game.guideShowTriangle = true;
 	Manager.game.guideIndex = 0;
 	Sound.play('Cursor');
 	OBJ.create(Transition, C.white);
 	Manager.game.onStartFloor = () => {
 		switch (Manager.game.floor) {
-			case 9: OBJ.create(WeaponHandler, [6]); break;
-			case 8: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); break;
-			case 7: OBJ.create(WeaponHandler, [3, 5, 4, 2, 6, 0, 8]); break;
-			case 6: OBJ.create(WeaponHandler, [4, 3, 5, 0, 8, 6, 2]); break;
-			case 5: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
-			case 4: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
-			case 3: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
-			case 2: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
-			case 1: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 8: OBJ.create(WeaponHandler, Math.choose([4], [6])); break;
+			case 7: OBJ.create(WeaponHandler, [4, 6]); break;
+			case 6: OBJ.create(WeaponHandler, [4, 6, 2, 8]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 5: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 4: OBJ.create(WeaponHandler, [2, 8, 3, 5]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 3: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 2: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 1: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
 		}
 	};
 	// Setup background
@@ -1871,15 +1879,15 @@ TempLevel1.update = () => {
 		}
 	}
 	if (Manager.game.pause) return;
-	if (Manager.game.guideIndex < 3) tutorialBasicTimer += Time.deltaTime;
+	if (Manager.game.guideIndex < 14) tutorialBasicTimer += Time.deltaTime;
 	const guideUpdate = {
 		'0'() {
 			if (Input.keyDown(KeyCode.Enter)) {
 				if (Manager.game.playerExists(0)) {
-					Manager.game.guideText = `Nice! Looks like you've already spawn a King Kong`;
+					Manager.game.guideText = `Nice! Looks like you've already spawn a King Kong.`;
 				}
 				else {
-					Manager.game.guideText = `Press <Down> to spawn a King Kong`;
+					Manager.game.guideText = `Press <Down> to spawn a King Kong.`;
 					Manager.game.guideShowTriangle = false;
 				}
 				Manager.game.guideIndex++;
@@ -1891,7 +1899,7 @@ TempLevel1.update = () => {
 				Manager.game.guideShowTriangle = true;
 			}
 			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `Move using <Left> and <Right> arrow keys`;
+				Manager.game.guideText = `Press <Left> or <Right> to move.`;
 				Manager.game.guideShowTriangle = false;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
@@ -1902,7 +1910,7 @@ TempLevel1.update = () => {
 				Manager.game.guideShowTriangle = true;
 			}
 			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `Use <Up> arrow key jump and double jump`;
+				Manager.game.guideText = `Press <Up> to jump and double jump.`;
 				Manager.game.guideShowTriangle = false;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
@@ -1913,14 +1921,14 @@ TempLevel1.update = () => {
 				Manager.game.guideShowTriangle = true;
 			}
 			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `You can jump to a wall to get higher`;
+				Manager.game.guideText = `You can jump to a wall to get higher.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'4'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `See that floating hand above?\nWe call it Smasher`;
+				Manager.game.guideText = `See that floating hand above? We call it "Smasher".`;
 				tutorialFloatingHand = OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold);
 				tutorialFloatingHand.hspeed = 0;
 				Manager.game.guideIndex++;
@@ -1929,9 +1937,11 @@ TempLevel1.update = () => {
 		},
 		'5'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `Get that Smasher!`;
+				Manager.game.guideText = `Get that "Smasher"!`;
 				Manager.game.guideShowTriangle = false;
-				tutorialFloatingHand.hspeed = Math.choose(-1, 1);
+				// To prohibit player to use smasher before instructed
+				Manager.game.smasherYThreshold = -1000;
+				tutorialFloatingHand.hspeed = Math.choose(-2, 2);
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
@@ -1942,79 +1952,168 @@ TempLevel1.update = () => {
 				Manager.game.guideShowTriangle = true;
 			}
 			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `Cool! Now jump above that line and\npress <Down> to call Smasher!`;
+				Manager.game.guideText = `Cool! Now jump above that line and press <Down> to use "Smasher"!`;
 				Manager.game.guideShowTriangle = false;
+				// Reset smasher y threshold
+				Manager.game.smasherYThreshold = Room.h * 0.35;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'7'() {
 			if (Manager.game.smasherAmount === 0) {
-				Manager.game.guideShowTriangle = true;
+				if (!Manager.game.guideShowTriangle) {
+					Manager.game.kebal = false;
+					Manager.game.lastDamage = 0;
+					Manager.game.guideShowTriangle = true;
+				}
+				if (!Manager.game.kebal) {
+					if (Manager.game.lastDamage > 0) {
+						Manager.game.kebal = true;
+					}
+				}
 			}
-			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `Awesome! You just smash the floor and damaged the building!`;
+			if (Manager.game.guideShowTriangle && Manager.game.kebal) {
+				Manager.game.guideText = `Awesome! You just smash the 10th floor and damaged the building!`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'8'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `That's your goal, to smash the building until it's destroyed`;
+				Manager.game.guideText = `That's your goal, to smash the building until it's destroyed.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'9'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `You can call it whatever, we just call it smash`;
+				Manager.game.guideText = `You can call it whatever, we just call it smash.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'10'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `Smasher doesn't spawn frequently`;
+				Manager.game.guideText = `"Smasher" doesn't spawn frequently.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'11'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `To smash the floor by your own\njust use the GRAVITY`;
+				Manager.game.guideText = `To smash the floor on your own, just use GRAVITY.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'12'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `Jump high enough and let the King Kong fall`;
+				Manager.game.guideText = `Jump high enough and let the King Kong fall.`;
 				Manager.game.guideShowTriangle = false;
 				Manager.game.lastDamage = 0;
+				Manager.game.kebal = false;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
 		},
 		'13'() {
-			if (Manager.game.lastDamage > 0) {
-				Manager.game.guideShowTriangle = true;
+			if (!Manager.game.kebal) {
+				if (tutorialNotKebalTimer === 0) {
+					if (Manager.game.lastDamage > 0) {
+						tutorialNotKebalTimer = 1000;
+					}
+				}
+				else if (tutorialNotKebalTimer > 0) {
+					tutorialNotKebalTimer -= Time.deltaTime;
+				}
+				else {
+					Manager.game.kebal = true;
+					Manager.game.guideShowTriangle = true;
+				}
 			}
-			if (Manager.game.guideShowTriangle) {
-				if (Input.keyDown(KeyCode.Enter)) {
-					const time = Math.floor(tutorialBasicTimer * 0.01) / 10;
-					let motivationText = Math.choose('Nice', 'Good', 'Great', 'Awesome');
-					if (time < 30) motivationText = Math.choose('Wow', 'Amazing', 'Woohoo', 'What a natural', 'No way');
-					if (time < 10) motivationText = Math.choose('Wut', 'Man', 'Welp', 'Come on', 'What the?', 'Are you?');
-					Manager.game.guideText = `${motivationText}! You got the basics in ${time} seconds`;
-					Manager.game.guideIndex++;
-					Sound.play('Cursor');
+			else {
+				if (Manager.game.guideShowTriangle) {
+					if (Input.keyDown(KeyCode.Enter)) {
+						const time = Math.floor(tutorialBasicTimer * 0.01) / 10;
+						let motivationText = Math.choose('Nice', 'Good', 'Great', 'Awesome');
+						if (time < 40) motivationText = Math.choose('Wow', 'Amazing', 'Woohoo', 'What a natural', 'No way');
+						if (time < 25) motivationText = Math.choose('Wut', 'Man', 'Oh wow', 'What the?', 'Are you?');
+						Manager.game.guideText = `${motivationText}!! You got the basics in ${time} seconds.`;
+						Manager.game.guideIndex++;
+						Sound.play('Cursor');
+					}
 				}
 			}
 		},
 		'14'() {
-			if (Manager.game.gameOver) {
-				Manager.game.guideText = '';
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Caution in the next floor, there will be weapons.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
 			}
+		},
+		'15'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `You have to avoid their bullets is you still want to live.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'16'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `If you die, you can still continue if you have enough credits.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'17'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `If you want to restart, press <Backspace> to pause.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'18'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `You're ready to go.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'19'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Let me put some music.`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'20'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Playing ♫ Twistboy — Good Times`;
+				Sound.loop('Game');
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'21'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Good luck!`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'22'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = ``;
+				Manager.game.guideShowTriangle = false;
+				Manager.game.guideIndex++;
+				Manager.game.kebal = false;
+				Sound.play('Cursor');
+			}
+		},
+		'23'() {
+			// Last index
 		}
 	}[Manager.game.guideIndex];
 	guideUpdate();

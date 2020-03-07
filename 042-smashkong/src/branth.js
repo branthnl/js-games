@@ -3,23 +3,94 @@ class Vector2 {
 		this.x = x;
 		this.y = y;
 	}
+	add(v) {
+		if (v instanceof Vector2) {
+			this.x += v.x;
+			this.y += v.y;
+		}
+		else {
+			this.x += v;
+			this.y += v;
+		}
+	}
+	subtract(v) {
+		if (v instanceof Vector2) {
+			this.x -= v.x;
+			this.y -= v.y;
+		}
+		else {
+			this.x -= v;
+			this.y -= v;
+		}
+	}
+	multiply(v) {
+		if (v instanceof Vector2) {
+			this.x *= v.x;
+			this.y *= v.y;
+		}
+		else {
+			this.x *= v;
+			this.y *= v;
+		}
+	}
+	divide(v) {
+		if (v instanceof Vector2) {
+			this.x /= v.x;
+			this.y /= v.y;
+		}
+		else {
+			this.x /= v;
+			this.y /= v;
+		}
+	}
+	distance(v) {
+		return Math.hypot(v.x - this.x, v.y - this.y);
+	}
+	direction(v) {
+		const d = 90 - Math.radtodeg(Math.atan2(v.x - this.x, v.y - this.y));
+		return d < 0? d + 360 : d;
+	}
 	equal(v) {
 		return this.x === v.x && this.y === v.y;
 	}
+	normalize() {
+		const l = this.length;
+		if (l !== 0) this.divide(l);
+	}
+	get length() {
+		return Math.hypot(this.x, this.y);
+	}
+	set length(val) {
+		const l = this.length;
+		if (l !== 0) this.multiply(val / l);
+	}
 	static add(v1, v2) {
-		return new Vector2(v1.x + v2.x, v1.y + v2.y);
+		return v2 === undefined? new Vector2(v1.x + v2, v1.y + v2) : new Vector2(v1.x + v2.x, v1.y + v2.y);
 	}
 	static subtract(v1, v2) {
-		return new Vector2(v1.x - v2.x, v1.y - v2.y);
+		return v2 === undefined? new Vector2(v1.x - v2, v1.y - v2) : new Vector2(v1.x - v2.x, v1.y - v2.y);
 	}
 	static multiply(v1, v2) {
-		return new Vector2(v1.x * v2.x, v1.y * v2.y);
+		return v2 === undefined? new Vector2(v1.x * v2, v1.y * v2) : new Vector2(v1.x * v2.x, v1.y * v2.y);
 	}
 	static divide(v1, v2) {
-		return new Vector2(v1.x / v2.x, v1.y / v2.y);
+		return v2 === undefined? new Vector2(v1.x / v2, v1.y / v2) : new Vector2(v1.x / v2.x, v1.y / v2.y);
 	}
 	static dot(v1, v2) {
 		return v1.x * v2.x + v1.y * v2.y;
+	}
+	static cross(v1, v2) {
+		return v1.x * v2.y - v1.y * v2.x;
+	}
+	static distance(v1, v2) {
+		return Math.hypot(v2.x - v1.x, v2.y - v1.y);
+	}
+	static direction(v1, v2) {
+		const d = 90 - Math.radtodeg(Math.atan2(v2.x - v1.x, v2.y - v1.y));
+		return d < 0? d + 360 : d;
+	}
+	static copy(v) {
+		return new Vector2(v.x, v.y);
 	}
 	static get zero() {
 		return new Vector2(0, 0);
@@ -36,9 +107,14 @@ class Vector2 {
 	static get right() {
 		return new Vector2(1, 0);
 	}
+	static get center() {
+		return new Vector2(0.5, 0.5);
+	}
 }
 
+Math.hypot = (a, b) => Math.sqrt(a * a + b * b);
 Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
+Math.map = (a, b, c, d, e) => d + (a - b) / (c - b) * (e - d);
 Math.range = (min, max = 0, t = null) => min + (t || (t === 0? 0 : Math.random())) * (max - min);
 Math.irange = (min, max = 0) => Math.floor(Math.range(min, max));
 Math.choose = (...args) => args[Math.irange(0, args.length)];
@@ -208,6 +284,18 @@ const Sound = {
 			return s.currentTime > 0 && !s.paused;
 		}
 		return false;
+	},
+	playOnce(name) {
+		const s = this.get(name);
+		if (GLOBAL.interacted) {
+			if (s) {
+				if (s.currentTime <= 0 || s.paused) {
+					s.currentTime = 0;
+					s.play();
+				}
+			}
+		}
+		else if (!GLOBAL.productionMode) console.log(`Failed to play sound because the user didn't interact with the document first.`);
 	},
 	setVolume(name, n) {
 		const s = this.get(name);
@@ -404,9 +492,7 @@ const Input = {
 		KeyCode.Left,
 		KeyCode.Down,
 		KeyCode.Right,
-		KeyCode.Space,
-		KeyCode.Escape,
-		KeyCode.Backspace
+		KeyCode.Space
 	],
 	list: [[], [], []],
 	mouseMove: false,
@@ -788,7 +874,7 @@ const Align = {
 	m: 'middle'
 };
 
-const Cap = {
+const LineCap = {
 	butt: 'butt',
 	round: 'round'
 };
@@ -809,9 +895,29 @@ const Primitive = {
 	triangleListFill: { name: 'Triangle List Fill', quantity: 3, closePath: false, outline: false }
 };
 
+const BlendModes = {
+	Normal: 'source-over',
+	Add: 'lighter',
+	Hue: 'hue',
+	Color: 'color',
+	Screen: 'screen',
+	Darken: 'darken',
+	Lighten: 'lighten',
+	Overlay: 'overlay',
+	Multiply: 'multiply',
+	HardLight: 'hard-light',
+	SoftLight: 'soft-light',
+	Exclusion: 'exclusion',
+	ColorBurn: 'color-burn',
+	ColorDodge: 'color-dodge',
+	Difference: 'difference',
+	Saturation: 'saturation',
+	Luminosity: 'luminosity'
+};
+
 const Draw = {
 	fontFamily: '',
-	fontDefault: ['Montserrat'],
+	fontDefault: ['Montserrat', 'Josefin Sans', 'Arvo', 'Oregano', 'Fresca', 'Sniglet'],
 	primitiveType: '',
 	vertices: [],
 	list: [[], []],
@@ -847,8 +953,8 @@ const Draw = {
 		const img = this.getSprite(name)[index];
 		const dw = img.width * xscale;
 		const dh = img.height * yscale;
-		const dx = -dw * img.origin.x;
-		const dy = -dh * img.origin.y;
+		const dx = -dw * (xscale < 0? 1 - img.origin.x : img.origin.x);
+		const dy = -dh * (yscale < 0? 1 - img.origin.y : img.origin.y);
 		CTX.save();
 		CTX.translate(x, y);
 		CTX.scale(Math.sign(xscale), Math.sign(yscale));
@@ -877,10 +983,10 @@ const Draw = {
 				w: s.w * xscale,
 				h: s.h * yscale,
 				get x() {
-					return -this.w * img.origin.x;
+					return -this.w * (xscale < 0? 1 - img.origin.x : img.origin.x);
 				},
 				get y() {
-					return -this.h * img.origin.y;
+					return -this.h * (yscale < 0? 1 - img.origin.y : img.origin.y);
 				}
 			};
 			CTX.save();
@@ -958,10 +1064,10 @@ const Draw = {
 		CTX.lineCap = cap;
 	},
 	resetLineCap() {
-		CTX.lineCap = Cap.butt;
+		CTX.lineCap = LineCap.butt;
 	},
-	setLineJoin(line) {
-		CTX.lineJoin = line;
+	setLineJoin(join) {
+		CTX.lineJoin = join;
 	},
 	resetLineJoin() {
 		CTX.lineJoin = LineJoin.miter;
@@ -1038,7 +1144,7 @@ const Draw = {
 	primitiveEnd(primitiveType) {
 		this.primitiveType = primitiveType || Primitive.fill;
 		const [q, c, o] = [this.primitiveType.quantity, this.primitiveType.closePath, this.primitiveType.outline];
-		if (q === 1) this.setLineCap(Cap.round);
+		if (q === 1) this.setLineCap(LineCap.round);
 		CTX.beginPath();
 		for (let i = 0; i < this.vertices.length; i++) {
 			const v = this.vertices[i];
@@ -1186,11 +1292,11 @@ const OBJ = {
 		}
 	},
 	clear(cls) {
-		this.list[this.classes.indexOf(cls)] = [];
+		this.list[this.classes.indexOf(cls)].length = 0;
 	},
 	clearAll() {
 		for (let i = this.list.length - 1; i >= 0; i--) {
-			this.list[i] = [];
+			this.list[i].length = 0;
 		}
 		this.ID = 0;
 	},
@@ -1341,7 +1447,9 @@ const Physics = {
 	},
 	update() {
 		for (let i = this.list.length - 1; i >= 0; i--) {
-			this.list[i].physicsUpdate();
+			if (!this.list[i].freeze) {
+				this.list[i].physicsUpdate();
+			}
 		}
 	}
 };
@@ -1400,6 +1508,7 @@ class PolygonCollider2D extends Collider2D {
 class BranthGameObject extends BranthBehaviour {
 	constructor(x, y) {
 		super(x, y);
+		this.freeze = false;
 		this.xprevious = x;
 		this.yprevious = y;
 		this.spriteName = '';

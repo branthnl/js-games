@@ -6,6 +6,7 @@ if (firebase) {
 Draw.add(new Vector2(0.5, 0.5), 'Gun', 'src/img/Gun.png');
 Draw.add(new Vector2(0.5, 0.5), 'MachineGun', 'src/img/MachineGun.png');
 Draw.add(new Vector2(0.5, 0.5), 'Beamer', 'src/img/Beamer.png');
+Draw.add(new Vector2(0.5, 0.5), 'Smasher', 'src/img/OpenHand.png', 'src/img/ClosedHand.png');
 Draw.addStrip(new Vector2(0.5, 0.5), 'Bullet', 'src/img/Bullet.png', 2);
 Draw.addStrip(new Vector2(0.5, 0.5), 'Missile', 'src/img/Missile.png', 2);
 Draw.addStrip(new Vector2(0.5, 0.5), 'RotateGun', 'src/img/RotateGun.png', 2);
@@ -21,11 +22,113 @@ Sound.add('Pound0', 'src/snd/Pound.wav');
 Sound.add('Pound1', 'src/snd/Pound.wav');
 Sound.add('Cursor', 'src/snd/Cursor.wav');
 Sound.add('Cancel', 'src/snd/Cancel.wav');
+Sound.add('Banana', 'src/snd/Banana.wav');
+Sound.add('Smasher0', 'src/snd/Smasher.wav');
+Sound.add('Smasher1', 'src/snd/Smasher.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
 Sound.add('Explosion', 'src/snd/Explosion.wav');
+Sound.add('GetSmasher0', 'src/snd/GetSmasher.wav');
+Sound.add('GetSmasher1', 'src/snd/GetSmasher.wav');
 
 Sound.setVolume('Jump0', 0.5);
 Sound.setVolume('Jump1', 0.5);
+
+class FloatingHand extends BranthGameObject {
+	awake() {
+		this.spriteName = 'Smasher';
+		this.imageIndex = 1;
+		this.hspeed = Math.choose(-1, 1);
+		Physics.add(this);
+	}
+	update() {
+		if (Manager.game.pause) {
+			this.freeze = true;
+		}
+		else {
+			this.freeze = false;
+			if (this.x < 48) {
+				this.hspeed = 1;
+			}
+			if (this.x > Room.w - 48) {
+				this.hspeed = -1;
+			}
+			for (const i of OBJ.take(Kong)) {
+				if (Math.linedis(this.x, this.y, i.x, i.y - 12) < 32) {
+					Manager.game.smasherAmount++;
+					Sound.play('GetSmasher' + i.playerIndex);
+					Emitter.preset('sparkle');
+					Emitter.setArea(this.x, this.x, this.y, this.y);
+					Emitter.setColor(C.tomato);
+					Emitter.setOutline(true);
+					Emitter.emit(Math.range(10, 12));
+					Emitter.setOutline(false);
+					Emitter.emit(Math.range(10, 12));
+					Emitter.setColor(C.lemonChiffon);
+					Emitter.emit(Math.range(10, 12));
+					OBJ.destroy(this.id);
+					break;
+				}
+			}
+		}
+	}
+	onDestroy() {
+		Physics.remove(this.id);
+	}
+}
+
+class Smasher extends BranthGameObject {
+	constructor(carriedObject) {
+		super(carriedObject.x, carriedObject.y);
+		this.carriedObject = carriedObject;
+		this.spriteName = 'Smasher';
+		Physics.add(this);
+		this.emergenceInterval = 500;
+		this.wavingInterval = 500;
+		// Start emergence
+		this.alarm[0] = this.emergenceInterval;
+	}
+	update() {
+		if (this.freeze) return;
+		if (this.alarm[0] > 0) {
+			const t = this.alarm[0] / this.emergenceInterval; // (1 -> 0) as time goes
+			this.imageXScale = 1 + 0.2 * t;
+			this.imageYScale = this.imageXScale;
+		}
+		if (this.alarm[1] > 0) {
+			if (this.vspeed < 0) {
+				this.vspeed = -5;
+			}
+		}
+		if (Manager.game.pause) {
+			this.freeze = true;
+		}
+		else {
+			this.freeze = false;
+		}
+	}
+	alarm0() {
+		// Close hand
+		this.imageIndex = 1;
+		// Start waving
+		this.vspeed = -1;
+		this.alarm[1] = this.wavingInterval;
+	}
+	alarm1() {
+		Physics.remove(this.id);
+		// Move up
+		this.yto = this.y - 20;
+		this.alarm[2] = 200;
+	}
+	alarm2() {
+		// SMASH
+		this.yto += Room.mid.w;
+		this.alarm[3] = 200;
+	}
+	alarm3() {
+		this.carriedObject.vsp = 80;
+		OBJ.destroy(this.id);
+	}
+}
 
 class Kong extends BranthBehaviour {
 	constructor(pid, x, y, color, keyCodes) {
@@ -52,6 +155,8 @@ class Kong extends BranthBehaviour {
 		this.jmpHold = false;
 		this.jmpCount = 0;
 		this.onGround = true;
+		this.isUsingSmasher = false;
+		Sound.play(`Pound${this.playerIndex}`);
 	}
 	get bound() {
 		return {
@@ -59,6 +164,14 @@ class Kong extends BranthBehaviour {
 			r: this.x + this.w * 0.5,
 			t: this.y - this.h,
 			b: this.y
+		}
+	}
+	useSmasher() {
+		if (Manager.game.smasherAmount > 0) {
+			Manager.game.smasherAmount--;
+			this.isUsingSmasher = true;
+			this.alarm[1] = 1500;
+			Sound.play(`Smasher${this.playerIndex}`);
 		}
 	}
 	takeDamage(amount) {
@@ -72,7 +185,7 @@ class Kong extends BranthBehaviour {
 		const keyWR = Input.keyUp(this.keyCodeW);
 		const keyWP = Input.keyDown(this.keyCodeW);
 		const keyA = Input.keyHold(this.keyCodeA);
-		const keyS = Input.keyHold(this.keyCodeS);
+		const keyS = Input.keyDown(this.keyCodeS);
 		const keyD = Input.keyHold(this.keyCodeD);
 		let acc = this.gndAcc;
 		let spd = this.gndMax;
@@ -160,6 +273,11 @@ class Kong extends BranthBehaviour {
 			this.vsp += Manager.game.gravity * (this.jmpHold? 0.5 : 1);
 			this.onGround = false;
 		}
+		if (keyS) {
+			if (this.y < Manager.game.smasherYThreshold) {
+				this.useSmasher();
+			}
+		}
 	}
 	render() {
 		const v = View.toView(this);
@@ -182,6 +300,7 @@ class Kong extends BranthBehaviour {
 		}
 	}
 	renderUI() {
+		if (this.isUsingSmasher) return;
 		const v = View.toView(this);
 		const t = this.hp / 100;
 		const t1 = Math.sin(Time.time * 0.005);
@@ -205,6 +324,9 @@ class Kong extends BranthBehaviour {
 	}
 	alarm0() {
 		this.jmpHold = false;
+	}
+	alarm1() {
+		this.isUsingSmasher = false;
 	}
 	onDestroy() {
 		Emitter.preset('puff');
@@ -610,6 +732,8 @@ class FestiveMaker extends BranthBehaviour {
 	}
 }
 
+OBJ.add(FloatingHand);
+OBJ.add(Smasher);
 OBJ.add(Kong);
 OBJ.add(Bullet);
 OBJ.add(Missile);
@@ -636,14 +760,14 @@ const Manager = {
 					Room.start('LevelSelect');
 				}
 			},
-			{
-				text: 'Banana Rush',
-				color: C.gold,
-				description: 'Compete against each other for banana!',
-				onClick() {
-					Room.start('Game');
-				}
-			},
+			// {
+			// 	text: 'Banana Rush',
+			// 	color: C.gold,
+			// 	description: 'Compete against each other for banana!',
+			// 	onClick() {
+			// 		Room.start('Game');
+			// 	}
+			// },
 			{
 				text: 'Leaderboard',
 				color: C.lemonChiffon,
@@ -652,54 +776,54 @@ const Manager = {
 					Room.start('Leaderboard');
 				}
 			},
-			{
-				text: 'Windowed',
-				color: C.lightGreen,
-				description: 'Set screen mode to fullscreen.',
-				onClick() {
-					let count = 0;
-					if (this.text === 'Windowed') {
-						if (CANVAS.requestFullscreen) {
-							CANVAS.requestFullscreen();
-						}
-						else if (CANVAS.msRequestFullscreen) {
-							CANVAS.msRequestFullscreen();
-						}
-						else if (CANVAS.mozRequestFullscreen) {
-							CANVAS.mozRequestFullscreen();
-						}
-						else if (CANVAS.webkitRequestFullscreen) {
-							CANVAS.webkitRequestFullscreen();
-						}
-						else count++;
-						if (count === 0) {
-							this.text = 'Fullscreen';
-							this.description = 'Set screen mode to windowed.';
-						}
-					}
-					else {
-						if (document.fullscreen) {
-							if (document.exitFullscreen) {
-								document.exitFullscreen();
-							}
-							else if (document.msExitFullscreen) {
-								document.msExitFullscreen();
-							}
-							else if (document.mozCancelFullscreen) {
-								document.mozCancelFullscreen();
-							}
-							else if (document.webkitExitFullscreen) {
-								document.webkitExitFullscreen();
-							}
-							else count++;
-						}
-						if (count === 0) {
-							this.text = 'Windowed';
-							this.description = 'Set screen mode to fullscreen.';
-						}
-					}
-				}
-			},
+			// {
+			// 	text: 'Windowed',
+			// 	color: C.lightGreen,
+			// 	description: 'Set screen mode to fullscreen.',
+			// 	onClick() {
+			// 		let count = 0;
+			// 		if (this.text === 'Windowed') {
+			// 			if (CANVAS.requestFullscreen) {
+			// 				CANVAS.requestFullscreen();
+			// 			}
+			// 			else if (CANVAS.msRequestFullscreen) {
+			// 				CANVAS.msRequestFullscreen();
+			// 			}
+			// 			else if (CANVAS.mozRequestFullscreen) {
+			// 				CANVAS.mozRequestFullscreen();
+			// 			}
+			// 			else if (CANVAS.webkitRequestFullscreen) {
+			// 				CANVAS.webkitRequestFullscreen();
+			// 			}
+			// 			else count++;
+			// 			if (count === 0) {
+			// 				this.text = 'Fullscreen';
+			// 				this.description = 'Set screen mode to windowed.';
+			// 			}
+			// 		}
+			// 		else {
+			// 			if (document.fullscreen) {
+			// 				if (document.exitFullscreen) {
+			// 					document.exitFullscreen();
+			// 				}
+			// 				else if (document.msExitFullscreen) {
+			// 					document.msExitFullscreen();
+			// 				}
+			// 				else if (document.mozCancelFullscreen) {
+			// 					document.mozCancelFullscreen();
+			// 				}
+			// 				else if (document.webkitExitFullscreen) {
+			// 					document.webkitExitFullscreen();
+			// 				}
+			// 				else count++;
+			// 			}
+			// 			if (count === 0) {
+			// 				this.text = 'Windowed';
+			// 				this.description = 'Set screen mode to fullscreen.';
+			// 			}
+			// 		}
+			// 	}
+			// },
 			{
 				text: 'Credits',
 				color: C.tomato,
@@ -746,6 +870,13 @@ const Manager = {
 		messageCounter: 0,
 		guideText: '',
 		guideIndex: 0,
+		guideShowTriangle: true,
+		kebal: false,
+		lastDamage: 0,
+		smasherAmount: 0,
+		get smasherYThreshold() {
+			return Room.h * 0.25;
+		},
 		setup(floorAmount = 5) {
 			this.pause = false;
 			this.pauseAlpha = 0;
@@ -761,6 +892,10 @@ const Manager = {
 			this.messageCounter = 0;
 			this.guideText = '';
 			this.guideIndex = 0;
+			this.guideShowTriangle = true;
+			this.kebal = false;
+			this.lastDamage = 0;
+			this.smasherAmount = 0;
 		},
 		playerExists(index) {
 			for (const i of OBJ.take(Kong)) {
@@ -774,6 +909,8 @@ const Manager = {
 			return (this.floorAmount - floor + 1) * this.floorBaseHP;
 		},
 		takeDamage(amount) {
+			lastDamage = amount;
+			if (this.kebal) return;
 			this.floorHP -= amount;
 			if (this.floorHP <= 0) {
 				if (this.floor <= 1) {
@@ -821,7 +958,7 @@ const Manager = {
 			Draw.resetFontStyle();
 			Draw.setHAlign(Align.l);
 			Draw.text(v.x + 36, v.y + Room.h - 16, txt);
-			if (!this.gameOver && !this.goingDown && !this.pause) {
+			if (!this.gameOver && !this.goingDown && !this.pause && !this.kebal) {
 				const t = this.floorHP / this.getFloorHP(this.floor);
 				Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 1)`);
 				Draw.rect(Room.w * 0.1, 64, t * Room.w * 0.8, 24);
@@ -866,7 +1003,20 @@ const Manager = {
 			Draw.setHVAlign(Align.c, Align.m);
 			Draw.setFont(Font.l);
 			Draw.setColor(C.black);
-			Draw.text(Room.mid.w, Room.mid.h, this.guideText);
+			const guideTxt = this.guideText;
+			Draw.text(Room.mid.w, Room.mid.h, guideTxt);
+			if (this.guideShowTriangle) {
+				const t = (Math.sin(Time.time * 0.02) + 1) * 0.5;
+				Draw.primitiveBegin();
+				const y = Room.mid.h + Draw.textHeight(guideTxt) * 0.5 + t;
+				Draw.vertex(Room.mid.w - 5, y + 5);
+				Draw.vertex(Room.mid.w + 5, y + 5);
+				Draw.vertex(Room.mid.w, y + 10);
+				Draw.setColor(C.white);
+				Draw.primitiveEnd();
+				Draw.setColor(C.black);
+				Draw.primitiveEnd(Primitive.stroke);
+			}
 			if (this.messageCounter > 0) {
 				let a = 0;
 				const t = this.messageCounter / 180;
@@ -943,32 +1093,32 @@ const Manager = {
 			return Room.w * 0.17;
 		},
 		items: [{
-				text: 'Standby',
+				text: 'Tutorial',
 				color: C.skyBlue,
 				image: 'Gun',
-				description: 'Learn how it works! (Single Player)',
+				description: 'Learn how it works!',
 				onClick() {
-					Room.start('Level1');
-				}
-			},
-			{
-				text: 'Warming Up',
-				color: C.pink,
-				image: 'MachineGun',
-				description: 'Reinforcement arrived! (Local Multiplayer)',
-				onClick() {
-					Room.start('Level2');
-				}
-			},
-			{
-				text: `Let's Get Rich`,
-				color: C.moccasin,
-				image: 'MissileLauncher',
-				description: 'Collect as many bananas as possible! (Local Multiplayer)',
-				onClick() {
-					Room.start('Level3');
+					Room.start('TempLevel1');
 				}
 			}
+			// {
+			// 	text: 'Warming Up',
+			// 	color: C.pink,
+			// 	image: 'MachineGun',
+			// 	description: `♫ Good Times — Twistboy`,
+			// 	onClick() {
+			// 		Room.start('TempLevel2');
+			// 	}
+			// },
+			// {
+			// 	text: `Let's Get Rich`,
+			// 	color: C.moccasin,
+			// 	image: 'MissileLauncher',
+			// 	description: 'Collect as many bananas as possible!',
+			// 	onClick() {
+			// 		Room.start('TempLevel3');
+			// 	}
+			// }
 		]
 	},
 	renderTransition() {
@@ -1177,7 +1327,7 @@ Credits.start = () => {
 Credits.update = () => {
 	if (Manager.menu.keyEscape) {
 		Room.start('Menu');
-		Manager.menu.cursor = 4;
+		Manager.menu.cursor = 2;
 		Manager.menu.rotation = 0;
 	}
 	if (Room.name === 'Credits') {
@@ -1195,7 +1345,7 @@ Credits.renderUI = () => {
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'CREDITS');
 	Draw.setFont(Font.m);
 	Draw.setHAlign(Align.l);
-	Manager.menu.drawText(120, Manager.credits.y + 120, `Developer\n  Branth\n\nBGM\n  Twistboy - Good Times\n  NightRadio - Sound Fields (Track 1)\n\nWebsite\n  branthnl.itch.io\n  github.com/branthnl\n\nContact\n  branthnl1@gmail.com\n\nSource Code\n  github.com/branthnl/js-games/tree/master/042-smashkong\n\n\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
+	Manager.menu.drawText(120, Manager.credits.y + 120, `Developed by Branth\n\n♫ Twistboy - Good Times\n♫ NightRadio - Sound Fields (Track 1)\n\nCreated for Untitled Game Jam #18 (Theme: Gravity)`);
 	Draw.setFont(Font.s);
 	Draw.setHVAlign(Align.l, Align.b);
 	Draw.setAlpha(0.5);
@@ -1214,7 +1364,7 @@ Leaderboard.update = () => {
 	Manager.leaderboard.t += Time.deltaTime;
 	if (Manager.menu.keyEscape) {
 		Room.start('Menu');
-		Manager.menu.cursor = 2;
+		Manager.menu.cursor = 1;
 		Manager.menu.rotation = -216;
 	}
 	if (Room.name === 'Leaderboard') {
@@ -1579,6 +1729,333 @@ Level3.render = () => {
 Level1.renderUI = Game.renderUI;
 Level2.renderUI = Game.renderUI;
 Level3.renderUI = Game.renderUI;
+
+const TempLevel1 = new BranthRoom('TempLevel1');
+const TempLevel2 = new BranthRoom('TempLevel2');
+const TempLevel3 = new BranthRoom('TempLevel3');
+Room.add(TempLevel1);
+Room.add(TempLevel2);
+Room.add(TempLevel3);
+
+Draw.add(new Vector2(0.5, 0.5), 'Block', 'src/img/Block.png');
+Draw.add(new Vector2(0.5, 0.5), 'BGObj', 'src/img/Mono0.png', 'src/img/Mono1.png');
+
+class BackgroundObject extends BranthGameObject {
+	awake() {
+		this.depth = 2;
+		this.hspeed = -2;
+		this.vspeed = -2;
+		this.spriteName = 'BGObj';
+		Physics.add(this);
+	}
+	randomizeValue() {
+		this.y = Math.range(0, Room.h);
+		this.imageIndex = Math.irange(2);
+		this.imageXScale = Math.range(0.8, 1.1);
+		this.imageYScale = this.imageXScale;
+		this.imageAngle = Math.range(360);
+	}
+	update() {
+		if (this.x < -64) {
+			this.x = Room.w + 64;
+			if (this.spriteName !== 'Block') this.randomizeValue();
+		}
+		if (this.x > Room.w + 64) {
+			this.x = -64;
+			if (this.spriteName !== 'Block') this.randomizeValue();
+		}
+		if (this.y < -64) {
+			this.y = Room.h + 64;
+		}
+		if (this.y > Room.h + 64) {
+			this.y = -64;
+		}
+		if (Manager.game.pause) {
+			this.freeze = true;
+		}
+		else {
+			this.freeze = false;
+		}
+	}
+	onDestroy() {
+		Physics.remove(this.id);
+	}
+}
+
+OBJ.add(BackgroundObject);
+
+let tutorialBasicTimer = 0;
+let tutorialFloatingHand = null;
+
+TempLevel1.start = () => {
+	// Setup game
+	tutorialBasicTimer = 0;
+	Manager.game.setup(20);
+	Sound.stop('Menu');
+	// Sound.loop('Game');
+	Manager.game.kebal = true;
+	Manager.game.guideText = `Press <Enter> to continue`;
+	Manager.game.guideShowTriangle = true;
+	Manager.game.guideIndex = 0;
+	Sound.play('Cursor');
+	OBJ.create(Transition, C.white);
+	Manager.game.onStartFloor = () => {
+		switch (Manager.game.floor) {
+			case 9: OBJ.create(WeaponHandler, [6]); break;
+			case 8: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); break;
+			case 7: OBJ.create(WeaponHandler, [3, 5, 4, 2, 6, 0, 8]); break;
+			case 6: OBJ.create(WeaponHandler, [4, 3, 5, 0, 8, 6, 2]); break;
+			case 5: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 4: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 3: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+			case 2: OBJ.create(WeaponHandler, [3, 6, 0, 8, 4, 5, 2]); break;
+			case 1: OBJ.create(WeaponHandler, [2, 6, 0, 8, 4, 5, 3]); break;
+		}
+	};
+	// Setup background
+	for (let i = 0; i < Room.w / 32; i++) {
+		for (let j = 0; j < Room.h / 32; j++) {
+			const n = OBJ.create(BackgroundObject, i * 64, j * 64);
+			n.spriteName = 'Block';
+		}
+	}
+	for (let i = 0; i < Room.w / 64; i++) {
+		const n = OBJ.create(BackgroundObject, i * 64, Math.range(0, Room.h));
+		n.randomizeValue();
+	}
+};
+
+TempLevel1.update = () => {
+	if (Manager.menu.keyEscape && !Manager.game.gameOver) {
+		if (Manager.game.pause) {
+			Manager.game.pause = false;
+			Sound.play('Cancel');
+		}
+		else {
+			Manager.game.pause = true;
+			Sound.play('Cancel');
+		}
+	}
+	if (Manager.game.goingDown && !Manager.game.pause) {
+		if (Manager.game.goingDownAlarm < 0) {
+			Manager.game.goingDownComplete();
+			Manager.game.goingDown = false;
+		}
+		else Manager.game.goingDownAlarm -= Time.deltaTime;
+	}
+	if (!Manager.game.pause && Manager.game.credits > 0) {
+		let count = 0;
+		if (Input.keyDown(KeyCode.Down)) {
+			if (Manager.game.playerExists(0)) count++;
+			if (count === 0) {
+				OBJ.create(Kong, 0, Room.w * 0.75, Room.mid.h, C.royalBlue, {
+					W: KeyCode.Up,
+					A: KeyCode.Left,
+					S: KeyCode.Down,
+					D: KeyCode.Right
+				});
+				Manager.game.credits--;
+			}
+		}
+		else if (Input.keyDown(KeyCode.S)) {
+			if (Manager.game.playerExists(1)) count++;
+			if (count === 0) {
+				OBJ.create(Kong, 1, Room.w * 0.25, Room.mid.h, C.crimson, {
+					W: KeyCode.W,
+					A: KeyCode.A,
+					S: KeyCode.S,
+					D: KeyCode.D
+				});
+				Manager.game.credits--;
+			}
+		}
+	}
+	if (Manager.game.pause) return;
+	if (Manager.game.guideIndex < 3) tutorialBasicTimer += Time.deltaTime;
+	const guideUpdate = {
+		'0'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				if (Manager.game.playerExists(0)) {
+					Manager.game.guideText = `Nice! Looks like you've already spawn a King Kong`;
+				}
+				else {
+					Manager.game.guideText = `Press <Down> to spawn a King Kong`;
+					Manager.game.guideShowTriangle = false;
+				}
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'1'() {
+			if (Manager.game.playerExists(0)) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
+				Manager.game.guideText = `Move using <Left> and <Right> arrow keys`;
+				Manager.game.guideShowTriangle = false;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'2'() {
+			if (Input.keyHold(KeyCode.Left) || Input.keyHold(KeyCode.Right)) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
+				Manager.game.guideText = `Use <Up> arrow key jump and double jump`;
+				Manager.game.guideShowTriangle = false;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'3'() {
+			if (Input.keyDown(KeyCode.Up)) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
+				Manager.game.guideText = `You can jump to a wall to get higher`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'4'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `See that floating hand above?\nWe call it Smasher`;
+				tutorialFloatingHand = OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold);
+				tutorialFloatingHand.hspeed = 0;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'5'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Get that Smasher!`;
+				Manager.game.guideShowTriangle = false;
+				tutorialFloatingHand.hspeed = Math.choose(-1, 1);
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'6'() {
+			if (Manager.game.smasherAmount > 0) {
+				tutorialFloatingHand = null;
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
+				Manager.game.guideText = `Cool! Now jump above that line and\npress <Down> to call Smasher!`;
+				Manager.game.guideShowTriangle = false;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'7'() {
+			if (Manager.game.smasherAmount === 0) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
+				Manager.game.guideText = `Awesome! You just smash the floor and damaged the building!`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'8'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `That's your goal, to smash the building until it's destroyed`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'9'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `You can call it whatever, we just call it smash`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'10'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Smasher doesn't spawn frequently`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'11'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `To smash the floor by your own\njust use the GRAVITY`;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'12'() {
+			if (Input.keyDown(KeyCode.Enter)) {
+				Manager.game.guideText = `Jump high enough and let the King Kong fall`;
+				Manager.game.guideShowTriangle = false;
+				Manager.game.lastDamage = 0;
+				Manager.game.guideIndex++;
+				Sound.play('Cursor');
+			}
+		},
+		'13'() {
+			if (Manager.game.lastDamage > 0) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Manager.game.guideShowTriangle) {
+				if (Input.keyDown(KeyCode.Enter)) {
+					const time = Math.floor(tutorialBasicTimer * 0.01) / 10;
+					let motivationText = Math.choose('Nice', 'Good', 'Great', 'Awesome');
+					if (time < 30) motivationText = Math.choose('Wow', 'Amazing', 'Woohoo', 'What a natural', 'No way');
+					if (time < 10) motivationText = Math.choose('Wut', 'Man', 'Welp', 'Come on', 'What the?', 'Are you?');
+					Manager.game.guideText = `${motivationText}! You got the basics in ${time} seconds`;
+					Manager.game.guideIndex++;
+					Sound.play('Cursor');
+				}
+			}
+		},
+		'14'() {
+			if (Manager.game.gameOver) {
+				Manager.game.guideText = '';
+			}
+		}
+	}[Manager.game.guideIndex];
+	guideUpdate();
+};
+
+TempLevel1.render = () => {
+	if (Manager.menu.keyEnter) {
+		if (Manager.game.gameOver) {
+			if (firebase) {
+				if (Manager.game.poundScore) {
+					const name = prompt();
+					Room.start('Menu');
+				}
+			}
+		}
+		else if (Manager.game.pause) {
+			Room.start('Menu');
+			if (Room.previous.name === 'Game') {
+				Manager.menu.cursor = 1;
+				Manager.menu.rotation = -144;
+			}
+		}
+	}
+	Manager.game.drawBackground();
+};
+
+TempLevel1.renderUI = () => {
+	if (Manager.game.guideIndex === 7) {
+		Draw.setStrokeWeight(3);
+		Draw.line(32, Manager.game.smasherYThreshold, Room.w - 32, Manager.game.smasherYThreshold);
+		Draw.resetStrokeWeight();
+	}
+	Manager.game.drawWallAround();
+	Manager.game.renderInfo();
+	for (const i of OBJ.take(Kong)) {
+		i.renderUI();
+	}
+	Manager.game.renderMessage();
+	Manager.game.renderPause();
+	Manager.renderTransition();
+};
 
 Manager.leaderboard.updateHS();
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });

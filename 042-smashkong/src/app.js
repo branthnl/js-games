@@ -457,8 +457,21 @@ class Missile extends Bullet {
 		this.alarm[1] = this.interval;
 	}
 	beforeUpdate() {
-		if (Manager.game.pause) return;
+		if (Manager.game.pause) {
+			if (this.alarm[1] > 0) {
+				this.alarm[1] += Time.deltaTime;
+			}
+			return;
+		}
 		if (this.target) this.angle += Math.sin(Math.degtorad(Math.pointdir(this, Vector2.add(this.target, this.offset)) - this.angle)) * 5;
+		Emitter.preset('puff');
+		Emitter.setArea(this.x - 2, this.x + 2, this.y - 2, this.y + 2);
+		Emitter.setSpeed(0.005, 0.005);
+		Emitter.setSpeedInc(0, 0);
+		Emitter.setSize(2, 3);
+		Emitter.setSizeInc(-0.04, -0.04);
+		Emitter.setLife(1500, 1600);
+		Emitter.emit(1);
 	}
 	render() {
 		this.drawSelf();
@@ -1235,7 +1248,7 @@ Menu.update = () => {
 		Manager.menu.items[Manager.menu.cursor].onClick();
 		Sound.play('Decision');
 	}
-	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 10;
+	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 19;
 	if (Room.name === 'Menu') {
 		Emitter.preset('fire');
 		Emitter.setColor(Math.choose(C.indigo, C.darkSlateBlue));

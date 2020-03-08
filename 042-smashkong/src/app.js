@@ -183,6 +183,9 @@ class Kong extends BranthBehaviour {
 		this.isUsingSmasher = false;
 		this.xs = 1;
 		this.ys = 1;
+		this.showHpBar = false;
+		this.hpBarAlpha = 0;
+		this.showHpBarInterval = 2000;
 		Sound.play(`Jump${this.playerIndex}`);
 	}
 	get bound() {
@@ -205,6 +208,8 @@ class Kong extends BranthBehaviour {
 	takeDamage(amount) {
 		if (this.isUsingSmasher) return;
 		this.hp -= amount;
+		this.showHpBar = true;
+		this.alarm[2] = this.showHpBarInterval;
 		if (this.hp <= 0) {
 			OBJ.destroy(this.id);
 		}
@@ -348,11 +353,14 @@ class Kong extends BranthBehaviour {
 		const v = View.toView(this);
 		const t = this.hp / 100;
 		const t1 = Math.sin(Time.time * 0.005);
-		const y = v.y - 40 + t1 * 2;
+		this.hpBarAlpha = Math.range(this.hpBarAlpha, this.showHpBar, 0.25);
+		let y = v.y - 40 + t1 * 2 + 6 * (1 - this.hpBarAlpha);
+		Draw.setAlpha(this.hpBarAlpha);
 		Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 1)`);
 		Draw.rect(v.x - 16, y, 32 * t, 4);
 		Draw.setColor(C.black);
 		Draw.rect(v.x - 16, y, 32, 4, true);
+		Draw.setAlpha(1);
 		Draw.setFont(Font.sm, Font.bold);
 		Draw.setHVAlign(Align.c, Align.b);
 		Draw.text(v.x + 1, y - 1, `P${this.playerIndex + 1}`);
@@ -360,6 +368,7 @@ class Kong extends BranthBehaviour {
 		Draw.text(v.x, y - 2, `P${this.playerIndex + 1}`);
 		Draw.resetFontStyle();
 		Draw.primitiveBegin();
+		y -= 6 * (1 - this.hpBarAlpha);
 		Draw.vertex(v.x - 4, y + 6);
 		Draw.vertex(v.x + 4, y + 6);
 		Draw.vertex(v.x, y + 10);
@@ -371,6 +380,9 @@ class Kong extends BranthBehaviour {
 	}
 	alarm1() {
 		this.isUsingSmasher = false;
+	}
+	alarm2() {
+		this.showHpBar = false;
 	}
 	onDestroy() {
 		Emitter.preset('puff');
@@ -466,6 +478,7 @@ class Missile extends Bullet {
 		if (this.target) this.angle += Math.sin(Math.degtorad(Math.pointdir(this, Vector2.add(this.target, this.offset)) - this.angle)) * 5;
 		Emitter.preset('puff');
 		Emitter.setArea(this.x - 2, this.x + 2, this.y - 2, this.y + 2);
+		Emitter.setAlpha(0.5, 0.7);
 		Emitter.setSpeed(0.005, 0.005);
 		Emitter.setSpeedInc(0, 0);
 		Emitter.setSize(2, 3);

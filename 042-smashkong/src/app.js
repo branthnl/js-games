@@ -15,6 +15,8 @@ Draw.addStrip(new Vector2(0.5, 0.5), 'MissileLauncher', 'src/img/MissileLauncher
 Sound.add('Menu', 'src/snd/Menu.mp3');
 Sound.add('Game', 'src/snd/Game.mp3');
 Sound.add('Text', 'src/snd/Text.wav');
+Sound.add('Blow0', 'src/snd/Blow.wav');
+Sound.add('Blow1', 'src/snd/Blow.wav');
 Sound.add('Jump0', 'src/snd/Jump.wav');
 Sound.add('Jump1', 'src/snd/Jump.wav');
 Sound.add('Pound', 'src/snd/Pound.wav');
@@ -29,6 +31,8 @@ Sound.add('Decision', 'src/snd/Decision.wav');
 Sound.add('Explosion', 'src/snd/Explosion.wav');
 Sound.add('GetSmasher0', 'src/snd/GetSmasher.wav');
 Sound.add('GetSmasher1', 'src/snd/GetSmasher.wav');
+Sound.add('MissileLaunch0', 'src/snd/MissileLaunch.wav');
+Sound.add('MissileLaunch1', 'src/snd/MissileLaunch.wav');
 
 Sound.setVolume('Jump0', 0.5);
 Sound.setVolume('Jump1', 0.5);
@@ -44,7 +48,7 @@ class FloatingHand extends BranthGameObject {
 		Physics.add(this);
 	}
 	update() {
-		this.imageXScale = Math.range(this.imageXScale, 1, 0.2);
+		this.imageXScale = Math.range(this.imageXScale, 0.9 + Math.sin(Time.time * 0.01) * 0.1, 0.2);
 		this.imageYScale = this.imageXScale;
 		this.y += Math.sin(Time.time * 0.02);
 		if (Manager.game.pause) {
@@ -104,8 +108,9 @@ class Smasher extends BranthGameObject {
 		if (this.alarm[0] > 0) {
 			const t = this.alarm[0] / this.emergenceInterval; // (1 -> 0) as time goes
 			this.imageXScale = 1 + 0.2 * t;
-			this.imageYScale = this.imageXScale;
 		}
+		else this.imageXScale = Math.range(this.imageXScale, 0.9 + Math.sin(Time.time * 0.01) * 0.1, 0.2);
+		this.imageYScale = this.imageXScale;
 		this.x = Math.range(this.x, this.xto, 0.2);
 		this.y = Math.range(this.y, this.yto + Math.sin(Time.time * 0.005) * 10, 0.2);
 		this.carriedObject.x = this.x;
@@ -182,6 +187,7 @@ class Kong extends BranthBehaviour {
 		}
 	}
 	takeDamage(amount) {
+		if (this.isUsingSmasher) return;
 		this.hp -= amount;
 		if (this.hp <= 0) {
 			OBJ.destroy(this.id);
@@ -219,7 +225,7 @@ class Kong extends BranthBehaviour {
 			if (++this.jmpCount < 3) {
 				this.vsp = this.jmpSpd;
 				this.jmpHold = true;
-				this.alarm[0] = 666;
+				this.alarm[0] = 60;
 				if (!Manager.game.goingDown) Sound.play(`Jump${this.playerIndex}`);
 			}
 		}
@@ -252,7 +258,7 @@ class Kong extends BranthBehaviour {
 				if (!Manager.game.goingDown) Sound.play(`Jump${this.playerIndex}`);
 			}
 			this.jmpHold = true;
-			this.alarm[0] = 666;
+			this.alarm[0] = 60;
 		}
 		if ((wallL || wallR) && !this.onGround && this.vsp >= 0.5) this.vsp -= Manager.game.gravity * 0.5;
 		if (Manager.game.goingDown) this.vsp = -Manager.game.gravity * 5;
@@ -349,7 +355,7 @@ class Kong extends BranthBehaviour {
 		Emitter.setColor(C.lemonChiffon);
 		Emitter.emit(Math.range(10, 12));
 		View.shake(2, 400);
-		Sound.play('Explosion');
+		Sound.play(`Blow${this.playerIndex}`);
 		if (OBJ.take(Kong).length < 2 && Manager.game.credits <= 0) {
 			Manager.game.gameOver = true;
 		}
@@ -530,7 +536,7 @@ class RotateGun extends Gun {
 class MachineGun extends Gun {
 	awake() {
 		this.angleSpd = 2.5;
-		this.shootInterval = 100;
+		this.shootInterval = 200;
 	}
 	render() {
 		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
@@ -540,15 +546,22 @@ class MachineGun extends Gun {
 
 class MissileLauncher extends Gun {
 	awake() {
-		this.shootInterval = 1500;
+		this.shootInterval = 1800;
 	}
 	shoot() {
+		if (Sound.isPlaying('MissileLaunch0')) {
+			Sound.play('MissileLaunch1');
+		}
+		else {
+			Sound.play('MissileLaunch0');
+		}
 		OBJ.create(Missile, this.shootPoint.x, this.shootPoint.y, Math.range(this.angle - 30, this.angle + 30), Math.pick(OBJ.take(Kong)));
 	}
 	render() {
 		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
-		Draw.strip('MissileLauncher', 0, v.x, v.y, 1, 1, this.angle);
-		Draw.strip('MissileLauncher', 1, v.x, v.y, 1, 1, this.angle);
+		const t = Math.sin(Time.time * 0.002);
+		Draw.strip('MissileLauncher', 0, v.x, v.y, 1, 1, this.angle + t * 20);
+		Draw.strip('MissileLauncher', 1, v.x, v.y + t * 8, 1, 1, this.angle);
 	}
 }
 
@@ -884,6 +897,7 @@ const Manager = {
 		lastDamage: 0,
 		smasherAmount: 0,
 		smasherYThreshold: 0,
+		smashPoint: 0,
 		setup(floorAmount = 5) {
 			this.pause = false;
 			this.pauseAlpha = 0;
@@ -904,6 +918,7 @@ const Manager = {
 			this.lastDamage = 0;
 			this.smasherAmount = 0;
 			this.smasherYThreshold = Room.h * 0.35;
+			this.smashPoint = 0;
 		},
 		playerExists(index) {
 			for (const i of OBJ.take(Kong)) {
@@ -920,6 +935,7 @@ const Manager = {
 			this.lastDamage = amount;
 			if (this.kebal) return;
 			this.floorHP -= amount;
+			this.smashPoint += amount;
 			if (this.floorHP <= 0) {
 				if (this.floor <= 1) {
 					if (!this.gameOver) {
@@ -955,20 +971,25 @@ const Manager = {
 			const v = View.getView(0, 0);
 			Draw.setFont(Font.s, Font.bold);
 			const txt = `Credits: ${this.credits}`;
+			const smashPointTxt = `Smash Point: ${this.smashPoint.toFixed(2)}kg`;
 			Draw.setColor(C.gray);
 			Draw.circle(v.x + Room.mid.w, v.y + 16, 10);
 			Draw.roundRect(v.x + 32, v.y + Room.h - 26, Draw.textWidth(txt) + 8, 20, 5);
+			Draw.roundRect(v.x + Room.mid.w - Draw.textWidth(smashPointTxt) * 0.5 - 4, v.y + Room.h - 26, Draw.textWidth(smashPointTxt) + 8, 20, 5);
 			Draw.setHVAlign(Align.c, Align.m);
 			if (!this.playerExists(0)) Draw.text(v.x + Room.w * 0.75, v.y + Room.h - 16, 'Press <Down> to start P1');
 			if (!this.playerExists(1) && Room.name !== 'Level1') Draw.text(v.x + Room.w * 0.25, v.y + Room.h - 16, 'Press <S> to start P2');
 			Draw.setColor(C.darkGray);
 			Draw.text(v.x + Room.mid.w, v.y + 16, this.buildingIsDestroyed? '-' : this.floor);
 			Draw.resetFontStyle();
+			Draw.text(v.x + Room.mid.w, v.y + Room.h - 16, smashPointTxt);
 			Draw.setHAlign(Align.l);
 			Draw.text(v.x + 36, v.y + Room.h - 16, txt);
+			Draw.setColor(C.gray);
+			Draw.text(v.x + 36, v.y + 16, `FPS: ${Time.FPS}`);
 			if (!this.gameOver && !this.goingDown && !this.pause && !this.kebal) {
 				const t = this.floorHP / this.getFloorHP(this.floor);
-				Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 1)`);
+				Draw.setColor(`rgba(${(1 - t) * 255}, ${t * 255}, 0, 0.5)`);
 				Draw.rect(Room.w * 0.1, 64, t * Room.w * 0.8, 24);
 				Draw.setColor(C.black);
 				Draw.rect(Room.w * 0.1, 64, Room.w * 0.8, 24, true);
@@ -1765,18 +1786,18 @@ class BackgroundObject extends BranthGameObject {
 	}
 	update() {
 		if (this.x < -64) {
-			this.x = Room.w + 64;
+			this.x += Room.w + 128;
 			if (this.spriteName !== 'Block') this.randomizeValue();
 		}
 		if (this.x > Room.w + 64) {
-			this.x = -64;
+			this.x -= Room.w + 128;
 			if (this.spriteName !== 'Block') this.randomizeValue();
 		}
 		if (this.y < -64) {
-			this.y = Room.h + 64;
+			this.y += Room.h + 128;
 		}
 		if (this.y > Room.h + 64) {
-			this.y = -64;
+			this.y -= Room.h + 128;
 		}
 		if (Manager.game.pause) {
 			this.freeze = true;
@@ -1799,6 +1820,8 @@ let tutorialNotKebalTimer = 0;
 TempLevel1.start = () => {
 	// Setup game
 	tutorialBasicTimer = 0;
+	tutorialFloatingHand = null;
+	tutorialNotKebalTimer = 0;
 	Manager.game.setup(10);
 	Sound.stop('Menu');
 	// Sound.loop('Game');
@@ -1810,14 +1833,17 @@ TempLevel1.start = () => {
 	OBJ.create(Transition, C.white);
 	Manager.game.onStartFloor = () => {
 		switch (Manager.game.floor) {
-			case 8: OBJ.create(WeaponHandler, Math.choose([4], [6])); break;
-			case 7: OBJ.create(WeaponHandler, [4, 6]); break;
-			case 6: OBJ.create(WeaponHandler, [4, 6, 2, 8]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
-			case 5: OBJ.create(WeaponHandler, [4, 6, 2, 8, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
-			case 4: OBJ.create(WeaponHandler, [2, 8, 3, 5]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
-			case 3: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
-			case 2: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
-			case 1: OBJ.create(WeaponHandler, [4, 6, 2, 8, 3, 5, 0]); if (Math.randbool(0.05)) { OBJ.create(FloatingHand, Room.mid.w, Manager.game.smasherYThreshold); } break;
+			case 8: OBJ.create(WeaponHandler, Math.choose([2], [6])); break;
+			case 7: OBJ.create(WeaponHandler, [2, 6]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 6: OBJ.create(WeaponHandler, [4, 6, 2]); break;
+			case 5: OBJ.create(WeaponHandler, [6, 2, 4, 8, 0]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 4: OBJ.create(WeaponHandler, [2, 6, 5, 3]); break;
+			case 3: OBJ.create(WeaponHandler, [0, 2, 3, 5, 6, 8]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 2: OBJ.create(WeaponHandler, [0, 8, 2, 6, 3, 5, 4]); break;
+			case 1: OBJ.create(WeaponHandler, [0, 2, 3, 4, 5, 6, 8]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+		}
+		if (Manager.game.floor >= 1 && Manager.game.floor <= 8) {
+			Manager.game.showMessage(`Destroy this floor!`);
 		}
 	};
 	// Setup background
@@ -1879,7 +1905,15 @@ TempLevel1.update = () => {
 		}
 	}
 	if (Manager.game.pause) return;
-	if (Manager.game.guideIndex < 14) tutorialBasicTimer += Time.deltaTime;
+	if (Manager.game.guideIndex <= 13) {
+		if (Manager.game.guideIndex === 13) {
+			if (Manager.game.kebal) {
+				// Only increment timer when the basics haven't been done
+				tutorialBasicTimer += Time.deltaTime;
+			}
+		}
+		else tutorialBasicTimer += Time.deltaTime;
+	}
 	const guideUpdate = {
 		'0'() {
 			if (Input.keyDown(KeyCode.Enter)) {
@@ -1974,13 +2008,17 @@ TempLevel1.update = () => {
 				}
 			}
 			if (Manager.game.guideShowTriangle && Manager.game.kebal) {
-				Manager.game.guideText = `Awesome! You just smash the 10th floor and damaged the building!`;
+				Manager.game.guideText = `Good! You just smashed the 10th floor and damaged the building!`;
 				Manager.game.guideIndex++;
+				Manager.game.guideShowTriangle = false;
 				Sound.play('Cursor');
 			}
 		},
 		'8'() {
-			if (Input.keyDown(KeyCode.Enter)) {
+			if (!Manager.game.goingDown) {
+				Manager.game.guideShowTriangle = true;
+			}
+			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
 				Manager.game.guideText = `That's your goal, to smash the building until it's destroyed.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
@@ -2035,10 +2073,9 @@ TempLevel1.update = () => {
 			else {
 				if (Manager.game.guideShowTriangle) {
 					if (Input.keyDown(KeyCode.Enter)) {
-						const time = Math.floor(tutorialBasicTimer * 0.01) / 10;
-						let motivationText = Math.choose('Nice', 'Good', 'Great', 'Awesome');
-						if (time < 40) motivationText = Math.choose('Wow', 'Amazing', 'Woohoo', 'What a natural', 'No way');
-						if (time < 25) motivationText = Math.choose('Wut', 'Man', 'Oh wow', 'What the?', 'Are you?');
+						const time = (tutorialBasicTimer * 0.001).toFixed(1);
+						let motivationText = Math.choose('Wow!', 'Great!', 'Awesome!', 'Amazing!');
+						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Man!', 'Oh wow!', 'What the?');
 						Manager.game.guideText = `${motivationText}!! You got the basics in ${time} seconds.`;
 						Manager.game.guideIndex++;
 						Sound.play('Cursor');
@@ -2110,6 +2147,7 @@ TempLevel1.update = () => {
 				Manager.game.guideIndex++;
 				Manager.game.kebal = false;
 				Sound.play('Cursor');
+				Manager.game.showMessage(`Destroy this floor!`);
 			}
 		},
 		'23'() {
@@ -2117,6 +2155,9 @@ TempLevel1.update = () => {
 		}
 	}[Manager.game.guideIndex];
 	guideUpdate();
+	for (const i of OBJ.take(BackgroundObject)) {
+		i.vspeed = Math.range(i.vspeed, Manager.game.goingDown? -10 : -2, 0.01);
+	}
 };
 
 TempLevel1.render = () => {
@@ -2141,6 +2182,30 @@ TempLevel1.render = () => {
 };
 
 TempLevel1.renderUI = () => {
+	if (!Manager.game.pause) {
+		let player0Targeted = false;
+		let player1Targeted = false;
+		for (const i of OBJ.take(Missile)) {
+			if (i.target) {
+				if (i.target.playerIndex === 0 && !player0Targeted && Manager.game.playerExists(0)) {
+					player0Targeted = true;
+					if (~~(Time.time * 0.01) % 2 === 0) {
+						Draw.setColor(`rgba(0, 0, 0, 0.1)`);
+						Draw.circle(i.target.x, i.target.y - 12, 32);
+						Sound.playOnce(`Cursor`);
+					}
+				}
+				else if (i.target.playerIndex === 1 && !player1Targeted && Manager.game.playerExists(1)) {
+					player1Targeted = true;
+					if (~~(Time.time * 0.01) % 2 === 0) {
+						Draw.setColor(`rgba(0, 0, 0, 0.1)`);
+						Draw.circle(i.target.x, i.target.y - 12, 32);
+						Sound.playOnce(`Cursor`);
+					}
+				}
+			}
+		}
+	}
 	if (Manager.game.guideIndex === 7) {
 		Draw.setStrokeWeight(3);
 		Draw.line(32, Manager.game.smasherYThreshold, Room.w - 32, Manager.game.smasherYThreshold);

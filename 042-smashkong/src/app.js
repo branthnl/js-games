@@ -183,7 +183,7 @@ class Kong extends BranthBehaviour {
 		this.isUsingSmasher = false;
 		this.xs = 1;
 		this.ys = 1;
-		Sound.play(`Pound${this.playerIndex}`);
+		Sound.play(`Jump${this.playerIndex}`);
 	}
 	get bound() {
 		return {
@@ -296,7 +296,7 @@ class Kong extends BranthBehaviour {
 			}
 			if (this.vsp > 10) {
 				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
-				Manager.game.takeDamage(this.vsp < 50? this.vsp * (1 + Math.range(0.5)) : this.vsp);
+				Manager.game.takeDamage(this.vsp < 50? this.vsp * (1 + Math.abs(Room.mid.w - this.x) / Room.mid.w) : this.vsp);
 				Sound.play(`Pound${this.playerIndex}`);
 			}
 			this.vsp = 0;
@@ -1457,7 +1457,7 @@ Leaderboard.renderUI = () => {
 			const y = Manager.leaderboard.y + Room.h - h;
 			Draw.setColor(C.white);
 			Draw.roundRect(x, y, 40, h + 32, 4);
-			Draw.setColor(C.blue);
+			Draw.setColor(C.black);
 			Draw.rect(x + 8, y, 24, -24);
 			Draw.setVAlign(Align.b);
 			if (Manager.leaderboard.hs.length > i) {
@@ -1466,7 +1466,7 @@ Leaderboard.renderUI = () => {
 				while (Draw.textWidth(k) > 95) {
 					k = k.slice(0, k.length - 1);
 				}
-				Manager.menu.drawText(x + 20, y - 30, `${k}${k.length < j.name.length? '...' : ''}\n${j.score}`);
+				Manager.menu.drawText(x + 20, y - 30, `${k}${k.length < j.name.length? '...' : ''}\n${j.score.toFixed(2)}kg`);
 			}
 		}
 		Draw.setFont(Font.l, Font.bold);
@@ -2122,9 +2122,15 @@ TempLevel1.update = () => {
 			}
 		},
 		'14'() {
+			const addTxt = `Smash in the center of the floor give more damage.`;
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `Caution in the next floor, there will be weapons.`;
-				Manager.game.guideIndex++;
+				if (Manager.game.guideText !== addTxt) {
+					Manager.game.guideText = addTxt;
+				}
+				else {
+					Manager.game.guideText = `Caution in the next floor, there will be weapons.`;
+					Manager.game.guideIndex++;
+				}
 				Sound.play('Cursor');
 			}
 		},
@@ -2216,12 +2222,20 @@ TempLevel1.render = () => {
 		if (Manager.game.gameOver) {
 			if (firebase) {
 				// Check if player reach a place
-				if (Manager.game.smashPoint > databaseSorted.pop()) {
-					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points! Please input your name.`);
+				let lowestPointToPass = 0;
+				if (Manager.leaderboard.hs.length > 9) {
+					lowestPointToPass =  Manager.leaderboard.hs[9];
+				}
+				if (Manager.game.smashPoint > lowestPointToPass) {
+					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points!\nPlease input your name.`);
+					database.child('hs').push({
+						name: name,
+						score: Manager.game.smashPoint
+					});
+					alert(`See you in the leaderboard!`);
 				}
 				else {
-					// databaseSorted.pop();
-					alert(`You ${pointDifference} away to reach a place! Keep up the good work!`);
+					alert(`You ${(lowestPointToPass - Manager.game.smashPoint).toFixed(2)}kg away to reach a place!\nKeep up the good work!`);
 				}
 			}
 			Room.start('Menu');

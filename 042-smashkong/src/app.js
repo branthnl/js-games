@@ -136,7 +136,7 @@ class Smasher extends BranthGameObject {
 	}
 	alarm2() {
 		// SMASH
-		this.carriedObject.vsp = 80;
+		this.carriedObject.vsp = (2 - Manager.game.floor / Manager.game.floorAmount) * 80; // 80 -> 160 as it goes down
 		OBJ.destroy(this.id);
 	}
 }
@@ -167,6 +167,8 @@ class Kong extends BranthBehaviour {
 		this.jmpCount = 0;
 		this.onGround = true;
 		this.isUsingSmasher = false;
+		this.xs = 1;
+		this.ys = 1;
 		Sound.play(`Pound${this.playerIndex}`);
 	}
 	get bound() {
@@ -226,7 +228,11 @@ class Kong extends BranthBehaviour {
 				this.vsp = this.jmpSpd;
 				this.jmpHold = true;
 				this.alarm[0] = 60;
-				if (!Manager.game.goingDown) Sound.play(`Jump${this.playerIndex}`);
+				if (!Manager.game.goingDown) {
+					Sound.play(`Jump${this.playerIndex}`);
+					this.xs = 0.8;
+					this.ys = 2 - this.xs;
+				}
 			}
 		}
 		if (keyWR) this.jmpHold = false;
@@ -269,7 +275,11 @@ class Kong extends BranthBehaviour {
 		}
 		if (this.bound.t + this.vsp <= 32 || this.bound.b + this.vsp >= Room.h - 32) {
 			if (this.vsp < 0) this.y = 32 + this.h;
-			if (this.vsp > 0) this.y = Room.h - 32;
+			if (this.vsp > 0) {
+				this.y = Room.h - 32;
+				this.xs = 1 + Math.min(0.75, this.vsp * 0.02);
+				this.ys = 2 - this.xs;
+			}
 			if (this.vsp > 10) {
 				View.shake(this.vsp * 0.07, this.vsp * 15);
 				Manager.game.takeDamage(this.vsp);
@@ -292,23 +302,29 @@ class Kong extends BranthBehaviour {
 				this.useSmasher();
 			}
 		}
+		this.xs = Math.range(this.xs, 1, 0.2);
+		this.ys = Math.range(this.ys, 1, 0.2);
 	}
 	render() {
 		const v = View.toView(this);
+		const scaled = {
+			w: this.w * this.xs,
+			h: this.h * this.ys
+		};
 		Draw.primitiveBegin();
-		Draw.vertex(v.x - this.w * 0.5, v.y);
-		Draw.vertex(v.x + this.w * 0.5, v.y);
-		Draw.vertex(v.x + this.w * 0.5, v.y - this.h);
-		Draw.vertex(v.x - this.w * 0.5, v.y - this.h);
+		Draw.vertex(v.x - scaled.w * 0.5, v.y);
+		Draw.vertex(v.x + scaled.w * 0.5, v.y);
+		Draw.vertex(v.x + scaled.w * 0.5, v.y - scaled.h);
+		Draw.vertex(v.x - scaled.w * 0.5, v.y - scaled.h);
 		Draw.setColor(C.black);
 		Draw.primitiveEnd();
 		// Draw.setColor(C.bisque);
-		Draw.circle(v.x - 6, v.y - 18, 2);
-		Draw.circle(v.x + 6, v.y - 18, 2);
-		Draw.rect(v.x - 5, v.y - 5, 10, 3);
+		// Draw.circle(v.x - 6, v.y - 18, 2);
+		// Draw.circle(v.x + 6, v.y - 18, 2);
+		// Draw.rect(v.x - 5, v.y - 5, 10, 3);
 		if (GLOBAL.debugMode > 0) {
 			Draw.setColor(C.magenta);
-			Draw.rect(v.x - this.w * 0.5, v.y - this.h, this.w, this.h, true);
+			Draw.rect(v.x - scaled.w * 0.5, v.y - scaled.h, scaled.w, scaled.h, true);
 			Draw.setColor(C.red);
 			Draw.circle(v.x, v.y, 2);
 		}
@@ -971,21 +987,26 @@ const Manager = {
 			const v = View.getView(0, 0);
 			Draw.setFont(Font.s, Font.bold);
 			const txt = `Credits: ${this.credits}`;
-			const smashPointTxt = `Smash Point: ${this.smashPoint.toFixed(2)}kg`;
+			const smasherTxt = `Smasher: ${this.smasherAmount}`;
+			const smashPointTxt = `Smash Points: ${this.smashPoint.toFixed(2)}kg`;
 			Draw.setColor(C.gray);
 			Draw.circle(v.x + Room.mid.w, v.y + 16, 10);
 			Draw.roundRect(v.x + 32, v.y + Room.h - 26, Draw.textWidth(txt) + 8, 20, 5);
+			Draw.roundRect(v.x + Room.w - 32, v.y + Room.h - 26, -Draw.textWidth(smasherTxt) - 8, 20, 5);
 			Draw.roundRect(v.x + Room.mid.w - Draw.textWidth(smashPointTxt) * 0.5 - 4, v.y + Room.h - 26, Draw.textWidth(smashPointTxt) + 8, 20, 5);
 			Draw.setHVAlign(Align.c, Align.m);
-			if (!this.playerExists(0)) Draw.text(v.x + Room.w * 0.75, v.y + Room.h - 16, 'Press <Down> to start P1');
-			if (!this.playerExists(1) && Room.name !== 'Level1') Draw.text(v.x + Room.w * 0.25, v.y + Room.h - 16, 'Press <S> to start P2');
+			if (!this.playerExists(0)) Draw.text(v.x + Room.w * 0.75, v.y + Room.h - 16, 'Press <Down> to deploy P1');
+			if (!this.playerExists(1) && Room.name !== 'Level1') Draw.text(v.x + Room.w * 0.25, v.y + Room.h - 16, 'Press <S> to deploy P2');
 			Draw.setColor(C.darkGray);
 			Draw.text(v.x + Room.mid.w, v.y + 16, this.buildingIsDestroyed? '-' : this.floor);
 			Draw.resetFontStyle();
 			Draw.text(v.x + Room.mid.w, v.y + Room.h - 16, smashPointTxt);
 			Draw.setHAlign(Align.l);
 			Draw.text(v.x + 36, v.y + Room.h - 16, txt);
+			Draw.setHAlign(Align.r);
+			Draw.text(v.x + Room.w - 36, v.y + Room.h - 16, smasherTxt);
 			Draw.setColor(C.gray);
+			Draw.setHAlign(Align.l);
 			Draw.text(v.x + 36, v.y + 16, `FPS: ${Time.FPS}`);
 			if (!this.gameOver && !this.goingDown && !this.pause && !this.kebal) {
 				const t = this.floorHP / this.getFloorHP(this.floor);
@@ -1816,6 +1837,8 @@ OBJ.add(BackgroundObject);
 let tutorialBasicTimer = 0;
 let tutorialFloatingHand = null;
 let tutorialNotKebalTimer = 0;
+let smasherSpawnInterval = 1000;
+let smasherSpawnTimer = 0;
 
 TempLevel1.start = () => {
 	// Setup game
@@ -1834,13 +1857,13 @@ TempLevel1.start = () => {
 	Manager.game.onStartFloor = () => {
 		switch (Manager.game.floor) {
 			case 8: OBJ.create(WeaponHandler, Math.choose([2], [6])); break;
-			case 7: OBJ.create(WeaponHandler, [2, 6]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 7: OBJ.create(WeaponHandler, [2, 6]); break;
 			case 6: OBJ.create(WeaponHandler, [4, 6, 2]); break;
-			case 5: OBJ.create(WeaponHandler, [6, 2, 4, 8, 0]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 5: OBJ.create(WeaponHandler, [6, 2, 4, 8, 0]); break;
 			case 4: OBJ.create(WeaponHandler, [2, 6, 5, 3]); break;
-			case 3: OBJ.create(WeaponHandler, [0, 2, 3, 5, 6, 8]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 3: OBJ.create(WeaponHandler, [0, 2, 3, 5, 6, 8]); break;
 			case 2: OBJ.create(WeaponHandler, [0, 8, 2, 6, 3, 5, 4]); break;
-			case 1: OBJ.create(WeaponHandler, [0, 2, 3, 4, 5, 6, 8]); OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold); break;
+			case 1: OBJ.create(WeaponHandler, [0, 2, 3, 4, 5, 6, 8]); break;
 		}
 		if (Manager.game.floor >= 1 && Manager.game.floor <= 8) {
 			Manager.game.showMessage(`Destroy this floor!`);
@@ -1918,10 +1941,10 @@ TempLevel1.update = () => {
 		'0'() {
 			if (Input.keyDown(KeyCode.Enter)) {
 				if (Manager.game.playerExists(0)) {
-					Manager.game.guideText = `Nice! Looks like you've already spawn a King Kong.`;
+					Manager.game.guideText = `Nice! Looks like you've already deployed a King Kong.`;
 				}
 				else {
-					Manager.game.guideText = `Press <Down> to spawn a King Kong.`;
+					Manager.game.guideText = `Press <Down> to deploy a King Kong.`;
 					Manager.game.guideShowTriangle = false;
 				}
 				Manager.game.guideIndex++;
@@ -2092,7 +2115,7 @@ TempLevel1.update = () => {
 		},
 		'15'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `You have to avoid their bullets is you still want to live.`;
+				Manager.game.guideText = `You have to avoid their bullets if you still want to be alive.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
@@ -2158,6 +2181,19 @@ TempLevel1.update = () => {
 	for (const i of OBJ.take(BackgroundObject)) {
 		i.vspeed = Math.range(i.vspeed, Manager.game.goingDown? -10 : -2, 0.01);
 	}
+	if (Manager.game.guideIndex >= 23 && !Manager.game.goingDown) {
+		if (smasherSpawnTimer < 0) {
+			if (OBJ.take(FloatingHand).length === 0) {
+				// Chance to spawn a smasher
+				let chance = (1 - Manager.game.floor / Manager.game.floorAmount) * 0.5; // (0 -> 0.5) as it goes down
+				if (Math.randbool(chance)) {
+					OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold);
+				}
+			}
+			smasherSpawnTimer = smasherSpawnInterval;
+		}
+		else smasherSpawnTimer -= Time.deltaTime;
+	}
 };
 
 TempLevel1.render = () => {
@@ -2190,16 +2226,26 @@ TempLevel1.renderUI = () => {
 				if (i.target.playerIndex === 0 && !player0Targeted && Manager.game.playerExists(0)) {
 					player0Targeted = true;
 					if (~~(Time.time * 0.01) % 2 === 0) {
+						// We know that player 0 is exists, so it must in between those two
+						let p = OBJ.take(Kong)[0];
+						if (p.playerIndex !== 0) {
+							p = OBJ.take(Kong)[1];
+						}
 						Draw.setColor(`rgba(0, 0, 0, 0.1)`);
-						Draw.circle(i.target.x, i.target.y - 12, 32);
+						Draw.circle(p.x, p.y - 12, 32);
 						Sound.playOnce(`Cursor`);
 					}
 				}
 				else if (i.target.playerIndex === 1 && !player1Targeted && Manager.game.playerExists(1)) {
 					player1Targeted = true;
 					if (~~(Time.time * 0.01) % 2 === 0) {
+						// We know that player 1 is exists, so it must in between those two
+						let p = OBJ.take(Kong)[0];
+						if (p.playerIndex !== 1) {
+							p = OBJ.take(Kong)[1];
+						}
 						Draw.setColor(`rgba(0, 0, 0, 0.1)`);
-						Draw.circle(i.target.x, i.target.y - 12, 32);
+						Draw.circle(p.x, p.y - 12, 32);
 						Sound.playOnce(`Cursor`);
 					}
 				}

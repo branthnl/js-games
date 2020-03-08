@@ -964,7 +964,7 @@ const Manager = {
 		},
 		takeDamage(amount) {
 			this.lastDamage = amount;
-			if (this.kebal) return;
+			if (this.gameOver || this.kebal) return;
 			this.floorHP -= amount;
 			this.smashPoint += amount;
 			if (this.floorHP <= 0) {

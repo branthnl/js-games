@@ -111,8 +111,8 @@ class Smasher extends BranthGameObject {
 		this.carriedObject = carriedObject;
 		this.spriteName = 'Smasher';
 		this.emergenceInterval = 200;
-		this.wavingInterval = 800;
-		this.xto = Room.mid.w;
+		this.wavingInterval = 400;
+		this.xto = Room.mid.w + Room.w * 0.1 * Math.sign(Room.mid.w - this.x) * Math.range(0.2, 1);
 		this.yto = Manager.game.smasherYThreshold + 12;
 		// Start emergence
 		this.alarm[0] = this.emergenceInterval;
@@ -125,10 +125,15 @@ class Smasher extends BranthGameObject {
 		}
 		else this.imageXScale = Math.range(this.imageXScale, 0.9 + Math.sin(Time.time * 0.01) * 0.1, 0.2);
 		this.imageYScale = this.imageXScale;
+		const t = Time.time * 0.03;
+		this.xto += Math.sin(t);
+		this.yto += Math.cos(t);
 		this.x = Math.range(this.x, this.xto, 0.2);
 		this.y = Math.range(this.y, this.yto + Math.sin(Time.time * 0.005) * 10, 0.2);
-		this.carriedObject.x = this.x;
-		this.carriedObject.y = this.y + 12;
+		if (this.carriedObject) {
+			this.carriedObject.x = this.x;
+			this.carriedObject.y = this.y + 12;
+		}
 		if (Manager.game.pause) {
 			this.freeze = true;
 		}
@@ -136,21 +141,31 @@ class Smasher extends BranthGameObject {
 			this.freeze = false;
 		}
 	}
+	render() {
+		const v = View.toView(this);
+		switch (this.imageType) {
+			case 0: Draw.sprite(this.spriteName, this.imageIndex, v.x, v.y, this.imageXScale, this.imageYScale, this.imageAngle, this.imageAlpha); break;
+			case 1: Draw.strip(this.spriteName, this.imageIndex, v.x, v.y, this.imageXScale, this.imageYScale, this.imageAngle, this.imageAlpha); break;
+		}
+	}
 	alarm0() {
 		// Close hand
 		this.imageIndex = 1;
 		// Move up
-		this.yto = Room.h * 0.25;
+		this.yto = Math.range(72, 82);
 		// Start waving
 		this.alarm[1] = this.wavingInterval;
 	}
 	alarm1() {
+		this.xto = Room.mid.w;
 		this.yto = Room.h * 0.75;
 		this.alarm[2] = 50;
 	}
 	alarm2() {
 		// SMASH
+		this.carriedObject.hsp = (Room.mid.w - this.x) * Math.range(0.4, 0.6);
 		this.carriedObject.vsp = (2 - Manager.game.floor / Manager.game.floorAmount) * 80; // 80 -> 160 as it goes down
+		this.carriedObject = null;
 		OBJ.destroy(this.id);
 	}
 }
@@ -185,6 +200,8 @@ class Kong extends BranthBehaviour {
 		this.ys = 1;
 		this.showHpBar = false;
 		this.hpBarAlpha = 0;
+		this.xprevious = this.x;
+		this.yprevious = this.y;
 		this.showHpBarInterval = 2000;
 		Sound.play(`Jump${this.playerIndex}`);
 	}
@@ -201,7 +218,7 @@ class Kong extends BranthBehaviour {
 			Manager.game.smasherAmount--;
 			this.isUsingSmasher = true;
 			OBJ.create(Smasher, this);
-			this.alarm[1] = 1500;
+			this.alarm[1] = 750;
 			Sound.play(`Smasher${this.playerIndex}`);
 		}
 	}
@@ -213,6 +230,10 @@ class Kong extends BranthBehaviour {
 		if (this.hp <= 0) {
 			OBJ.destroy(this.id);
 		}
+	}
+	beforeUpdate() {
+		this.xprevious = this.x;
+		this.yprevious = this.y;
 	}
 	update() {
 		if (Manager.game.pause) return;
@@ -325,6 +346,41 @@ class Kong extends BranthBehaviour {
 		this.ys = Math.range(this.ys, 1, 0.2);
 	}
 	render() {
+		if (this.isUsingSmasher) {
+			const dif = {
+				x: this.xprevious - this.x,
+				y: this.yprevious - this.y
+			};
+			Emitter.setArea(this.x, this.x, this.y, this.y);
+			if ((dif.x * dif.x + dif.y * dif.y) > 48 * 48) {
+				Emitter.preset('strip');
+				Emitter.setColor(C.white);
+				Emitter.setShape(Shape.square);
+				Emitter.setSize(12, 12);
+				Emitter.setSizeInc(-0.5, -0.5);
+				Emitter.setAlpha(0.6, 0.6);
+				Emitter.setLife(500, 500);
+				Emitter.emit(1);
+			}
+			// Emitter.preset('sparkle');
+			// Emitter.setColor(C.white);
+			// Emitter.setSize(3, 4);
+			// Emitter.setSpeed(0.5, 0.6);
+			// Emitter.setSpeedInc(-0.01, -0.01);
+			// Math.pick([() => {
+			// 	Emitter.setColor(C.tomato);
+			// 	Emitter.setOutline(true);
+			// },
+			// () => {
+			// 	Emitter.setColor(C.tomato);
+			// 	Emitter.setOutline(false);
+			// },
+			// () => {
+			// 	Emitter.setColor(C.lemonChiffon);
+			// 	Emitter.setOutline(true);
+			// }])();
+			// Emitter.emit(1);
+		}
 		const v = View.toView(this);
 		const scaled = {
 			w: this.w * this.xs,
@@ -1138,6 +1194,11 @@ const Manager = {
 			Draw.rect(28, 28, Room.w - 56, Room.h - 56);
 		},
 		drawWallAround() {
+			Draw.setColor(C.black);
+			Draw.rect(0, 0, Room.w, 16);
+			Draw.rect(0, 0, 16, Room.h);
+			Draw.rect(0, Room.h - 16, Room.w, 16);
+			Draw.rect(Room.w - 16, 0, 16, Room.h);
 			const v = View.getView(0, 0);
 			Draw.setColor(C.darkGray);
 			Draw.rect(v.x, v.y, Room.w, 32);

@@ -12,6 +12,10 @@ Draw.addStrip(new Vector2(0.5, 0.5), 'Missile', 'src/img/Missile.png', 2);
 Draw.addStrip(new Vector2(0.5, 0.5), 'RotateGun', 'src/img/RotateGun.png', 2);
 Draw.addStrip(new Vector2(0.5, 0.5), 'MissileLauncher', 'src/img/MissileLauncher.png', 2);
 
+Sound.add('Gun0', 'src/snd/Gun0.wav');
+Sound.add('Gun1', 'src/snd/Gun0.wav');
+Sound.add('Gun2', 'src/snd/Gun1.wav');
+Sound.add('Gun3', 'src/snd/Gun1.wav');
 Sound.add('Menu', 'src/snd/Menu.mp3');
 Sound.add('Game', 'src/snd/Game.mp3');
 Sound.add('Text', 'src/snd/Text.wav');
@@ -34,8 +38,18 @@ Sound.add('GetSmasher1', 'src/snd/GetSmasher.wav');
 Sound.add('MissileLaunch0', 'src/snd/MissileLaunch.wav');
 Sound.add('MissileLaunch1', 'src/snd/MissileLaunch.wav');
 
-Sound.setVolume('Jump0', 0.5);
-Sound.setVolume('Jump1', 0.5);
+Sound.setVolume('Jump0', 0.35);
+Sound.setVolume('Jump1', 0.35);
+
+Sound.playGunSound = () => {
+	// Sound.play(`Gun0`);
+	for (let i = 0; i < 4; i++) {
+		if (!Sound.isPlaying(`Gun${i}`)) {
+			Sound.play(`Gun${i}`);
+			break;
+		}
+	}
+};
 
 class FloatingHand extends BranthGameObject {
 	awake() {
@@ -281,8 +295,8 @@ class Kong extends BranthBehaviour {
 				this.ys = 2 - this.xs;
 			}
 			if (this.vsp > 10) {
-				View.shake(this.vsp * 0.07, this.vsp * 15);
-				Manager.game.takeDamage(this.vsp);
+				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
+				Manager.game.takeDamage(this.vsp < 50? this.vsp * (1 + Math.range(0.5)) : this.vsp);
 				Sound.play(`Pound${this.playerIndex}`);
 			}
 			this.vsp = 0;
@@ -297,7 +311,7 @@ class Kong extends BranthBehaviour {
 			this.vsp += Manager.game.gravity * (this.jmpHold? 0.5 : 1);
 			this.onGround = false;
 		}
-		if (keyS) {
+		if (keyS && !Manager.game.goingDown) {
 			if (this.y < Manager.game.smasherYThreshold) {
 				this.useSmasher();
 			}
@@ -507,6 +521,7 @@ class Gun extends BranthBehaviour {
 		this.angleSpd = 1;
 	}
 	shoot() {
+		Sound.playGunSound();
 		OBJ.create(Bullet, this.shootPoint.x, this.shootPoint.y, this.angle);
 	}
 	update() {
@@ -872,13 +887,13 @@ const Manager = {
 			}
 		],
 		get keyA() {
-			return Input.keyDown(KeyCode.A) || Input.keyDown(KeyCode.Left);
+			return /*Input.keyDown(KeyCode.A) || */Input.keyDown(KeyCode.Left);
 		},
 		get keyD() {
-			return Input.keyDown(KeyCode.D) || Input.keyDown(KeyCode.Right);
+			return /*Input.keyDown(KeyCode.D) || */Input.keyDown(KeyCode.Right);
 		},
 		get keyEnter() {
-			return Input.keyDown(KeyCode.Enter) || Input.keyDown(KeyCode.Space);
+			return Input.keyDown(KeyCode.Enter);// || Input.keyDown(KeyCode.Space);
 		},
 		get keyEscape() {
 			return Input.keyDown(KeyCode.Escape) || Input.keyDown(KeyCode.Backspace);
@@ -1027,7 +1042,7 @@ const Manager = {
 				Draw.text(Room.mid.w, Room.h * 0.4, 'Press <Enter> to continue.');
 			}
 			this.pauseAlpha = Math.range(this.pauseAlpha, this.pause * 0.5, 0.2);
-			Sound.setVolume('Game', Math.range(Sound.getVolume('Game'), !this.pause, 0.1));
+			Sound.setVolume('Game', Math.range(Sound.getVolume('Game'), !this.pause * 0.5, 0.1));
 			Draw.setColor(C.black);
 			Draw.setAlpha(this.pauseAlpha);
 			Draw.rect(0, 0, Room.w, Room.h);
@@ -1837,7 +1852,6 @@ OBJ.add(BackgroundObject);
 let tutorialBasicTimer = 0;
 let tutorialFloatingHand = null;
 let tutorialNotKebalTimer = 0;
-let smasherSpawnInterval = 1000;
 let smasherSpawnTimer = 0;
 
 TempLevel1.start = () => {
@@ -1845,6 +1859,7 @@ TempLevel1.start = () => {
 	tutorialBasicTimer = 0;
 	tutorialFloatingHand = null;
 	tutorialNotKebalTimer = 0;
+	smasherSpawnTimer = 0;
 	Manager.game.setup(10);
 	Sound.stop('Menu');
 	// Sound.loop('Game');
@@ -2098,7 +2113,7 @@ TempLevel1.update = () => {
 					if (Input.keyDown(KeyCode.Enter)) {
 						const time = (tutorialBasicTimer * 0.001).toFixed(1);
 						let motivationText = Math.choose('Wow!', 'Great!', 'Awesome!', 'Amazing!');
-						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Man!', 'Oh wow!', 'What the?');
+						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Oh wow!', 'What the?');
 						Manager.game.guideText = `${motivationText}!! You got the basics in ${time} seconds.`;
 						Manager.game.guideIndex++;
 						Sound.play('Cursor');
@@ -2115,7 +2130,7 @@ TempLevel1.update = () => {
 		},
 		'15'() {
 			if (Input.keyDown(KeyCode.Enter)) {
-				Manager.game.guideText = `You have to avoid their bullets if you still want to be alive.`;
+				Manager.game.guideText = `You have to avoid their projectiles if you still want to be alive.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
@@ -2179,39 +2194,40 @@ TempLevel1.update = () => {
 	}[Manager.game.guideIndex];
 	guideUpdate();
 	for (const i of OBJ.take(BackgroundObject)) {
-		i.vspeed = Math.range(i.vspeed, Manager.game.goingDown? -10 : -2, 0.01);
+		i.vspeed = Math.range(i.vspeed, Manager.game.goingDown? -6 : -2, 0.1);
 	}
 	if (Manager.game.guideIndex >= 23 && !Manager.game.goingDown) {
 		if (smasherSpawnTimer < 0) {
-			if (OBJ.take(FloatingHand).length === 0) {
+			if (OBJ.take(FloatingHand).length === 0 && Manager.game.smasherAmount < 10) {
 				// Chance to spawn a smasher
 				let chance = (1 - Manager.game.floor / Manager.game.floorAmount) * 0.5; // (0 -> 0.5) as it goes down
 				if (Math.randbool(chance)) {
 					OBJ.create(FloatingHand, Room.mid.w + Math.range(-64, 64), Manager.game.smasherYThreshold);
 				}
+				smasherSpawnTimer = Math.range(3000, 5000);
 			}
-			smasherSpawnTimer = smasherSpawnInterval;
 		}
 		else smasherSpawnTimer -= Time.deltaTime;
 	}
 };
 
 TempLevel1.render = () => {
-	if (Manager.menu.keyEnter) {
+	if (Input.keyDown(KeyCode.Enter)) {
 		if (Manager.game.gameOver) {
 			if (firebase) {
-				if (Manager.game.poundScore) {
-					const name = prompt();
-					Room.start('Menu');
+				// Check if player reach a place
+				if (Manager.game.smashPoint > databaseSorted.pop()) {
+					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points! Please input your name.`);
+				}
+				else {
+					// databaseSorted.pop();
+					alert(`You ${pointDifference} away to reach a place! Keep up the good work!`);
 				}
 			}
+			Room.start('Menu');
 		}
 		else if (Manager.game.pause) {
 			Room.start('Menu');
-			if (Room.previous.name === 'Game') {
-				Manager.menu.cursor = 1;
-				Manager.menu.rotation = -144;
-			}
 		}
 	}
 	Manager.game.drawBackground();

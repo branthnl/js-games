@@ -1379,7 +1379,7 @@ const Manager = {
 					Manager.leaderboard.hs = [];
 					snap.forEach(i => {
 						Manager.leaderboard.hs.push({
-							name: i.val().name,
+							name: i.val().name || '',
 							score: i.val().score
 						});
 					});
@@ -1461,16 +1461,49 @@ Menu.start = () => {
 	OBJ.create(Title);
 };
 
+let touchX = 0;
+let touchY = 0;
+let touchPressed = false;
+let swipeRight = false;
+let swipeLeft = false;
+
+const touchUpdate = () => {
+	touchPressed = false;
+	swipeRight = false;
+	swipeLeft = false;
+	if (Input.changedTouchCount > 0) {
+		const tid = Input.changedTouches[0].id;
+		if (Input.touchDown(tid)) {
+			touchX = Input.changedTouches[0].x;
+			touchY = Input.changedTouches[0].y;
+		}
+		if (Input.touchUp(tid)) {
+			const xdif = Input.changedTouches[0].x - touchX;
+			console.log(xdif);
+			if (xdif > Room.w * 0.2) {
+				swipeRight = true;
+			}
+			else if (xdif < -Room.w * 0.2) {
+				swipeLeft = true;
+			}
+			else {
+				touchPressed = true;
+			}
+		}
+	}
+};
+
 Menu.update = () => {
-	if (Manager.menu.keyA) {
+	touchUpdate();
+	if (Manager.menu.keyA || swipeRight) {
 		if (--Manager.menu.cursor < 0) Manager.menu.cursor = Manager.menu.items.length - 1;
 		Sound.play('Cursor');
 	}
-	if (Manager.menu.keyD) {
+	if (Manager.menu.keyD || swipeLeft) {
 		if (++Manager.menu.cursor > Manager.menu.items.length - 1) Manager.menu.cursor = 0;
 		Sound.play('Cursor');
 	}
-	if (Manager.menu.keyEnter) {
+	if (Manager.menu.keyEnter || touchPressed) {
 		Manager.menu.items[Manager.menu.cursor].onClick();
 		Sound.play('Decision');
 	}
@@ -1629,7 +1662,8 @@ Credits.start = () => {
 };
 
 Credits.update = () => {
-	if (Manager.menu.keyEscape) {
+	touchUpdate();
+	if (Manager.menu.keyEscape || touchPressed) {
 		Room.start('Menu');
 		Manager.menu.cursor = 2;
 		Manager.menu.rotation = 0;
@@ -1665,8 +1699,9 @@ Leaderboard.start = () => {
 };
 
 Leaderboard.update = () => {
+	touchUpdate();
 	Manager.leaderboard.t += Time.deltaTime;
-	if (Manager.menu.keyEscape) {
+	if (Manager.menu.keyEscape || touchPressed) {
 		Room.start('Menu');
 		Manager.menu.cursor = 1;
 		Manager.menu.rotation = -216;
@@ -1738,7 +1773,8 @@ LevelSelect.start = () => {
 };
 
 LevelSelect.update = () => {
-	if (Manager.menu.keyA) {
+	touchUpdate();
+	if (Manager.menu.keyA || swipeRight) {
 		if (Manager.levelSelect.cursor > 0) {
 			Manager.levelSelect.cursor--;
 			Sound.play('Cursor');
@@ -1748,7 +1784,7 @@ LevelSelect.update = () => {
 			Sound.play('Cancel');
 		}
 	}
-	if (Manager.menu.keyD) {
+	if (Manager.menu.keyD || swipeLeft) {
 		if (Manager.levelSelect.cursor < Manager.levelSelect.items.length - 1) {
 			Manager.levelSelect.cursor++;
 			Sound.play('Cursor');
@@ -1758,7 +1794,7 @@ LevelSelect.update = () => {
 			Sound.play('Cancel');
 		}
 	}
-	if (Manager.menu.keyEscape) {
+	if (Manager.menu.keyEscape || touchPressed) {
 		Room.start('Menu');
 		Manager.menu.cursor = 0;
 		Manager.menu.rotation = -72;
@@ -2577,5 +2613,7 @@ Boot.renderUI = () => {
 Room.add(Boot);
 
 Manager.leaderboard.updateHS();
+// GLOBAL.setProductionMode(true);
+// BRANTH.start();
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
 Room.start('Boot');

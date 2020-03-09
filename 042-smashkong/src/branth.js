@@ -837,7 +837,7 @@ const Font = {
 	size: 10,
 	style: '',
 	get font() {
-		return `${this.style} ${this.size}px`;
+		return `${this.style} ${this.size * Room.w / 960}px`;
 	},
 	get s() {
 		this.size = 10;

@@ -1468,6 +1468,8 @@ let swipeRight = false;
 let swipeLeft = false;
 let swipeDown = false;
 let swipeUp = false;
+let tid = 0;
+const swipeThreshold = 32;
 
 const touchUpdate = () => {
 	touchPressed = false;
@@ -1476,7 +1478,7 @@ const touchUpdate = () => {
 	swipeDown = false;
 	swipeUp = false;
 	if (Input.changedTouchCount > 0) {
-		const tid = Input.changedTouches[0].id;
+		tid = Input.changedTouches[0].id;
 		if (Input.touchDown(tid)) {
 			touchX = Input.changedTouches[0].x;
 			touchY = Input.changedTouches[0].y;
@@ -1484,16 +1486,16 @@ const touchUpdate = () => {
 		if (Input.touchUp(tid)) {
 			const xdif = Input.changedTouches[0].x - touchX;
 			const ydif = Input.changedTouches[0].y - touchY;
-			if (xdif > Room.w * 0.2) {
+			if (xdif > swipeThreshold) {
 				swipeRight = true;
 			}
-			else if (xdif < -Room.w * 0.2) {
+			else if (xdif < -swipeThreshold) {
 				swipeLeft = true;
 			}
-			else if (ydif > Room.h * 0.2) {
+			else if (ydif > swipeThreshold) {
 				swipeDown = true;
 			}
-			else if (ydif < -Room.h * 0.2) {
+			else if (ydif < -swipeThreshold) {
 				swipeUp = true;
 			}
 			else {
@@ -1711,7 +1713,7 @@ Leaderboard.start = () => {
 Leaderboard.update = () => {
 	touchUpdate();
 	Manager.leaderboard.t += Time.deltaTime;
-	if (Manager.menu.keyEscape || touchPressed) {
+	if (Manager.menu.keyEscape || touchPressed || swipeUp) {
 		Room.start('Menu');
 		Manager.menu.cursor = 1;
 		Manager.menu.rotation = -216;
@@ -2184,6 +2186,18 @@ TempLevel1.start = () => {
 
 TempLevel1.update = () => {
 	touchUpdate();
+	if (touchPressed) {
+		Input.getKey(KeyCode.Enter).pressed = true;
+		if (Manager.game.playerExists(0)) {
+			const xdif = Input.getTouch(tid).position.x - OBJ.take(Kong)[0].x;
+			Input.getKey(xdif > 0? KeyCode.Right : KeyCode.Left).hold = true;
+			Input.getKey(xdif > 0? KeyCode.Left : KeyCode.Right).hold = false;
+			Input.getKey(KeyCode.Up).pressed = true;
+		}
+	}
+	if (swipeDown) {
+		Input.getKey(KeyCode.Down).pressed = true;
+	}
 	if ((Manager.menu.keyEscape || swipeUp) && !Manager.game.gameOver) {
 		if (Manager.game.pause) {
 			Manager.game.pause = false;
@@ -2511,7 +2525,7 @@ TempLevel1.update = () => {
 };
 
 TempLevel1.render = () => {
-	if (Input.keyDown(KeyCode.Enter) || touchPressed || swipeDown) {
+	if (Input.keyDown(KeyCode.Enter)) {
 		if (Manager.game.gameOver) {
 			if (firebase) {
 				// Check if player reach a place
@@ -2625,6 +2639,6 @@ Room.add(Boot);
 
 Manager.leaderboard.updateHS();
 // GLOBAL.setProductionMode(true);
-// BRANTH.start();
-BRANTH.start(960, 540, { HAlign: true, VAlign: true });
+BRANTH.start();
+// BRANTH.start(960, 540, { HAlign: true, VAlign: true });
 Room.start('Boot');

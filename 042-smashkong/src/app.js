@@ -311,7 +311,7 @@ class Kong extends BranthBehaviour {
 		this.yprevious = this.y;
 		this.showHpBarInterval = 2000;
 		Info.pop(`P${this.playerIndex + 1} deployed`);
-		Sound.play(`Jump${this.playerIndex}`);
+		Sound.play(`Switch${this.playerIndex}`);
 	}
 	get bound() {
 		return {
@@ -2481,7 +2481,7 @@ TempLevel1.render = () => {
 					alert(`See you in the leaderboard!`);
 				}
 				else {
-					alert(`You ${(lowestPointToPass - Manager.game.smashPoint).toFixed(2)}kg away to reach a place!\nKeep up the good work!`);
+					alert(`You're ${(lowestPointToPass - Manager.game.smashPoint).toFixed(2)}kg away to reach a place!\nKeep up the good work!`);
 				}
 			}
 			Room.start('Menu');
@@ -2545,6 +2545,37 @@ TempLevel1.renderUI = () => {
 	Manager.renderTransition();
 };
 
+const Boot = new BranthRoom('Boot');
+let progress = 0;
+
+Boot.renderUI = () => {
+	Draw.setFont(Font.xxl);
+	Draw.setVAlign(Align.m);
+	const y = Room.mid.h + Math.sin(progress) * 2;
+	for (let i = 2; i >= 0; i -= 2) {
+		Draw.setColor(i > 0? C.black : C.white);
+		Draw.setHAlign(Align.l);
+		Draw.text(Room.mid.w - Draw.textWidth('Loading 100%') * 0.5 + i, y + i, 'Loading');
+		Draw.setHAlign(Align.c);
+		Draw.text(Room.mid.w - Draw.textWidth('Loading 100%') * 0.5 + Draw.textWidth('Loading ') + Draw.textWidth(`${~~progress}%`) * 0.5 + i, y + i, `${~~progress}%`);
+	}
+	if (progress > 27 && progress < 30) {
+		progress += 0.05; // fake loading
+	}
+	else if (progress > 92 && progress < 93) {
+		progress += 0.05; // fake loading
+	}
+	else progress += Time.scaledDeltaTime; // Estimated time to load image and sound files
+	if (~~progress % 10 === 0) {
+		Sound.play('Cursor');
+	}
+	if (progress >= 100) {
+		Room.start('Menu');
+	}
+};
+
+Room.add(Boot);
+
 Manager.leaderboard.updateHS();
 BRANTH.start(960, 540, { HAlign: true, VAlign: true });
-Room.start('Menu');
+Room.start('Boot');

@@ -29,9 +29,12 @@ Sound.add('Pound1', 'src/snd/Pound.wav');
 Sound.add('Cursor', 'src/snd/Cursor.wav');
 Sound.add('Cancel', 'src/snd/Cancel.wav');
 Sound.add('Banana', 'src/snd/Banana.wav');
+Sound.add('Switch0', 'src/snd/Switch.wav');
+Sound.add('Switch1', 'src/snd/Switch.wav');
 Sound.add('Smasher0', 'src/snd/Smasher.wav');
 Sound.add('Smasher1', 'src/snd/Smasher.wav');
 Sound.add('Decision', 'src/snd/Decision.wav');
+Sound.add('GoingDown', 'src/snd/GetSmasher.wav');
 Sound.add('Explosion', 'src/snd/Explosion.wav');
 Sound.add('GetSmasher0', 'src/snd/GetSmasher.wav');
 Sound.add('GetSmasher1', 'src/snd/GetSmasher.wav');
@@ -50,6 +53,61 @@ Sound.playGunSound = () => {
 		}
 	}
 };
+
+class Info extends BranthObject {
+	constructor(text, color) {
+		super(0, Room.h * 0.6);
+		this.xto = 36;
+		this.yto = this.y;
+		this.text = text;
+		this.color = color;
+		this.alarm = 2000;
+		Draw.setFont(Font.m);
+		this.textWidth = Draw.textWidth(this.text);
+		for (const i of OBJ.take(Info)) {
+			i.yto -= 16;
+		}
+	}
+	update() {
+		if (Manager.game.pause) return;
+		this.x = Math.range(this.x, this.xto, 0.2);
+		this.y = Math.range(this.y, this.yto, 0.2);
+		if (this.alarm < 0) {
+			this.xto = -this.textWidth;
+			if (Math.abs(this.xto - this.x) < 1) {
+				OBJ.destroy(this.id);
+			}
+		}
+		else {
+			this.alarm -= Time.deltaTime;
+		}
+	}
+	static textExists(text) {
+		const o = OBJ.take(Info);
+		for (let i = o.length - 1; i >= 0; i--) {
+			if (o[i].text === text) return true;
+		}
+		return false;
+	}
+	static pop(text, color = C.white) {
+		return OBJ.create(Info, text, color);
+	}
+	static renderUI() {
+		Draw.setFont(Font.m);
+		Draw.setColor(C.black);
+		Draw.setHVAlign(Align.l, Align.t);
+		const o = OBJ.take(Info);
+		for (let i = o.length - 1; i >= 0; i--) {
+			Draw.text(o[i].x + 1, o[i].y + 1, o[i].text);
+		}
+		for (let i = o.length - 1; i >= 0; i--) {
+			Draw.setColor(o[i].color);
+			Draw.text(o[i].x, o[i].y, o[i].text);
+		}
+	}
+}
+
+OBJ.add(Info);
 
 class FloatingHand extends BranthGameObject {
 	awake() {
@@ -78,22 +136,20 @@ class FloatingHand extends BranthGameObject {
 			}
 			if (this.hspeed !== 0) {
 				for (const i of OBJ.take(Kong)) {
-					if (!i.isUsingSmasher) {
-						if (Math.linedis(this.x, this.y, i.x, i.y - 12) < 48) {
-							Manager.game.smasherAmount++;
-							Sound.play('GetSmasher' + i.playerIndex);
-							Emitter.preset('sparkle');
-							Emitter.setArea(this.x, this.x, this.y, this.y);
-							Emitter.setColor(C.tomato);
-							Emitter.setOutline(true);
-							Emitter.emit(Math.range(5, 7));
-							Emitter.setOutline(false);
-							Emitter.emit(Math.range(5, 7));
-							Emitter.setColor(C.lemonChiffon);
-							Emitter.emit(Math.range(5, 7));
-							OBJ.destroy(this.id);
-							break;
-						}
+					if (Math.linedis(this.x, this.y, i.x, i.y - 12) < 48) {
+						Manager.game.smasherAmount++;
+						Sound.play('GetSmasher' + i.playerIndex);
+						Emitter.preset('sparkle');
+						Emitter.setArea(this.x, this.x, this.y, this.y);
+						Emitter.setColor(C.tomato);
+						Emitter.setOutline(true);
+						Emitter.emit(Math.range(3, 5));
+						Emitter.setOutline(false);
+						Emitter.emit(Math.range(3, 5));
+						Emitter.setColor(C.lemonChiffon);
+						Emitter.emit(Math.range(3, 5));
+						OBJ.destroy(this.id);
+						break;
 					}
 				}
 			}
@@ -112,6 +168,8 @@ class Smasher extends BranthGameObject {
 		this.spriteName = 'Smasher';
 		this.emergenceInterval = 200;
 		this.wavingInterval = 400;
+		this.imageIndex = 1;
+		this.control = true;
 		this.xto = Room.mid.w + Room.w * 0.1 * Math.sign(Room.mid.w - this.x) * Math.range(0.2, 1);
 		this.yto = Manager.game.smasherYThreshold + 12;
 		// Start emergence
@@ -131,8 +189,10 @@ class Smasher extends BranthGameObject {
 		this.x = Math.range(this.x, this.xto, 0.2);
 		this.y = Math.range(this.y, this.yto + Math.sin(Time.time * 0.005) * 10, 0.2);
 		if (this.carriedObject) {
-			this.carriedObject.x = this.x;
-			this.carriedObject.y = this.y + 12;
+			if (this.control) {
+				this.carriedObject.x = this.x;
+				this.carriedObject.y = this.y + 12;
+			}
 		}
 		if (Manager.game.pause) {
 			this.freeze = true;
@@ -158,13 +218,21 @@ class Smasher extends BranthGameObject {
 	}
 	alarm1() {
 		this.xto = Room.mid.w;
-		this.yto = Room.h * 0.75;
+		this.yto = Room.h * 1.5;
+		this.carriedObject.xsto = 0.2;
+		this.carriedObject.ysto = 1.8;
 		this.alarm[2] = 50;
 	}
 	alarm2() {
 		// SMASH
 		this.carriedObject.hsp = (Room.mid.w - this.x) * Math.range(0.4, 0.6);
 		this.carriedObject.vsp = (2 - Manager.game.floor / Manager.game.floorAmount) * 80; // 80 -> 160 as it goes down
+		this.control = false;
+		this.alarm[3] = 100;
+	}
+	alarm3() {
+		this.carriedObject.xsto = 1;
+		this.carriedObject.ysto = 1;
 		this.carriedObject = null;
 		OBJ.destroy(this.id);
 	}
@@ -198,11 +266,14 @@ class Kong extends BranthBehaviour {
 		this.isUsingSmasher = false;
 		this.xs = 1;
 		this.ys = 1;
+		this.xsto = 1;
+		this.ysto = 1;
 		this.showHpBar = false;
 		this.hpBarAlpha = 0;
 		this.xprevious = this.x;
 		this.yprevious = this.y;
 		this.showHpBarInterval = 2000;
+		Info.pop(`P${this.playerIndex + 1} deployed`);
 		Sound.play(`Jump${this.playerIndex}`);
 	}
 	get bound() {
@@ -214,13 +285,14 @@ class Kong extends BranthBehaviour {
 		}
 	}
 	useSmasher() {
-		if (Manager.game.smasherAmount > 0) {
-			Manager.game.smasherAmount--;
-			this.isUsingSmasher = true;
-			OBJ.create(Smasher, this);
-			this.alarm[1] = 750;
-			Sound.play(`Smasher${this.playerIndex}`);
+		OBJ.create(Smasher, this);
+		Sound.play(`Smasher${this.playerIndex}`);
+		this.isUsingSmasher = true;
+		this.alarm[1] = 750;
+		if (Info.textExists(`P${2 - this.playerIndex} use smasher!`)) {
+			Info.pop(`P${this.playerIndex + 1} use smasher too!`, this.color);
 		}
+		else Info.pop(`P${this.playerIndex + 1} use smasher!`, this.color);
 	}
 	takeDamage(amount) {
 		if (this.isUsingSmasher) return;
@@ -319,6 +391,8 @@ class Kong extends BranthBehaviour {
 				this.y = Room.h - 32;
 				this.xs = 1 + Math.min(0.75, this.vsp * 0.02);
 				this.ys = 2 - this.xs;
+				this.xsto = 1;
+				this.ysto = 1;
 			}
 			if (this.vsp > 10) {
 				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
@@ -337,13 +411,25 @@ class Kong extends BranthBehaviour {
 			this.vsp += Manager.game.gravity * (this.jmpHold? 0.5 : 1);
 			this.onGround = false;
 		}
-		if (keyS && !Manager.game.goingDown) {
-			if (this.y < Manager.game.smasherYThreshold) {
-				this.useSmasher();
+		if (keyS && !Manager.game.goingDown && !this.isUsingSmasher) {
+			if (Manager.game.smasherAmount > 0) {
+				if (this.y < Manager.game.smasherYThreshold) {
+					this.useSmasher();
+					Manager.game.smasherAmount--;
+				}
+				else {
+					if (Manager.game.smasherYThreshold > 32) {
+						const msg = `Jump higher P${this.playerIndex + 1}!`;
+						if (!Info.textExists(msg)) {
+							Info.pop(msg, this.color);
+						}
+						Sound.play(`Switch${this.playerIndex}`);
+					}
+				}
 			}
 		}
-		this.xs = Math.range(this.xs, 1, 0.2);
-		this.ys = Math.range(this.ys, 1, 0.2);
+		this.xs = Math.range(this.xs, this.xsto, 0.2);
+		this.ys = Math.range(this.ys, this.ysto, 0.2);
 	}
 	render() {
 		if (this.isUsingSmasher) {
@@ -454,6 +540,11 @@ class Kong extends BranthBehaviour {
 		Emitter.emit(Math.range(10, 12));
 		View.shake(2, 400);
 		Sound.play(`Blow${this.playerIndex}`);
+		Info.pop(`P${this.playerIndex + 1} died!`, C.red);
+		if (Manager.game.credits > 0) {
+			Info.pop(`${Manager.game.credits} credit${Manager.game.credits > 1? 's' : ''} left`);
+		}
+		else Info.pop('No credits left');
 		if (OBJ.take(Kong).length < 2 && Manager.game.credits <= 0) {
 			Manager.game.gameOver = true;
 		}
@@ -483,6 +574,13 @@ class Bullet extends BranthBehaviour {
 			const j = o[i];
 			if (h.x > j.x - 12 && h.x < j.x + 12 && h.y > j.y - 24 && h.y < j.y) {
 				j.takeDamage(this.damage);
+				if (this.constructor.name === 'Missile') {
+					if (this.target) {
+						if (this.target.playerIndex !== j.playerIndex) {
+							Info.pop(`P${j.playerIndex + 1} protect P${this.target.playerIndex + 1}!`, C.mediumSpringGreen);
+						}
+					}
+				}
 				count++;
 				break;
 			}
@@ -523,6 +621,9 @@ class Missile extends Bullet {
 		this.spriteName = 'Missile';
 		this.interval = Math.range(2000, 2500);
 		this.alarm[1] = this.interval;
+		if (this.y > 32) {
+			Info.pop(`P${this.target.playerIndex + 1} targeted!`, C.red);
+		}
 	}
 	beforeUpdate() {
 		if (Manager.game.pause) {
@@ -601,6 +702,13 @@ class Gun extends BranthBehaviour {
 		this.shootInterval = 400;
 		this.shootBackForce = 0;
 		this.angleSpd = 1;
+		let msg = '';
+		switch (this.constructor.name) {
+			case 'MachineGun': msg = `Machine gun`; break;
+			case 'MissileLauncher': msg = `Missile launcher`; break;
+			default: msg = `Gun`; break;
+		}
+		Info.pop(msg + ' appeared!', C.gold);
 	}
 	shoot() {
 		Sound.playGunSound();
@@ -673,7 +781,7 @@ class MissileLauncher extends Gun {
 	render() {
 		const v = View.toView(Vector2.add(this, Math.lendir(this.shootBackForce, this.angle + 180)));
 		const t = Math.sin(Time.time * 0.002);
-		Draw.strip('MissileLauncher', 0, v.x, v.y, 1, 1, this.angle + t * 20);
+		Draw.strip('MissileLauncher', 0, v.x, v.y, 1, 1, this.angle + t * 20 * Math.sign(Room.mid.w - this.x));
 		Draw.strip('MissileLauncher', 1, v.x, v.y + t * 8, 1, 1, this.angle);
 	}
 }
@@ -869,9 +977,9 @@ class FestiveMaker extends BranthBehaviour {
 
 OBJ.add(FloatingHand);
 OBJ.add(Smasher);
-OBJ.add(Kong);
 OBJ.add(Bullet);
 OBJ.add(Missile);
+OBJ.add(Kong);
 OBJ.add(Beam);
 OBJ.add(Gun);
 OBJ.add(RotateGun);
@@ -1003,6 +1111,7 @@ const Manager = {
 		floorAmount: 5,
 		message: '',
 		messageCounter: 0,
+		messageCounterMax: 180,
 		guideText: '',
 		guideIndex: 0,
 		guideShowTriangle: true,
@@ -1024,6 +1133,7 @@ const Manager = {
 			this.floorHP = this.getFloorHP(this.floor);
 			this.message = '';
 			this.messageCounter = 0;
+			this.messageCounterMax = 180;
 			this.guideText = '';
 			this.guideIndex = 0;
 			this.guideShowTriangle = true;
@@ -1046,9 +1156,10 @@ const Manager = {
 		},
 		takeDamage(amount) {
 			this.lastDamage = amount;
-			if (this.gameOver || this.kebal) return;
-			this.floorHP -= amount;
-			this.smashPoint += amount;
+			if (!this.gameOver && !this.kebal) {
+				this.floorHP -= amount;
+				this.smashPoint += amount;
+			}
 			if (this.floorHP <= 0) {
 				if (this.floor <= 1) {
 					if (!this.gameOver) {
@@ -1063,6 +1174,7 @@ const Manager = {
 				else {
 					this.goingDown = true;
 					this.goingDownAlarm = 3000;
+					Sound.play('GoingDown');
 					for (const i of OBJ.take(WeaponHandler)) {
 						i.destroy();
 					}
@@ -1141,9 +1253,10 @@ const Manager = {
 				Manager.menu.drawText(Room.mid.w - Draw.textWidth(txt) * 0.5, Room.mid.h, 'Press <Backspace> to resume.');
 			}
 		},
-		showMessage(text) {
+		showMessage(text, cnt = 180) {
 			this.message = text;
-			this.messageCounter = 180;
+			this.messageCounter = cnt;
+			this.messageCounterMax = cnt;
 		},
 		renderMessage() {
 			if (this.pause || this.gameOver) return;
@@ -1166,7 +1279,7 @@ const Manager = {
 			}
 			if (this.messageCounter > 0) {
 				let a = 0;
-				const t = this.messageCounter / 180;
+				const t = this.messageCounter / this.messageCounterMax;
 				if (t > 0.9) {
 					a = Math.clamp((1 - t) / 0.1, 0, 1);
 				}
@@ -1968,7 +2081,7 @@ TempLevel1.start = () => {
 			case 1: OBJ.create(WeaponHandler, [0, 2, 3, 4, 5, 6, 8]); break;
 		}
 		if (Manager.game.floor >= 1 && Manager.game.floor <= 8) {
-			Manager.game.showMessage(`Destroy this floor!`);
+			Manager.game.showMessage(`Destroy this floor!`, 60);
 		}
 	};
 	// Setup background
@@ -2007,24 +2120,30 @@ TempLevel1.update = () => {
 		if (Input.keyDown(KeyCode.Down)) {
 			if (Manager.game.playerExists(0)) count++;
 			if (count === 0) {
-				OBJ.create(Kong, 0, Room.w * 0.75, Room.mid.h, C.royalBlue, {
+				const n = OBJ.create(Kong, 0, Room.w * 0.75, Room.mid.h, C.royalBlue, {
 					W: KeyCode.Up,
 					A: KeyCode.Left,
 					S: KeyCode.Down,
 					D: KeyCode.Right
 				});
+				// To cancel attempt of using smasher
+				n.isUsingSmasher = true;
+				n.alarm[1] = 10;
 				Manager.game.credits--;
 			}
 		}
 		else if (Input.keyDown(KeyCode.S)) {
 			if (Manager.game.playerExists(1)) count++;
 			if (count === 0) {
-				OBJ.create(Kong, 1, Room.w * 0.25, Room.mid.h, C.crimson, {
+				const n = OBJ.create(Kong, 1, Room.w * 0.25, Room.mid.h, C.crimson, {
 					W: KeyCode.W,
 					A: KeyCode.A,
 					S: KeyCode.S,
 					D: KeyCode.D
 				});
+				// To cancel attempt of using smasher
+				n.isUsingSmasher = true;
+				n.alarm[1] = 10;
 				Manager.game.credits--;
 			}
 		}
@@ -2127,7 +2246,8 @@ TempLevel1.update = () => {
 					Manager.game.guideShowTriangle = true;
 				}
 				if (!Manager.game.kebal) {
-					if (Manager.game.lastDamage > 0) {
+					// Larger than or equal than 80 means it came from smasher
+					if (Manager.game.lastDamage >= 80) {
 						Manager.game.kebal = true;
 					}
 				}
@@ -2200,7 +2320,7 @@ TempLevel1.update = () => {
 					if (Input.keyDown(KeyCode.Enter)) {
 						const time = (tutorialBasicTimer * 0.001).toFixed(1);
 						let motivationText = Math.choose('Wow!', 'Great!', 'Awesome!', 'Amazing!');
-						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Oh wow!', 'What the?');
+						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Oh wow!', 'Impressive!');
 						Manager.game.guideText = `${motivationText}!! You got the basics in ${time} seconds.`;
 						Manager.game.guideIndex++;
 						Sound.play('Cursor');
@@ -2314,7 +2434,7 @@ TempLevel1.render = () => {
 					lowestPointToPass =  Manager.leaderboard.hs[9];
 				}
 				if (Manager.game.smashPoint > lowestPointToPass) {
-					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points!\nPlease input your name.`);
+					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points!\nPlease provide your name (10 characters for better display.)`);
 					database.child('hs').push({
 						name: name,
 						score: Manager.game.smashPoint
@@ -2374,6 +2494,7 @@ TempLevel1.renderUI = () => {
 		Draw.line(32, Manager.game.smasherYThreshold, Room.w - 32, Manager.game.smasherYThreshold);
 		Draw.resetStrokeWeight();
 	}
+	Info.renderUI();
 	Manager.game.drawWallAround();
 	Manager.game.renderInfo();
 	for (const i of OBJ.take(Kong)) {

@@ -62,6 +62,7 @@ class Info extends BranthObject {
 		this.text = text;
 		this.color = color;
 		this.alarm = 2000;
+		this.visible = false;
 		Draw.setFont(Font.m);
 		this.textWidth = Draw.textWidth(this.text);
 		for (const i of OBJ.take(Info)) {
@@ -107,7 +108,43 @@ class Info extends BranthObject {
 	}
 }
 
+class DamageMessage extends BranthObject {
+	constructor(x, y, amount, unitText) {
+		super(x, y);
+		this.amount = amount;
+		this.unitText = unitText;
+		this.xscale = Math.range(0.5, 1);
+		this.yscale = this.xscale;
+		this.len = Math.range(10, 20);
+		this.angle = Math.range(210, 330);
+		this.visible = false;
+	}
+	update() {
+		if (Manager.game.pause) return;
+		const l = Vector2.add(new Vector2(this.xstart, this.ystart), Math.lendir(this.len, this.angle));
+		this.x = Math.range(this.x, l.x, 0.1);
+		this.y = Math.range(this.y, l.y, 0.1);
+		if (((l.x - this.x) * (l.x - this.x) + (l.y - this.y) * (l.y - this.y)) < 0.01) {
+			OBJ.destroy(this.id);
+		}
+	}
+	static pop(x, y, amount, unitText = '') {
+		return OBJ.create(DamageMessage, x, y, amount.toFixed(2), unitText);
+	}
+	static renderUI() {
+		const o = OBJ.take(DamageMessage);
+		Draw.setFont(Font.s);
+		Draw.setColor(C.white);
+		Draw.setHVAlign(Align.c, Align.b);
+		for (let i = o.length - 1; i >= 0; i--) {
+			const j = o[i];
+			Draw.textTransformed(j.x, j.y, `${j.amount}${j.unitText}`, j.xscale, j.yscale, j.angle + 90);
+		}
+	}
+}
+
 OBJ.add(Info);
+OBJ.add(DamageMessage);
 
 class FloatingHand extends BranthGameObject {
 	awake() {
@@ -396,7 +433,9 @@ class Kong extends BranthBehaviour {
 			}
 			if (this.vsp > 10) {
 				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
-				Manager.game.takeDamage(this.vsp < 50? this.vsp * (1 + Math.abs(Room.mid.w - this.x) / Room.mid.w) : this.vsp);
+				const dmg = this.vsp < 50? this.vsp * (1 + Math.abs(Room.mid.w - this.x) / Room.mid.w) : this.vsp;
+				Manager.game.takeDamage(dmg);
+				// DamageMessage.pop(this.x, this.y, dmg, 'kg');
 				Sound.play(`Pound${this.playerIndex}`);
 			}
 			this.vsp = 0;
@@ -2199,7 +2238,7 @@ TempLevel1.update = () => {
 				Manager.game.guideShowTriangle = true;
 			}
 			if (Input.keyDown(KeyCode.Enter) && Manager.game.guideShowTriangle) {
-				Manager.game.guideText = `You can jump to a wall to get higher.`;
+				Manager.game.guideText = `You can jump to the wall to get higher.`;
 				Manager.game.guideIndex++;
 				Sound.play('Cursor');
 			}
@@ -2494,6 +2533,7 @@ TempLevel1.renderUI = () => {
 		Draw.line(32, Manager.game.smasherYThreshold, Room.w - 32, Manager.game.smasherYThreshold);
 		Draw.resetStrokeWeight();
 	}
+	DamageMessage.renderUI();
 	Info.renderUI();
 	Manager.game.drawWallAround();
 	Manager.game.renderInfo();

@@ -1466,11 +1466,15 @@ let touchY = 0;
 let touchPressed = false;
 let swipeRight = false;
 let swipeLeft = false;
+let swipeDown = false;
+let swipeUp = false;
 
 const touchUpdate = () => {
 	touchPressed = false;
 	swipeRight = false;
 	swipeLeft = false;
+	swipeDown = false;
+	swipeUp = false;
 	if (Input.changedTouchCount > 0) {
 		const tid = Input.changedTouches[0].id;
 		if (Input.touchDown(tid)) {
@@ -1479,12 +1483,18 @@ const touchUpdate = () => {
 		}
 		if (Input.touchUp(tid)) {
 			const xdif = Input.changedTouches[0].x - touchX;
-			console.log(xdif);
+			const ydif = Input.changedTouches[0].y - touchY;
 			if (xdif > Room.w * 0.2) {
 				swipeRight = true;
 			}
 			else if (xdif < -Room.w * 0.2) {
 				swipeLeft = true;
+			}
+			else if (ydif > Room.h * 0.2) {
+				swipeDown = true;
+			}
+			else if (ydif < -Room.h * 0.2) {
+				swipeUp = true;
 			}
 			else {
 				touchPressed = true;
@@ -1503,7 +1513,7 @@ Menu.update = () => {
 		if (++Manager.menu.cursor > Manager.menu.items.length - 1) Manager.menu.cursor = 0;
 		Sound.play('Cursor');
 	}
-	if (Manager.menu.keyEnter || touchPressed) {
+	if (Manager.menu.keyEnter || touchPressed || swipeDown) {
 		Manager.menu.items[Manager.menu.cursor].onClick();
 		Sound.play('Decision');
 	}
@@ -1663,7 +1673,7 @@ Credits.start = () => {
 
 Credits.update = () => {
 	touchUpdate();
-	if (Manager.menu.keyEscape || touchPressed) {
+	if (Manager.menu.keyEscape || touchPressed || swipeUp) {
 		Room.start('Menu');
 		Manager.menu.cursor = 2;
 		Manager.menu.rotation = 0;
@@ -1794,12 +1804,12 @@ LevelSelect.update = () => {
 			Sound.play('Cancel');
 		}
 	}
-	if (Manager.menu.keyEscape || touchPressed) {
+	if (Manager.menu.keyEscape || swipeUp) {
 		Room.start('Menu');
 		Manager.menu.cursor = 0;
 		Manager.menu.rotation = -72;
 	}
-	else if (Manager.menu.keyEnter) {
+	else if (Manager.menu.keyEnter || touchPressed || swipeDown) {
 		Manager.levelSelect.items[Manager.levelSelect.cursor].onClick();
 		Sound.play('Decision');
 	}
@@ -2173,7 +2183,8 @@ TempLevel1.start = () => {
 };
 
 TempLevel1.update = () => {
-	if (Manager.menu.keyEscape && !Manager.game.gameOver) {
+	touchUpdate();
+	if ((Manager.menu.keyEscape || swipeUp) && !Manager.game.gameOver) {
 		if (Manager.game.pause) {
 			Manager.game.pause = false;
 			Sound.play('Cancel');
@@ -2500,7 +2511,7 @@ TempLevel1.update = () => {
 };
 
 TempLevel1.render = () => {
-	if (Input.keyDown(KeyCode.Enter)) {
+	if (Input.keyDown(KeyCode.Enter) || touchPressed || swipeDown) {
 		if (Manager.game.gameOver) {
 			if (firebase) {
 				// Check if player reach a place

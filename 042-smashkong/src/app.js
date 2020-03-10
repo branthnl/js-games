@@ -433,7 +433,7 @@ class Kong extends BranthBehaviour {
 			}
 			if (this.vsp > 10) {
 				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
-				const dmg = this.vsp < 50? this.vsp * (1 + Math.abs(Room.mid.w - this.x) / Room.mid.w) : this.vsp;
+				const dmg = this.vsp < 50? this.vsp * (2 - Math.abs(Room.mid.w - this.x) / Room.mid.w) : this.vsp;
 				Manager.game.takeDamage(dmg);
 				// DamageMessage.pop(this.x, this.y, dmg, 'kg');
 				Sound.play(`Pound${this.playerIndex}`);

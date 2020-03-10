@@ -1730,39 +1730,42 @@ Leaderboard.update = () => {
 Leaderboard.renderUI = () => {
 	const t = Math.sin(Time.time * 0.005);
 	const podium = {
-		h: Room.h * 0.062
+		h: Room.h * 0.06
 	};
+	Draw.setFont(Font.l);
+	const fontSize = Font.size;
+	const gap = fontSize * 3;
 	Draw.setFont(Font.xxl);
 	Draw.setHVAlign(Align.c, Align.t);
 	Manager.menu.drawText(Room.mid.w, 48 + t * 5, 'LEADERBOARD');
 	Draw.setFont(Font.m);
 	if (firebase) {
 		for (let i = 0; i < 10; i++) {
-			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
+			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * gap;
 			const h = (10 - i) * podium.h;
 			const y = Manager.leaderboard.y + Room.h - h;
 			Draw.setColor(C.white);
-			Draw.roundRect(x, y, 40, h + 32, 4);
+			Draw.roundRect(x, y, fontSize * 1.67, h + 32, 4);
 			Draw.setColor(C.black);
-			Draw.rect(x + 8, y, 24, -24);
+			Draw.rect(x + fontSize * 0.334, y, fontSize, -fontSize);
 			Draw.setVAlign(Align.b);
 			if (Manager.leaderboard.hs.length > i) {
 				const j = Manager.leaderboard.hs[i];
 				let k = j.name;
-				while (Draw.textWidth(k) > 95) {
+				while (Draw.textWidth(k) > fontSize * 5) {
 					k = k.slice(0, k.length - 1);
 				}
-				Manager.menu.drawText(x + 20, y - 30, `${k}${k.length < j.name.length? '...' : ''}\n${j.score.toFixed(2)}kg`);
+				Manager.menu.drawText(x + fontSize * 0.835, y - fontSize * 1.5, `${k}${k.length < j.name.length? '...' : ''}\n${j.score.toFixed(2)}kg`);
 			}
 		}
 		Draw.setFont(Font.l, Font.bold);
+		Draw.setColor(C.black);
+		Draw.setVAlign(Align.t);
 		for (let i = 0; i < 10; i++) {
-			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * 75;
+			const x = Room.mid.w + Math.ceil(i * 0.5) * (i % 2 === 0? -1 : 1) * gap;
 			const h = (10 - i) * podium.h;
 			const y = Manager.leaderboard.y + Room.h - h;
-			Draw.setColor(C.black);
-			Draw.setVAlign(Align.t);
-			Draw.text(x + 20, y + 6, i + 1);
+			Draw.text(x + fontSize * 0.835, y + 6, i + 1);
 		}
 		Draw.resetFontStyle();
 	}
@@ -2531,7 +2534,7 @@ TempLevel1.render = () => {
 				// Check if player reach a place
 				let lowestPointToPass = 0;
 				if (Manager.leaderboard.hs.length > 9) {
-					lowestPointToPass =  Manager.leaderboard.hs[9];
+					lowestPointToPass =  Manager.leaderboard.hs[9].score;
 				}
 				if (Manager.game.smashPoint > lowestPointToPass) {
 					const name = prompt(`You reach a place with ${Manager.game.smashPoint.toFixed(2)}kg smash points!\nPlease provide your name (10 characters for better display.)`);

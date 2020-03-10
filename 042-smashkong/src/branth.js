@@ -837,30 +837,30 @@ const Font = {
 	size: 10,
 	style: '',
 	get font() {
-		return `${this.style} ${this.size * Room.w / 960}px`;
+		return `${this.style} ${this.size}px`;
 	},
 	get s() {
-		this.size = 10;
+		this.size = 10 * Room.w / 960;
 		return this.font;
 	},
 	get sm() {
-		this.size = 14;
+		this.size = 14 * Room.w / 960;
 		return this.font;
 	},
 	get m() {
-		this.size = 16;
+		this.size = 16 * Room.w / 960;
 		return this.font;
 	},
 	get l() {
-		this.size = 24;
+		this.size = 24 * Room.w / 960;
 		return this.font;
 	},
 	get xl() {
-		this.size = 36;
+		this.size = 36 * Room.w / 960;
 		return this.font;
 	},
 	get xxl() {
-		this.size = 48;
+		this.size = 48 * Room.w / 960;
 		return this.font;
 	}
 };

@@ -1447,7 +1447,9 @@ const Physics = {
 	},
 	update() {
 		for (let i = this.list.length - 1; i >= 0; i--) {
-			this.list[i].physicsUpdate();
+			if (!this.list[i].freeze) {
+				this.list[i].physicsUpdate();
+			}
 		}
 	}
 };
@@ -1506,6 +1508,7 @@ class PolygonCollider2D extends Collider2D {
 class BranthGameObject extends BranthBehaviour {
 	constructor(x, y) {
 		super(x, y);
+		this.freeze = false;
 		this.xprevious = x;
 		this.yprevious = y;
 		this.spriteName = '';
@@ -1903,7 +1906,7 @@ class BranthRoom {
 }
 
 const Room = {
-	scale: 2,
+	scale: 1,
 	w: 300,
 	h: 150,
 	id: -1,
@@ -2062,7 +2065,8 @@ const BRANTH = {
 		document.head.appendChild(k);
 		document.body.appendChild(CANVAS);
 		if (Room.list.length === 0) if (!GLOBAL.productionMode) console.log(`No room found.\n- Add Room.add(BranthRoom) in your code.`);
-		this.update();
+		Room.resize();
+		this.update(0);
 	},
 	update(t) {
 		if (Room.current) {

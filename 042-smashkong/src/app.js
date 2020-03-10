@@ -108,6 +108,64 @@ class Info extends BranthObject {
 	}
 }
 
+class InfoMenu extends BranthObject {
+	constructor(text, color) {
+		super(Room.mid.w, Room.h * 0.55);
+		Draw.setFont(Font.m);
+		this.yto = this.y;
+		this.text = text;
+		this.color = color;
+		this.alarm = 2000;
+		this.visible = false;
+	}
+	update() {
+		this.y = Math.range(this.y, this.yto, 0.2);
+		if (this.alarm > 1800) {
+			Draw.setFont(Font.m);
+			this.yto = this.ystart - Font.size;
+		}
+		else if (this.alarm < 200) {
+			this.yto = this.ystart;
+		}
+		else {
+			if (Manager.menu.cursor !== 1) {
+				this.alarm = 199;
+			}
+			this.yto -= 0.1;
+		}
+		if (this.alarm < 0) OBJ.destroy(this.id);
+		else this.alarm -= Time.deltaTime;
+	}
+	static pop(text, color = C.white) {
+		if (OBJ.take(InfoMenu).length > 0) {
+			const o = OBJ.take(InfoMenu)[0];
+			o.alarm = 2000;
+			o.y = o.ystart;
+		}
+		else OBJ.create(InfoMenu, text, color);
+	}
+	static renderUI() {
+		if (OBJ.take(InfoMenu).length > 0) {
+			const o = OBJ.take(InfoMenu)[0];
+			Draw.setFont(Font.m);
+			Draw.setColor(C.black);
+			Draw.setHVAlign(Align.c, Align.t);
+			let a = 1;
+			if (o.alarm > 1800) {
+				a = 1 - (o.alarm - 1800) / 200;
+			}
+			else if (o.alarm < 200) {
+				a = o.alarm / 200;
+			}
+			Draw.setAlpha(Math.clamp(a, 0, 1));
+			Draw.text(o.x + 1, o.y + 1, o.text);
+			Draw.setColor(o.color);
+			Draw.text(o.x, o.y, o.text);
+			Draw.setAlpha(1);
+		}
+	}
+}
+
 class DamageMessage extends BranthObject {
 	constructor(x, y, amount, unitText) {
 		super(x, y);
@@ -144,6 +202,7 @@ class DamageMessage extends BranthObject {
 }
 
 OBJ.add(Info);
+OBJ.add(InfoMenu);
 OBJ.add(DamageMessage);
 
 class FloatingHand extends BranthGameObject {
@@ -422,14 +481,14 @@ class Kong extends BranthBehaviour {
 			if (this.hsp < 0) this.x = 32 + this.w * 0.5;
 			this.hsp = 0;
 		}
-		if (this.bound.t + this.vsp <= 32 || this.bound.b + this.vsp >= Room.h - 32) {
-			if (this.vsp < 0) this.y = 32 + this.h;
+		if (this.bound.t + this.vsp < 32 && this.vsp < 0) {
+			this.y = 32 + this.h;
+			this.vsp = 0;
+		}
+		else if (this.bound.b + this.vsp > Room.h - 32) {
 			if (this.vsp > 0) {
-				this.y = Room.h - 32;
 				this.xs = 1 + Math.min(0.75, this.vsp * 0.02);
 				this.ys = 2 - this.xs;
-				this.xsto = 1;
-				this.ysto = 1;
 			}
 			if (this.vsp > 10) {
 				View.shake(Math.min(55, this.vsp) * 0.07, Math.min(55, this.vsp) * 15);
@@ -438,6 +497,9 @@ class Kong extends BranthBehaviour {
 				// DamageMessage.pop(this.x, this.y, dmg, 'kg');
 				Sound.play(`Pound${this.playerIndex}`);
 			}
+			this.y = Room.h - 32;
+			this.xsto = 1;
+			this.ysto = 1;
 			this.vsp = 0;
 		}
 		this.x += this.hsp;
@@ -1042,6 +1104,14 @@ const Manager = {
 					Room.start('LevelSelect');
 				}
 			},
+			{
+				text: 'Banana Rush',
+				color: C.gold,
+				description: 'Compete against each other for banana!',
+				onClick() {
+					InfoMenu.pop('Coming soon!');
+				}
+			},
 			// {
 			// 	text: 'Banana Rush',
 			// 	color: C.gold,
@@ -1056,6 +1126,34 @@ const Manager = {
 				description: 'See the best player at smashing!',
 				onClick() {
 					Room.start('Leaderboard');
+				}
+			},
+			{
+				text: 'High',
+				color: C.lightGreen,
+				description: 'Set screen resolution to low.',
+				onClick() {
+					if (Room.scale === 2) {
+						this.text = 'Low';
+						this.description = 'Set screen resolution to very low.';
+						Room.scale = 1;
+					}
+					else if (Room.scale === 1) {
+						this.text = 'Very Low';
+						this.description = 'Set screen resolution to very high.';
+						Room.scale = 0.5;
+					}
+					else if (Room.scale === 0.5) {
+						this.text = 'Very High';
+						this.description = 'Set screen resolution to high.';
+						Room.scale = 4;
+					}
+					else {
+						this.text = 'High';
+						this.description = 'Set screen resolution to low.';
+						Room.scale = 2;
+					}
+					Room.resize();
 				}
 			},
 			// {
@@ -1517,9 +1615,12 @@ Menu.update = () => {
 	}
 	if (Manager.menu.keyEnter || touchPressed || swipeDown) {
 		Manager.menu.items[Manager.menu.cursor].onClick();
-		Sound.play('Decision');
+		if (Manager.menu.cursor === 1) {
+			Sound.play('Cancel');
+		}
+		else Sound.play('Decision');
 	}
-	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 19;
+	Manager.menu.rotation += Math.sin(Math.degtorad(-Manager.menu.cursor * (360 / Manager.menu.items.length) - Manager.menu.rotation)) * 10;
 	if (Room.name === 'Menu') {
 		Emitter.preset('fire');
 		Emitter.setColor(Math.choose(C.indigo, C.darkSlateBlue));
@@ -1567,6 +1668,7 @@ Menu.renderUI = () => {
 	Draw.setAlpha(0.5);
 	Manager.menu.drawText(16, Room.h - 16, 'Press <Enter> to confirm.\nPress <Left> or <Right> to select.');
 	Draw.setAlpha(1);
+	InfoMenu.renderUI();
 	OBJ.take(Title)[0].render();
 	Manager.renderTransition();
 };
@@ -1677,7 +1779,7 @@ Credits.update = () => {
 	touchUpdate();
 	if (Manager.menu.keyEscape || touchPressed || swipeUp) {
 		Room.start('Menu');
-		Manager.menu.cursor = 2;
+		Manager.menu.cursor = 4;
 		Manager.menu.rotation = 0;
 	}
 	if (Room.name === 'Credits') {
@@ -1715,7 +1817,7 @@ Leaderboard.update = () => {
 	Manager.leaderboard.t += Time.deltaTime;
 	if (Manager.menu.keyEscape || touchPressed || swipeUp) {
 		Room.start('Menu');
-		Manager.menu.cursor = 1;
+		Manager.menu.cursor = 2;
 		Manager.menu.rotation = -216;
 	}
 	if (Room.name === 'Leaderboard') {
@@ -2348,16 +2450,11 @@ TempLevel1.update = () => {
 					Manager.game.lastDamage = 0;
 					Manager.game.guideShowTriangle = true;
 				}
-				if (!Manager.game.kebal) {
-					// Larger than or equal than 80 means it came from smasher
-					if (Manager.game.lastDamage >= 80) {
-						Manager.game.kebal = true;
-					}
-				}
 			}
-			if (Manager.game.guideShowTriangle && Manager.game.kebal) {
+			if (Manager.game.guideShowTriangle && Manager.game.floor < 10) {
 				Manager.game.guideText = `Good! You just smashed the 10th floor and damaged the building!`;
 				Manager.game.guideIndex++;
+				Manager.game.kebal = true;
 				Manager.game.guideShowTriangle = false;
 				Sound.play('Cursor');
 			}
@@ -2424,7 +2521,7 @@ TempLevel1.update = () => {
 						const time = (tutorialBasicTimer * 0.001).toFixed(1);
 						let motivationText = Math.choose('Wow!', 'Great!', 'Awesome!', 'Amazing!');
 						if (time < 25) motivationText = Math.choose('Woohoo!', 'What a natural!', 'No way!', 'Oh wow!', 'Impressive!');
-						Manager.game.guideText = `${motivationText}!! You got the basics in ${time} seconds.`;
+						Manager.game.guideText = `${motivationText} You got the basics in ${time} seconds.`;
 						Manager.game.guideIndex++;
 						Sound.play('Cursor');
 					}

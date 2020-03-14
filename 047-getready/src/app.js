@@ -109,10 +109,12 @@ GR.Reaction = {
 		else {
 			this.list.push({ timing, move_type, from, to });
 		}
-		console.log(this.list);
-		download(this.list[0].from.name, "player_reactions.txt");
 	},
 	DownloadReaction() {
+		let data = "timing;move_type;from;to (only for drag and drop)\n";
+		for (const i of this.list) {
+			data += `${i.timing};${i.move_type};${i.from.name};${i.move_type === GR.Reaction.Type.DragAndDrop? i.to.name : ''}\n`;
+		}
 		const filename = `player_reactions${GLOBAL.key}.txt`;
 		const file = new Blob([data], { type: "text/plain" });
 		if (navigator.msSaveOrOpenBlob) {

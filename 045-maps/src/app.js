@@ -1,14 +1,14 @@
 const DATA = {
 	Cell: {
-		Size: 8
+		Size: 80
 	},
 	Grid: {
 		Seed: 5,
 		get Width() {
-			return Room.w / DATA.Cell.Size;
+			return 180;//Room.w / DATA.Cell.Size;
 		},
 		get Height() {
-			return Room.h / DATA.Cell.Size;
+			return 180;//Room.h / DATA.Cell.Size;
 		},
 		GetColorZ(z) {
 			return z < 50? `rgba(0, ${50 + z * 4}, 0, 1)` : `rgba(0, 0, ${50 + (z - 50) * 4}, 1)`;
@@ -38,6 +38,10 @@ const DATA = {
 const Manager = {
 	Game: {
 		Grid: [],
+		x: 0,
+		y: 0,
+		Scale: 1,
+		World: null,
 		setup() {
 			for (let i = 0; i < DATA.Grid.Width; i++) {
 				this.Grid.push([]);
@@ -46,19 +50,41 @@ const Manager = {
 				}
 			}
 			DATA.Grid.GeneratePerlinNoise(this.Grid);
-		},
-		render() {
+			this.World = document.createElement('canvas');
+			this.World.width = DATA.Grid.Width * DATA.Cell.Size + DATA.Cell.Size;
+			this.World.height = DATA.Grid.Height * DATA.Cell.Size * 0.5 + DATA.Cell.Size * 0.5;
+			Draw.setContext(this.World.getContext('2d'));
 			for (let i = 0; i < DATA.Grid.Width; i++) {
-				const xx = i * DATA.Cell.Size;
 				for (let j = 0; j < DATA.Grid.Height; j++) {
-					const yy = j * DATA.Cell.Size;
+					const xx = this.World.width * 0.5 + (i - j) * DATA.Cell.Size * 0.5;
+					const yy = DATA.Cell.Size * 0.5 + (i + j) * DATA.Cell.Size * 0.25;
 					Draw.setColor(DATA.Grid.GetColorZ(this.Grid[i][j]));
-					Draw.rect(xx, yy, DATA.Cell.Size, DATA.Cell.Size);
+					if (i === DATA.Grid.Width - 1 && j === DATA.Grid.Height - 1) {
+						Draw.setColor(C.black);
+					}
+					Draw.pointRect(
+						new Vector2(xx, yy - 20),
+						new Vector2(xx + 40, yy),
+						new Vector2(xx, yy + 20),
+						new Vector2(xx - 40, yy)
+					);
+					// Draw.rect(xx, yy, DATA.Cell.Size, DATA.Cell.Size);
 				}
 			}
-			if (Input.keyDown(KeyCode.Space)) {
-				DATA.Grid.GeneratePerlinNoise(this.Grid);
+			Draw.rect(0, 0, this.World.width, this.World.height, true);
+			Draw.resetContext();
+			Draw.add(Vector2.center, 'World', this.World);
+		},
+		render() {
+			this.x += 10 * (Input.keyHold(KeyCode.Left) - Input.keyHold(KeyCode.Right));
+			this.y += 10 * (Input.keyHold(KeyCode.Up) - Input.keyHold(KeyCode.Down));
+			if (Input.keyHold(KeyCode.X) ^ Input.keyHold(KeyCode.Z)) {
+				this.Scale *= 1 + 0.01 * Input.keyHold(KeyCode.X) - 0.01 * Input.keyHold(KeyCode.Z);
 			}
+			Draw.image('World', this.x, this.y, this.Scale, this.Scale);
+			// if (Input.keyDown(KeyCode.Space)) {
+			// 	DATA.Grid.GeneratePerlinNoise(this.Grid);
+			// }
 		}
 	}
 };
@@ -75,6 +101,13 @@ Boot.start = () => {
 
 Game.render = () => {
 	Manager.Game.render();
+};
+
+Game.renderUI = () => {
+	Draw.setFont(Font.xxl, Font.bold);
+	Draw.setColor(C.white);
+	Draw.setHVAlign(Align.l, Align.t);
+	Draw.text(20, 20, Time.FPS);
 };
 
 BRANTH.start();

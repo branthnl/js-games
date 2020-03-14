@@ -37,8 +37,16 @@ GR.UI = {
 		return m.x > rect.x && m.x < rect.x + rect.w && m.y > rect.y && m.y < rect.y + rect.h;
 	},
 	DrawRect(rect) {
-		Draw.rect(rect.x, rect.y, rect.w, rect.h, true);
+		if (GLOBAL.debugMode % 2 !== 0) {
+			Draw.setColor(C.black);
+			Draw.rect(rect.x, rect.y, rect.w, rect.h, true);
+		}
 	}
+};
+
+GR.Game = {
+	fallCount: 0,
+	seasonIndex: 0
 };
 
 GR.Draw = {
@@ -58,18 +66,30 @@ GR.Draw = {
 		for (let i = Room.w / (stripWidth + stripDistance); i >= 0; i--) {
 			Draw.rect(i * (stripWidth + stripDistance), 0, stripWidth, Room.h);
 		}
+		// Draw window frame
+		// Draw.setColor("rgba(125, 65, 12, 1)");
+		// Draw.roundRect(Room.w * 0.38, Room.h * 0.1, 200, 200, 10);
+		// Draw window screen
+		// Draw.setColor(C.skyBlue);
+		// Draw.roundRect(Room.w * 0.38 + 10, Room.h * 0.1 + 10, 180, 180, 10);
 		// Lamp light
 		Draw.setAlpha(0.25);
 		Draw.setColor(C.white);
 		Draw.CTX.beginPath();
 		Draw.CTX.moveTo(30, 0);
-		Draw.CTX.quadraticCurveTo(Room.w * 0.5, Room.h * 1.2, Room.w - 20, 0);
+		Draw.CTX.quadraticCurveTo(Room.w * 0.5, Room.h * 1.2 - 100 * (GR.Game.seasonIndex === 1), Room.w - 20, 0);
 		Draw.CTX.fill();
 		Draw.setAlpha(1);
+		// Cut window
+		Draw.setColor("rgba(125, 65, 12, 1)");
+		Draw.roundRect(Room.w * 0.38, Room.h * 0.1, 200, 200, 10);
+		Draw.CTX.globalCompositeOperation = "destination-out";
+		Draw.roundRect(Room.w * 0.38 + 10, Room.h * 0.1 + 10, 180, 180, 10);
+		Draw.CTX.globalCompositeOperation = BlendModes.Normal;
 		// Draw floor
 		Draw.setColor("rgba(78, 122, 171, 1)");
 		Draw.rect(0, Room.h * 0.7, Room.w, Room.h * 0.3);
-		// Draw separator
+		// Draw wall frame
 		Draw.setColor("rgba(125, 65, 12, 1)");
 		Draw.rect(0, Room.h * 0.7 - 2, Room.w, 16);
 		Draw.resetContext();
@@ -90,6 +110,26 @@ GR.Reaction = {
 			this.list.push({ timing, move_type, from, to });
 		}
 		console.log(this.list);
+		download(this.list[0].from.name, "player_reactions.txt");
+	},
+	DownloadReaction() {
+		const filename = `player_reactions${GLOBAL.key}.txt`;
+		const file = new Blob([data], { type: "text/plain" });
+		if (navigator.msSaveOrOpenBlob) {
+			navigator.msSaveOrOpenBlob(file, filename);
+		}
+		else {
+			const a = document.createElement("a");
+			const url = URL.createObjectURL(file);
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			setTimeout(() => {
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			});
+		}
 	}
 };
 
@@ -100,8 +140,9 @@ class GameObject extends BranthBehaviour {
 		this.imageName = "";
 		this.boundRect = GR.UI.CreateRect(this.x, this.y, 32, 32);
 	}
+	onClick() {}
 	render() {
-		Draw.image(this.imageName, this.x, this.y);
+		if (Draw.getSprite(this.imageName)) Draw.image(this.imageName, this.x, this.y);
 		GR.UI.DrawRect(this.boundRect);
 	}
 }
@@ -212,6 +253,7 @@ class Desk extends GameObject {
 
 class Toys extends GameObject {
 	awake() {
+		this.hsp = Math.range(-1, 1);
 		this.data = GR.DATA.Object.Data.Toys;
 		this.imageName = "Toys";
 		this.boundRect.w = 80;
@@ -219,12 +261,26 @@ class Toys extends GameObject {
 		this.boundRect.x = this.x - this.boundRect.w * 0.5;
 		this.boundRect.y = this.y - this.boundRect.h;
 	}
+	update() {
+		this.x += this.hsp;
+		this.hsp *= 0.99;
+		this.boundRect.x = this.x - this.boundRect.w * 0.5;
+		this.boundRect.y = this.y - this.boundRect.h;
+	}
+	onClick() {
+		const spd = (this.xstart - this.x) * 0.02;
+		this.hsp = Math.max(1, Math.abs(spd)) * Math.sign(spd);
+	}
 }
 
 class Window extends GameObject {
 	awake() {
 		this.data = GR.DATA.Object.Data.Window;
-		this.imageName = "Window";
+		// this.imageName = "Window";
+		this.boundRect.w = 200;
+		this.boundRect.h = 200;
+		this.boundRect.x = this.x - this.boundRect.w * 0.5;
+		this.boundRect.y = this.y - this.boundRect.h * 0.5;
 	}
 }
 
@@ -260,21 +316,24 @@ Room.add(Boot);
 Room.add(Bedroom);
 
 Boot.start = () => {
-	Draw.add(new Vector2(0.5, 1), "Bed", "src/img/Bed.png");
-	Draw.add(new Vector2(0.5, 1), "Toys", "src/img/Toys.png");
-	Draw.add(new Vector2(0.5, 1), "BoyHead", "src/img/BoyHead.png");
 	Draw.add(new Vector2(0.5, 0), "BoyBody", "src/img/BoyBody.png");
+	Draw.add(new Vector2(0.5, 1), "BoyHead", "src/img/BoyHead.png");
 	Draw.add(new Vector2(0.05, 0.55), "BoyArm", "src/img/BoyArm.png");
 	Draw.add(new Vector2(0.05, 0.72), "BoyLeg", "src/img/BoyLeg.png");
+	Draw.add(new Vector2(0.5, 1), "Bed", "src/img/Bed.png");
+	Draw.add(new Vector2(0.5, 1), "Toys", "src/img/Toys.png");
+	Draw.add(new Vector2(0.5,0.5), "Window", "src/img/WindowSpring.png", "src/img/WindowWinter.png", "src/img/WindowSummer.png", "src/img/WindowAutumn.png");
 	Draw.add(new Vector2(0.5, 1), "Wardrobe", "src/img/Wardrobe.png");
-	GR.Draw.CreateBGBedroom();
 	Room.start("Bedroom");
 };
 
 Bedroom.start = () => {
+	GR.Game.seasonIndex = Math.irange(4);
+	GR.Draw.CreateBGBedroom();
 	OBJ.create(Boy, Room.w * 0.8, Room.h * 0.9);
 	OBJ.create(Bed, Room.w * 0.8, Room.h * 0.85);
 	OBJ.create(Toys, Room.w * 0.5, Room.h * 0.78);
+	OBJ.create(Window, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
 	OBJ.create(Wardrobe, Room.w * 0.15, Room.h * 0.82);
 };
 
@@ -284,7 +343,7 @@ Bedroom.update = () => {
 		OBJ.take(Bed)[0],
 		// OBJ.take(Desk)[0],
 		OBJ.take(Toys)[0],
-		// OBJ.take(Window)[0],
+		OBJ.take(Window)[0],
 		// OBJ.take(Clothes)[0],
 		OBJ.take(Wardrobe)[0]
 	];
@@ -294,6 +353,7 @@ Bedroom.update = () => {
 		if (Input.mouseDown(0)) {
 			if (GR.UI.MouseHoverRect(j.boundRect)) {
 				GR.Reaction.AddReaction(Time.time, GR.Reaction.Type.Click, j.data);
+				j.onClick();
 				break;
 			}
 		}
@@ -301,6 +361,19 @@ Bedroom.update = () => {
 };
 
 Bedroom.render = () => {
+	Draw.sprite("Window", GR.Game.seasonIndex, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
+	if (GR.Game.seasonIndex === 1 || GR.Game.seasonIndex === 3) {
+		if (++GR.Game.fallCount % 4 === 0) {
+			const n = OBJ.take(Window)[0].boundRect;
+			Emitter.preset(GR.Game.seasonIndex === 1? "Snow" : "Leaves");
+			Emitter.setArea(n.x, n.x + n.w, n.y, n.y);
+			Emitter.emit(1, false);
+		}
+		const o = OBJ.take(BranthParticle);
+		for (let i = o.length - 1; i >= 0; i--) {
+			o[i].render();
+		}
+	}
 	Draw.CTX.drawImage(GR.Draw.BGBedroom, 0, 0);
 };
 

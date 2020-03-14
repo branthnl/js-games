@@ -1881,9 +1881,43 @@ const Emitter = {
 				this.setOutline(false);
 				this.setToView(false);
 				break;
+			case 'Snow':
+				this.setSpeed(1, 5);
+				this.setSpeedInc(0, 0);
+				this.setSize(2, 4);
+				this.setSizeInc(-0.001, -0.001);
+				this.setDirection(120, 150);
+				this.setDirectionInc(-1, -1);
+				this.setRotation(0, 0);
+				this.setRotationInc(0, 0);
+				this.setAlpha(0.5, 0.5);
+				this.setColor(Math.choose(C.white, C.whiteSmoke));
+				this.setLife(12000, 12000);
+				this.setShape(Shape.circle);
+				this.setGravity(0, 0);
+				this.setOutline(false);
+				this.setToView(false);
+				break;
+			case "Leaves":
+				this.setSpeed(1, 2);
+				this.setSpeedInc(0, 0);
+				this.setSize(2, 7);
+				this.setSizeInc(0, 0);
+				this.setDirection(0, 360);
+				this.setDirectionInc(0.2, 0.2);
+				this.setRotation(0, 360);
+				this.setRotationInc(-5, 5);
+				this.setAlpha(1, 1);
+				this.setColor(Math.choose(`rgba(119, 224, 51, 1)`, `rgba(200, 191, 55, 1)`));
+				this.setLife(12000, 12000);
+				this.setShape(Shape.rect);
+				this.setGravity(0, 0);
+				this.setOutline(false);
+				this.setToView(false);
+				break
 		}
 	},
-	emit(n) {
+	emit(n, visible=true) {
 		for (let i = 0; i < n; i++) {
 			const n = new BranthParticle(
 				Math.range(this.x.min, this.x.max),
@@ -1905,6 +1939,7 @@ const Emitter = {
 				this.toView
 			);
 			n.depth = this.depth;
+			n.visible = visible;
 			OBJ.push(BranthParticle, n);
 		}
 	}

@@ -1150,6 +1150,14 @@ const Draw = {
 		this.CTX.closePath();
 		this.draw(outline);
 	},
+	pointTriangle(p1, p2, p3, outline = false) {
+		this.CTX.beginPath();
+		this.CTX.moveTo(p1.x, p1.y);
+		this.CTX.lineTo(p2.x, p2.y);
+		this.CTX.lineTo(p3.x, p3.y);
+		this.CTX.closePath();
+		this.draw(outline);
+	},
 	primitiveBegin() {
 		this.vertices = [];
 	},
@@ -1899,16 +1907,16 @@ const Emitter = {
 				this.setToView(false);
 				break;
 			case "Leaves":
-				this.setSpeed(1, 2);
+				this.setSpeed(0.5, 1);
 				this.setSpeedInc(0, 0);
 				this.setSize(2, 7);
 				this.setSizeInc(0, 0);
 				this.setDirection(0, 360);
-				this.setDirectionInc(0.2, 0.2);
+				this.setDirectionInc(-0.05, 0.05);
 				this.setRotation(0, 360);
 				this.setRotationInc(-5, 5);
 				this.setAlpha(1, 1);
-				this.setColor(Math.choose(`rgba(119, 224, 51, 1)`, `rgba(200, 191, 55, 1)`));
+				this.setColor(`rgba(${Math.range(159, 200)}, ${Math.range(191, 209)}, 51, 1)`);
 				this.setLife(12000, 12000);
 				this.setShape(Shape.rect);
 				this.setGravity(0, 0);

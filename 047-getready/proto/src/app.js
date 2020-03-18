@@ -46,6 +46,7 @@ GR.UI = {
 
 GR.Game = {
 	fallCount: 0,
+	guideIndex: 0,
 	seasonIndex: 0,
 	weatherIndex: 0,
 	WeatherWords: [
@@ -156,6 +157,7 @@ class GameObject extends BranthBehaviour {
 		this.boundRect = GR.UI.CreateRect(this.x, this.y, 32, 32);
 	}
 	onClick() {}
+	onRelease() {}
 	render() {
 		if (Draw.getSprite(this.imageName)) Draw.image(this.imageName, this.x, this.y);
 		GR.UI.DrawRect(this.boundRect);
@@ -178,8 +180,16 @@ class Boy extends GameObject {
 		this.interval = 0;
 		this.eyeOpen = true;
 		this.isMoving = false;
+		this.moveTime = 0;
+		this.moveTimeIncrement = 0;
 		this.mouthOpen = false;
 		this.mouthOpenScalar = 0;
+		this.ourShirt = null;
+		this.isUsedShirt = false;
+		this.ourPant = null;
+		this.isUsedPant = false;
+		this.pantLocalPosition = new Vector2(0, -200);
+		this.shirtLocalPosition = new Vector2(0, -100);
 		this.alarm[0] = Math.range(500, 1000);
 		this.alarm[2] = Math.range(500, 5000);
 	}
@@ -198,10 +208,36 @@ class Boy extends GameObject {
 		this.y = Math.range(this.yfrom, this.yto, t);
 		this.boundRect.x = this.x - this.boundRect.w * 0.5;
 		this.boundRect.y = this.y - this.boundRect.h + 20;
+		this.moveTime += this.moveTimeIncrement;
+		this.moveTimeIncrement = Math.range(this.moveTimeIncrement, Time.fixedDeltaTime * (this.isMoving? 0.02 : 0.002), 0.1);
 		this.mouthOpenScalar = Math.range(this.mouthOpenScalar, this.mouthOpen, 0.1);
+		if (this.ourShirt) {
+			this.ourShirt.xto = this.shirtLocalPosition.x;
+			this.ourShirt.yto = this.shirtLocalPosition.y;
+			this.ourPant.xto = this.pantLocalPosition.x;
+			this.ourPant.yto = this.pantLocalPosition.y;
+		}
+	}
+	onRelease() {
+		for (const i of OBJ.take(Clothes)) {
+			if (i.isDragged) {
+				if (i.imageName.includes("Shirt")) {
+					if (!this.isUsedShirt) {
+						i.isUsed = true;
+						this.ourShirt = i;
+					}
+				}
+				else if (i.imageName.includes("Pant")) {
+					if (!this.isUsedShirt) {
+						i.isUsed = true;
+						this.ourPant = i;
+					}
+				}
+			}
+		}
 	}
 	render() {
-		const t = Math.sin(Time.time * 0.02 * (this.isMoving? 1 : 0.1));
+		const t = Math.sin(this.moveTime);
 		const v = new Vector2(0, t);
 		Draw.CTX.save();
 		Draw.CTX.translate(this.x, this.y);
@@ -303,8 +339,65 @@ class Window extends GameObject {
 
 class Clothes extends GameObject {
 	awake() {
+		this.depth = -2;
 		this.data = GR.DATA.Object.Data.Clothes;
-		this.imageName = "Clothes";
+		this.xto = this.xstart;
+		this.yto = this.ystart;
+		this.isUsed = false;
+		this.imageName = "ShirtMask";
+		this.isDragged = false;
+		this.boundRect.w = 80;
+		this.boundRect.h = 96;
+		this.boundRect.x = this.x - this.boundRect.w * 0.5;
+		this.boundRect.y = this.y;
+	}
+	onClick() {
+		if (!this.isUsed) this.isDragged = true;
+	}
+	update() {
+		if (this.imageName.includes("Shirt")) {
+			this.boundRect.w = 104;
+			this.boundRect.h = 96;
+		}
+		else {
+			this.boundRect.w = 72;
+			this.boundRect.h = 58;
+		}
+		if (!this.isUsed) {
+			if (!OBJ.take(Wardrobe)[0].isOpen) {
+				this.visible = false;
+				this.xto = this.xstart;
+				this.yto = this.ystart;
+				this.isDragged = false;
+				this.boundRect.x = this.x - this.boundRect.w * 0.5;
+				this.boundRect.y = this.y;
+				return;
+			}
+			else {
+				this.visible = true;
+			}
+			if (this.isDragged) {
+				this.xto = Input.mousePosition.x;
+				this.yto = Input.mousePosition.y - this.boundRect.h * 0.5;
+				if (Input.mouseUp(0)) {
+					if (GR.UI.MouseHoverRect(OBJ.take(Boy)[0])) {
+						this.isUsed = true;
+						this.isDragged = false;
+					}
+					else {
+						this.isDragged = false;
+					}
+				}
+			}
+			else {
+				this.xto = Math.range(this.xto, this.xstart, 0.1);
+				this.yto = Math.range(this.yto, this.ystart, 0.1);
+			}
+		}
+		this.x = Math.range(this.x, this.xto, 0.2);
+		this.y = Math.range(this.y, this.yto, 0.2);
+		this.boundRect.x = this.x - this.boundRect.w * 0.5;
+		this.boundRect.y = this.y;
 	}
 }
 
@@ -312,16 +405,21 @@ class Wardrobe extends GameObject {
 	awake() {
 		this.data = GR.DATA.Object.Data.Wardrobe;
 		this.imageName = "Wardrobe";
+		this.isOpen = false;
 		this.boundRect.w = 200;
 		this.boundRect.h = 400;
 		this.boundRect.x = this.x - this.boundRect.w * 0.5;
 		this.boundRect.y = this.y - this.boundRect.h - 20;
+	}
+	onClick() {
+		this.isOpen = true;
 	}
 }
 
 class BubbleText extends BranthBehaviour {
 	constructor() {
 		super(0, 0);
+		this.depth = -3;
 		this.text = "";
 		this.duration = 0;
 		this.textPosition = new Vector2(0, 0);
@@ -341,10 +439,10 @@ class BubbleText extends BranthBehaviour {
 		const d = Math.pointdir(v, this.talkerPosition);
 		Draw.setFont(Font.l, Font.bold);
 		Draw.setHVAlign(Align.c, Align.m);
-		const drawBubble = () => {
+		const drawBubble = (gap=0) => {
 			let scale = 1;
 			if (this.fadeOutSequence > 1) scale = this.alarm[2] / 500;
-			Draw.roundRectTransformed(v.x, v.y, Draw.textWidth(this.text) + 30, Draw.textHeight(this.text) + 30, Font.size, false, scale, scale);
+			Draw.roundRectTransformed(v.x, v.y, Draw.textWidth(this.text) + 30 + gap, Draw.textHeight(this.text) + 30 + gap, Font.size, false, scale, scale);
 		};
 		const drawTriangle = () => {
 			if (this.fadeOutSequence < 2) {
@@ -353,6 +451,14 @@ class BubbleText extends BranthBehaviour {
 					Vector2.add(v, Math.lendir(10, d + 90)),
 					this.talkerPosition
 				);
+				Draw.setStrokeWeight(2);
+				Draw.CTX.strokeStyle = C.black;
+				Draw.pointTriangle(
+					Vector2.add(v, Math.lendir(10, d - 90)),
+					Vector2.add(v, Math.lendir(10, d + 90)),
+					this.talkerPosition, true
+				);
+				Draw.resetStrokeWeight();
 			}
 		};
 		if (this.fadeOutSequence > 1) {
@@ -361,6 +467,8 @@ class BubbleText extends BranthBehaviour {
 			}
 			else return;
 		}
+		Draw.setColor(C.black);
+		drawBubble(4);
 		Draw.setColor(C.cadetBlue);
 		drawTriangle();
 		if (this.fadeOutSequence > 0) {
@@ -431,7 +539,71 @@ Boot.start = () => {
 	Draw.add(new Vector2(0.5, 1), "Wardrobe", "src/img/Wardrobe.png");
 	Draw.addStrip(new Vector2(0.5, 0.5), "LevelButton", "src/img/LevelButton_strip2.png", 2);
 	Draw.add(new Vector2(0.5, 0.5), "BackButton", "src/img/BackButton.png");
-	Room.start("Bedroom");
+	Draw.add(new Vector2(0.5, 0), "ShirtMask", "src/img/ShirtMask.png");
+	Draw.add(new Vector2(0.5, 0), "PantMask", "src/img/PantMask.png");
+	Sound.add("BGM", "src/snd/BGM.mp3");
+	Sound.setLoopRange("BGM", 0, 0.98);
+	setTimeout(() => {
+		const shirts = [
+			{
+				c: C.red,
+				name: "Red"
+			},
+			{
+				c: C.blue,
+				name: "Blue"
+			},
+			{
+				c: C.yellow,
+				name: "Yellow"
+			}
+		];
+		for (const i of shirts) {
+			const shirt = document.createElement("canvas");
+			shirt.width = 104;
+			shirt.height = 96;
+			Draw.setContext(shirt.getContext("2d"));
+			Draw.setColor(i.c);
+			Draw.rect(0, 0, shirt.width, shirt.height);
+			Draw.CTX.globalCompositeOperation = "destination-in";
+			Draw.image("ShirtMask", shirt.width * 0.5, 0);
+			Draw.CTX.globalCompositeOperation = BlendModes.Normal;
+			Draw.resetContext();
+			Draw.add(new Vector2(0.5, 0), i.name + "Shirt", shirt);
+		}
+		const pants = [
+			{
+				c: C.red,
+				name: "Red"
+			},
+			{
+				c: C.blue,
+				name: "Blue"
+			},
+			{
+				c: C.yellow,
+				name: "Yellow"
+			}
+		];
+		for (const i of pants) {
+			const pant = document.createElement("canvas");
+			pant.width = 72;
+			pant.height = 58;
+			Draw.setContext(pant.getContext("2d"));
+			Draw.setColor(i.c);
+			Draw.rect(0, 0, pant.width, pant.height);
+			Draw.CTX.globalCompositeOperation = "destination-in";
+			Draw.image("PantMask", pant.width * 0.5, 0);
+			Draw.CTX.globalCompositeOperation = BlendModes.Normal;
+			Draw.resetContext();
+			Draw.add(new Vector2(0.5, 0), i.name + "Pant", pant);
+		}
+		Room.start("Menu");
+	}, 1000);
+};
+
+Menu.start = () => {
+	if (!Sound.isPlaying("BGM")) Sound.loop("BGM");
 };
 
 Menu.renderUI = () => {
@@ -453,14 +625,38 @@ Menu.renderUI = () => {
 };
 
 Bedroom.start = () => {
+	if (!Sound.isPlaying("BGM")) Sound.loop("BGM");
+	setTimeout(() => { GR.Reaction.DownloadReaction(); }, 90000);
 	GR.Game.seasonIndex = Math.irange(4);
+	switch (GR.Game.seasonIndex) {
+		// Spring (Rainy, Sunny, -, Cloudy)
+		case 0: GR.Game.weatherIndex = Math.choose(0, 1, 3); break;
+		// Winter (-, Sunny, Snowy, -)
+		case 1: GR.Game.weatherIndex = Math.choose(1, 2); break;
+		// Summer (-, Sunny, -, -)
+		case 2: GR.Game.weatherIndex = Math.choose(1); break;
+		// Autumn (Rainy, Sunny, -, Cloudy)
+		case 3: GR.Game.weatherIndex = Math.choose(0, 1, 3); break;
+	}
 	GR.Draw.CreateBGBedroom();
 	OBJ.create(Boy, Room.w * 0.8, Room.h * 0.9);
 	OBJ.create(Bed, Room.w * 0.8, Room.h * 0.85);
 	OBJ.create(Toys, Room.w * 0.5, Room.h * 0.78);
 	OBJ.create(Window, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
+	let n = OBJ.create(Clothes, 80, 123);
+	n.imageName = "RedShirt";
+	n = OBJ.create(Clothes, 160, 123);
+	n.imageName = "BlueShirt";
+	n = OBJ.create(Clothes, 240, 123);
+	n.imageName = "YellowShirt";
+	n = OBJ.create(Clothes, 80, 300);
+	n.imageName = "RedPant";
+	n = OBJ.create(Clothes, 160, 300);
+	n.imageName = "BluePant";
+	n = OBJ.create(Clothes, 240, 300);
+	n.imageName = "YellowPant";
 	OBJ.create(Wardrobe, Room.w * 0.15, Room.h * 0.82);
-	BubbleText.Push(`It is ${GR.Game.GetWeatherWord().toLowerCase()} day today. What\nshould ${GR.DATA.Object.Data.Boy.name} wear?`, 7000, new Vector2(461, 300), new Vector2(461, 226));
+	BubbleText.Push(`Today it is ${GR.Game.GetWeatherWord().toLowerCase()}. What\nshould ${GR.DATA.Object.Data.Boy.name} wear?`, 7000, new Vector2(461, 300), new Vector2(461, 226));
 };
 
 Bedroom.update = () => {
@@ -470,25 +666,57 @@ Bedroom.update = () => {
 		// OBJ.take(Desk)[0],
 		OBJ.take(Toys)[0],
 		OBJ.take(Window)[0],
-		// OBJ.take(Clothes)[0],
+		OBJ.take(Clothes)[0],
 		OBJ.take(Wardrobe)[0]
 	];
 	go.sort((a, b) => a.depth > b.depth? -1 : 1);
 	for (let i = go.length - 1; i >= 0; i--) {
 		const j = go[i];
-		if (Input.mouseDown(0)) {
-			if (GR.UI.MouseHoverRect(j.boundRect)) {
-				GR.Reaction.AddReaction(`${Time.mm}:${Time.ss}`, Math.choose(GR.Reaction.Type.Click, GR.Reaction.Type.DragAndDrop), j.data, j.data);
-				j.onClick();
+		if (GR.UI.MouseHoverRect(j.boundRect)) {
+			if (Input.mouseDown(0)) {
+				if (j.data.name === "Wardrobe" && j.isOpen) {
+					continue;
+				}
+				else {
+					GR.Reaction.AddReaction(`${Time.mm}:${Time.ss}`, GR.Reaction.Type.Click, j.data);
+					j.onClick();
+					break;
+				}
+			}
+			if (Input.mouseUp(0)) {
+				for (const i of OBJ.take(Clothes)) {
+					if (i.isDragged) {
+						GR.Reaction.AddReaction(`${Time.mm}:${Time.ss}`, GR.Reaction.Type.DragAndDrop, { name: i.imageName }, j.data);
+						break;
+					}
+				}
+				j.onRelease();
 				break;
 			}
 		}
 	}
+	const updateGuide = {
+		"0"() {
+			if (OBJ.take(BubbleText).length === 0) {
+				OBJ.take(Boy)[0].goTo(382, 487, Math.range(5000, 7000));
+				GR.Game.guideIndex = 1;
+			}
+		},
+		"1"() {
+			if (!OBJ.take(Boy)[0].isMoving) {
+				BubbleText.Push(`Can you help me\nopen the wardrobe?`, 7000, new Vector2(605, 173), new Vector2(473, 242));
+				GR.Game.guideIndex = 2;
+			}
+		},
+		"2"() {
+		}
+	}[GR.Game.guideIndex];
+	updateGuide();
 };
 
 Bedroom.render = () => {
 	Draw.sprite("Window", GR.Game.seasonIndex, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
-	if (GR.Game.seasonIndex === 1) {
+	if (GR.Game.seasonIndex === 1 && GR.Game.weatherIndex === 2) {
 		if (++GR.Game.fallCount % 4 === 0) {
 			const n = OBJ.take(Window)[0].boundRect;
 			Emitter.preset("Snow");

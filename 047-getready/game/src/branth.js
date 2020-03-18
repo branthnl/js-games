@@ -1925,16 +1925,16 @@ const Emitter = {
 				this.setToView(false);
 				break;
 			case "Rain":
-				this.setSpeed(0.5, 1);
+				this.setSpeed(10, 10);
 				this.setSpeedInc(0, 0);
 				this.setSize(1, 2);
 				this.setSizeInc(0, 0);
-				this.setDirection(120, 150);
+				this.setDirection(120, 120);
 				this.setDirectionInc(0, 0);
-				this.setRotation(120, 150);
+				this.setRotation(120, 120);
 				this.setRotationInc(0, 0);
 				this.setAlpha(0.5, 0.8);
-				this.setColor(C.white);
+				this.setColor(Math.choose(C.white, C.skyBlue));
 				this.setLife(12000, 12000);
 				this.setShape(Shape.rect);
 				this.setGravity(0, 0);

@@ -93,18 +93,58 @@ GR.UI = {
 	MouseHoverRect(rect) {
 		const m = Input.mousePosition;
 		return m.x > rect.x && m.x < rect.x + rect.w && m.y > rect.y && m.y < rect.y + rect.h;
+	},
+	DebugRect(rect) {
+		Draw.setColor(C.black);
+		Draw.rect(rect.x, rect.y, rect.w, rect.h, true);
 	}
 };
 
 GR.Game = {
 	season: GR.DATA.Season.Spring,
-	weather: GR.DATA.Weather.Sunny
+	weather: GR.DATA.Weather.Sunny,
+	draggedItem: null
 };
 
 class Boy extends BranthBehaviour {
 	constructor(x, y) {
 		super(x, y);
 		this.depth = -1;
+		this.w = 150;
+		this.h = 333;
+		this.rect = GR.UI.CreateRect(this.x - this.w * 0.5, this.y - this.h, this.w, this.h);
+		this.clothes = {
+			Pants: null,
+			Short: null,
+			Shirt: null
+		};
+	}
+	render() {
+		this.rect.x = this.x - this.w * 0.5;
+		this.rect.y = this.y - this.h;
+		if (Input.mouseUp(0)) {
+			if (GR.Game.draggedItem instanceof Cloth) {
+				if (GR.UI.MouseHoverRect(this.rect)) {
+					if (this.clothes[GR.Game.draggedItem.type] === null) {
+						this.clothes[GR.Game.draggedItem.type] = GR.Game.draggedItem;
+					}
+				}
+			}
+			GR.Game.draggedItem = null;
+		}
+		Draw.image("Boy", this.x, this.y);
+		if (this.clothes.Pants) {
+			this.clothes.Pants.x = this.x;
+			this.clothes.Pants.y = this.y - 76;
+		}
+		else if (this.clothes.Short) {
+			this.clothes.Short.x = this.x;
+			this.clothes.Short.y = this.y - 76;
+		}
+		if (this.clothes.Shirt) {
+			this.clothes.Shirt.x = this.x;
+			this.clothes.Shirt.y = this.y - 155;
+		}
 	}
 }
 
@@ -119,17 +159,22 @@ class Toys extends BranthObject {
 		super(x, y);
 		this.hsp = Math.range(-1, 1);
 		const i = Draw.getImage("Toys");
-		this.rect = GR.UI.CreateRect(this.x - i.width * 0.5, this.y - i.height, i.width, i.height);
+		this.w = i.width;
+		this.h = i.height;
+		this.rect = GR.UI.CreateRect(this.x - this.w * 0.5, this.y - this.h, this.w, this.h);
 	}
 	render() {
 		if (GR.UI.MouseHoverRect(this.rect)) {
 			if (Input.mouseDown(0)) {
 				const spd = (this.xstart - this.x) * 0.02;
-				this.hsp = Math.max(1, Math.abs(spd)) * Math.sign(spd);
+				this.hsp = Math.max(1, 1 - Math.abs(spd)) * Math.sign(spd);
+				Sound.play("Miss");
 			}
 		}
 		this.x += this.hsp;
 		this.hsp *= 0.99;
+		this.rect.x = this.x - this.w * 0.5;
+		this.rect.y = this.y - this.h;
 		Draw.image("Toys", this.x, this.y);
 	}
 }
@@ -137,12 +182,33 @@ class Toys extends BranthObject {
 class Cloth extends BranthObject {
 	constructor(x, y, name, type) {
 		super(x, y);
-		this.depth = -2;
+		this.depth = type === "Shirt"? -3 : -2;
+		this.w = 0;
+		this.h = 0;
 		this.name = name;
 		this.type = type;
+		this.rect = null;
 	}
 	render() {
-		Draw.image(`${this.name}${this.type}`, this.x, this.y);
+		if (this.rect === null) {
+			const i = Draw.getImage(`${this.name}${this.type}`);
+			this.w = i.width;
+			this.h = i.height;
+			this.rect = GR.UI.CreateRect(this.x - this.w * 0.5, this.y, this.w, this.h);
+		}
+		else {
+			this.rect.x = this.x - this.w * 0.5;
+			this.rect.y = this.y;
+			if (GR.UI.MouseHoverRect(this.rect)) {
+				if (Input.mouseDown(0)) {
+					if (GR.Game.draggedItem === null) {
+						GR.Game.draggedItem = this;
+					}
+				}
+			}
+			Draw.image(`${this.name}${this.type}`, this.x, this.y);
+			// GR.UI.DebugRect(this.rect);
+		}
 	}
 }
 
@@ -175,9 +241,10 @@ class BackButton extends BranthObject {
 		Draw.setFont(Font.m, Font.bold);
 		Draw.setColor(GR.UI.MouseHoverRect(this.rect)? C.white : C.black);
 		Draw.setHVAlign(Align.c, Align.m);
-		Draw.textTransformed(this.x, this.y, "X", this.scale, this.scale);
+		Draw.textTransformed(this.x, this.y - 1, "x", this.scale, this.scale);
 		if (GR.UI.MouseHoverRect(this.rect)) {
 			if (Input.mouseDown(0)) {
+				Sound.play("Pop");
 				Room.start("Menu");
 			}
 		}
@@ -199,6 +266,7 @@ class MenuOption extends BranthBehaviour {
 		if (GR.UI.MouseHoverRect(this.rect)) {
 			if (Input.mouseDown(0)) {
 				if (this.isUnlocked) {
+					Sound.play("Pop");
 					Room.start(this.name);
 				}
 			}
@@ -211,7 +279,7 @@ class MenuOption extends BranthBehaviour {
 		Draw.setFont(Font.xl);
 		Draw.setColor(this.isUnlocked? (GR.UI.MouseHoverRect(this.rect)? C.white : C.black) : C.lightGray);
 		Draw.setHVAlign(Align.c, Align.m);
-		Draw.textTransformed(this.x, this.y, this.name, this.xscale, this.yscale, 0);
+		Draw.textTransformed(this.x, this.y, this.name.toUpperCase(), this.xscale, this.yscale, 0);
 	}
 }
 
@@ -223,13 +291,14 @@ class MenuManager extends BranthBehaviour {
 		this.xscale = 0;
 		this.yscale = 0;
 		this.angle = 0;
-		this.duration = 8000;
+		this.duration = 4000;
 		this.alarm[0] = this.duration;
 		this.optionIsSpawned = false;
 	}
 	spawnOption() {
 		OBJ.create(MenuOption, Room.w * 0.25, Room.mid.h + 50, "Bedroom");
 		OBJ.create(MenuOption, Room.w * 0.75, Room.mid.h + 50, "Kitchen", false);
+		this.alarm[0] = -1;
 	}
 	render() {
 		if (Input.mouseDown(0) && !this.optionIsSpawned) {
@@ -238,17 +307,17 @@ class MenuManager extends BranthBehaviour {
 			this.optionIsSpawned = true;
 		}
 		const t = Math.clamp(this.alarm[0] / this.duration, 0, 1);
-		if (t > 0.8) {
-			const u = 1 - (t - 0.8) / 0.2;
+		if (t > 0.4) {
+			const u = 1 - (t - 0.4) / 0.6;
 			this.yscale = this.xscale = 1.1 * u;
 			this.angle = 180 - 180 * u;
 		}
-		else if (t > 0.7) {
-			const u = 1 - (t - 0.7) / 0.1;
+		else if (t > 0.3) {
+			const u = 1 - (t - 0.3) / 0.1;
 			this.yscale = this.xscale = 1.1 - 0.1 * u;
 		}
-		else if (t > 0.4) {
-			const u = 1 - (t - 0.4) / 0.3;
+		else if (t > 0) {
+			const u = 1 - (t - 0) / 0.3;
 			this.yto = Room.mid.h - Room.h * 0.25 * u;
 		}
 		else {
@@ -300,15 +369,19 @@ Boot.start = () => {
 	GR.Loader.LoadImage(new Vector2(0.5, 0.5), "WindowSummer");
 	GR.Loader.LoadImage(new Vector2(0.5, 0.5), "WindowAutumn");
 	GR.Loader.LoadImage(new Vector2(0.5, 0.5), "WindowWinter");
-	GR.Loader.LoadImage(new Vector2(0.5, 1), "Wardrobe");
-	GR.Loader.LoadImage(new Vector2(0.5, 1), "Toys");
+	GR.Loader.LoadImage(new Vector2(0.5, 1), "Boy");
 	GR.Loader.LoadImage(new Vector2(0.5, 1), "Bed");
+	GR.Loader.LoadImage(new Vector2(0.5, 1), "Toys");
+	GR.Loader.LoadImage(new Vector2(0.5, 1), "Wardrobe");
 	for (const i of Object.values(GR.DATA.ClothNames)) {
 		GR.Loader.LoadImage(new Vector2(0.5, 0), `${i}Pants`);
 		GR.Loader.LoadImage(new Vector2(0.5, 0), `${i}Shirt`);
 		GR.Loader.LoadImage(new Vector2(0.5, 0), `${i}Short`);
 	}
 	GR.Loader.LoadSound("Intro", "mp3");
+	GR.Loader.LoadSound("Miss", "ogg");
+	GR.Loader.LoadSound("Pop", "ogg");
+	Sound.setVolume("Miss", 0.1);
 };
 
 Boot.renderUI = () => {
@@ -331,6 +404,8 @@ Menu.start = () => {
 };
 
 Menu.renderUI = () => {
+	// Fade in intro volume
+	Sound.setVolume("Intro", Math.range(Sound.getVolume("Intro"), 1, 0.1));
 	Transition.Render();
 };
 
@@ -370,6 +445,8 @@ Bedroom.setup = () => {
 	OBJ.create(Toys, Room.w * 0.5, Room.h * 0.78);
 	OBJ.create(Window, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
 	OBJ.create(BackButton, 20, 20);
+	// Put the boy
+	OBJ.create(Boy, Room.w * 0.8, Room.h - 30);
 	OBJ.create(Transition, C.black);
 };
 
@@ -387,16 +464,19 @@ Bedroom.SpawnParticle = (name) => {
 };
 
 Bedroom.render = () => {
+	// Fade out intro volume
+	Sound.setVolume("Intro", Math.range(Sound.getVolume("Intro"), 0, 0.1));
+	// Control dragged item
+	if (GR.Game.draggedItem instanceof Cloth) {
+		GR.Game.draggedItem.x = Input.mousePosition.x;
+		GR.Game.draggedItem.y = Input.mousePosition.y - GR.Game.draggedItem.h * 0.5;
+	}
 	// Draw garden
 	Draw.image(`Window${GR.Game.season}`, Room.w * 0.38 + 100, Room.h * 0.1 + 100);
 	// Fall some leaves on autumn
-	if (GR.Game.season === GR.DATA.Season.Autumn) {
-		if (++Bedroom.fallCount % 20 === 0) {
-			Bedroom.SpawnParticle("Leaves");
-		}
-	}
+	if (GR.Game.season === GR.DATA.Season.Autumn) if (++Bedroom.fallCount % 20 === 0) Bedroom.SpawnParticle("Leaves");
 	// Spawn particles according to the weather
-	switch (GR.Game.weatherIndex) {
+	switch (GR.Game.weather) {
 		case GR.DATA.Weather.Sunny: break;
 		case GR.DATA.Weather.Cloudy: break;
 		case GR.DATA.Weather.Rainy: if (++Bedroom.fallCount % 4 === 0) Bedroom.SpawnParticle("Rain"); break;

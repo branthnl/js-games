@@ -951,6 +951,7 @@ const Draw = {
 		img.origin = origin;
 		this.list[1].push(img);
 		this.names[1].push(name);
+		return img;
 	},
 	getSprite(name) {
 		return this.list[0][this.names[0].indexOf(name)];

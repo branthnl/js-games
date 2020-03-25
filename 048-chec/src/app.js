@@ -28,6 +28,7 @@ TTC.white = "#ffffff";
 TTC.black = "#404040";
 
 TTC.Board = {
+	squareSize: 75,
 	board: [
 		[null, null, null, null, null, null],
 		[null, null, null, null, null, null],
@@ -92,6 +93,24 @@ TTC.Board = {
 		}
 		return result;
 	},
+	toScreen(i, j) {
+		let xOffset = Room.mid.w - this.squareSize * 2;
+		let yOffset = Room.mid.h + this.squareSize * 3;
+		if (j === 0) yOffset += this.squareSize * 0.5;
+		if (j === 5) yOffset -= this.squareSize * 0.5;
+		return {
+			x: xOffset + this.squareSize * (i + 0.5),
+			y: yOffset - this.squareSize * (j + 0.5)
+		};
+	},
+	getImageIndex(piece) {
+		return {
+			"P": 0,
+			"R": 1,
+			"N": 2,
+			"B": 3
+		}[piece.type] + 4 * (piece.color === TTC.BLACK);
+	},
 	setup() {
 		this.clear();
 		this.put(new Piece(TTC.ROOK, TTC.WHITE), "a1");
@@ -102,6 +121,17 @@ TTC.Board = {
 		this.put(new Piece(TTC.BISHOP, TTC.BLACK), "b6");
 		this.put(new Piece(TTC.PAWN, TTC.BLACK), "c6");
 		this.put(new Piece(TTC.KNIGHT, TTC.BLACK), "d6");
+	},
+	render() {
+		for (let i = 0; i < 4; i++) {
+			for (let j = 0; j < 6; j++) {
+				const k = this.board[i][j];
+				if (k instanceof Piece) {
+					const l = this.toScreen(i, j);
+					Draw.strip("Pieces", this.getImageIndex(k), l.x, l.y);
+				}
+			}
+		}
 	}
 };
 
@@ -161,8 +191,7 @@ class Button extends BranthObject {
 		this.w = i.width;
 		this.h = i.height;
 		this.rect = TTC.UI.CreateRect(this.x - this.w * 0.5, this.y - this.h * 0.5, this.w, this.h);
-	}
-	render() {
+	}	render() {
 		if (TTC.UI.MouseHoverRect(this.rect)) {
 			this.scale = Math.range(this.scale, 1.1, 0.2);
 			if (Input.mouseDown(0)) {
@@ -216,11 +245,13 @@ Menu.renderUI = () => {
 };
 
 Game.start = () => {
+	TTC.Board.setup();
 	OBJ.create(Transition, new Transition(C.black));
 };
 
 Game.render = () => {
 	Draw.image("Board", Room.mid.w, Room.mid.h);
+	TTC.Board.render();
 };
 
 Game.renderUI = () => {

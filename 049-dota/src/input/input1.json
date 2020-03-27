@@ -1,0 +1,23 @@
+{
+	"army1":
+	{
+		"flag": "S",
+		"nickname": "Army1",
+		"s1": {"name":"ABC", "strength":"45", "icon":"https://chronobot.io/gg_png/31.png"},
+		"s2": {"name":"ABC", "strength":"45", "icon":"https://chronobot.io/gg_png/31.png"},
+		"s3": {"name":"TR", "strength":"121", "icon":"https://chronobot.io/gg_png/33.png"},
+		"s4": {"name":"GSCD", "strength":"111", "icon":"https://chronobot.io/gg_png/34.png"},
+		"s5": {"name":"BBB", "strength":"132", "icon":"https://chronobot.io/gg_png/35.png"}
+	},
+	"army2":
+	{
+		"flag": "P",
+		"nickname": "Avengers",
+		"s1": {"name":"ABC", "strength":"44", "icon":"https://chronobot.io/gg_png/31.png"},
+		"s2": {"name":"GOP", "strength":"44", "icon":"https://chronobot.io/gg_png/37.png"},
+		"s3": {"name":"POG", "strength":"124", "icon":"https://chronobot.io/gg_png/38.png"},
+		"s4": {"name":"AAA", "strength":"114", "icon":"https://chronobot.io/gg_png/39.png"},
+		"s5": {"name":"BBB", "strength":"134", "icon":"https://chronobot.io/gg_png/35.png"}
+	},
+	"winner": "army2"
+}

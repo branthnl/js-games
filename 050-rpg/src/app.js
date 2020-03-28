@@ -47,6 +47,7 @@ Game.start = () => {
 
 Game.render = () => {
 	OBJ.updateAll();
+	Draw.image("bg", 0, 0);
 	OBJ.renderAll();
 };
 

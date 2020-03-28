@@ -4,6 +4,10 @@ class Player extends BranthObject {
 		this.speed = 2;
 		this.faceDirection = 0; //south, 1=north, 2=west, 3=east
 	}
+	clampPosition() {
+		this.x = Math.clamp(this.x, 74, 710);
+		this.y = Math.clamp(this.y, 0, 510);
+	}
 	update() {
 		if (Input.keyHold(KeyCode.Up)) {
 			this.faceDirection = 1;
@@ -21,6 +25,7 @@ class Player extends BranthObject {
 			this.faceDirection = 3;
 			this.x += this.speed;
 		}
+		this.clampPosition();
 	}
 	render() {
 		Draw.strip("hero", this.faceDirection, this.x, this.y);
@@ -49,6 +54,7 @@ Game.render = () => {
 	OBJ.updateAll();
 	Draw.image("bg", 0, 0);
 	OBJ.renderAll();
+	Draw.text(32, 32, `(${~~OBJ.get("Player", 0).x}, ${~~OBJ.get("Player", 0).y})`);
 };
 
 Branth.start({

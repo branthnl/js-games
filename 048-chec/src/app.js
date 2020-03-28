@@ -169,8 +169,10 @@ TTC.UI = {
 		return m.x > rect.x && m.x < rect.x + rect.w && m.y > rect.y && m.y < rect.y + rect.h;
 	},
 	DebugRect(rect) {
-		Draw.setColor(C.black);
-		Draw.rect(rect.x, rect.y, rect.w, rect.h, true);
+		if (GLOBAL.debugMode % 2 !== 0) {
+			Draw.setColor(C.black);
+			Draw.rect(rect.x, rect.y, rect.w, rect.h, true);
+		}
 	}
 };
 

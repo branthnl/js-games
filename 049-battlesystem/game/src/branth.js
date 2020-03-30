@@ -919,7 +919,7 @@ const BlendModes = {
 const Draw = {
 	CTX: CANVAS.getContext('2d'),
 	fontFamily: '',
-	fontDefault: ['Maven Pro', 'Montserrat', 'Josefin Sans', 'Arvo', 'Oregano', 'Fresca', 'Sniglet'],
+	fontDefault: ['Josefin Sans'],
 	primitiveType: '',
 	vertices: [],
 	list: [[], []],
@@ -986,7 +986,7 @@ const Draw = {
 				w: img.width / img.strip,
 				h: img.height,
 				get x() {
-					return index * this.w;
+					return (index % img.strip) * this.w;
 				},
 				y: 0
 			};

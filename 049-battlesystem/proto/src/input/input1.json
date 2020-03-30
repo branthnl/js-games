@@ -1,0 +1,23 @@
+{
+	"army1":
+	{
+		"flag": "S",
+		"nickname": "Army1",
+		"s1": { "name": "AAA", "strength": 45, "iconIndex": 1 },
+		"s2": { "name": "AAA", "strength": 45, "iconIndex": 1 },
+		"s3": { "name": "AAA", "strength": 121, "iconIndex": 3 },
+		"s4": { "name": "AAA", "strength": 111, "iconIndex": 4 },
+		"s5": { "name": "AAA", "strength": 132, "iconIndex": 5 }
+	},
+	"army2":
+	{
+		"flag": "P",
+		"nickname": "Avengers",
+		"s1": { "name": "AAA", "strength": 44, "iconIndex": 1 },
+		"s2": { "name": "AAA", "strength": 44, "iconIndex": 7 },
+		"s3": { "name": "AAA", "strength": 124, "iconIndex": 8 },
+		"s4": { "name": "AAA", "strength": 114, "iconIndex": 9 },
+		"s5": { "name": "AAA", "strength": 134, "iconIndex": 5 }
+	},
+	"winner": "army2"
+}

@@ -13,21 +13,24 @@ const BS = {
 BS.Data = {
 	UnitData: [
 		{
-			spriteName: "Knight"
+			spriteName: "Knight",
+			audioName: "Knight"
 		},
 		{
-			spriteName: "Knight"
+			spriteName: "Heavy",
+			audioName: "Heavy"
 		},
 		{
-			spriteName: "Knight"
+			spriteName: "Archer",
+			audioName: "Knight"
 		}
 	],
 	UnitState: {
 		Attack: "Attack",
 		Death: "Death",
-		Idle: "Idle",
-		JumpAndFall: "JumpAndFall",
-		Shield: "Shield"
+		Defense: "Defense",
+		Dodge: "Dodge",
+		Idle: "Idle"
 	},
 	GetUnitDataByIconIndex(i) {
 		return this.UnitData[i] || this.UnitData[0];
@@ -75,6 +78,7 @@ class Unit extends BranthBehaviour {
 		};
 		this.attackCount = 0;
 		this.nonAttackCount = 0;
+		this.soundIndex = (this.index + 5 * (this.team === "army2")) % 3;
 		this.alarm[0] = 50;
 		this.alarm[1] = Math.range(this.actionInterval.min, this.actionInterval.max);
 		this.iconDrawY = this.y;
@@ -82,21 +86,59 @@ class Unit extends BranthBehaviour {
 	changeState(newState) {
 		this.imageIndex = 0;
 		this.state = newState;
+		if (this.state === BS.Data.UnitState.Dodge) {
+			Sound.play(`Miss${this.soundIndex}`);
+		}
+		else if (this.state === BS.Data.UnitState.Defense) {
+			Sound.play(`Jump${this.soundIndex}`);
+		}
 	}
 	getAttackStrength() {
-		return BS.Battle.averageDamage * Math.clamp(this.strength / this.maxStrength, 0.1, 1) * Math.range(1, 2);
+		return BS.Battle.averageDamage * Math.clamp(this.strength / this.maxStrength, 0.1, 1) * Math.range(0.5, 2);
+	}
+	popHitFX() {
+		let x = this.x + Math.range(-4, 4);
+		let y = this.y + Math.range(-4, -24);
+		Emitter.setDepth(-99);
+		Emitter.preset("puff");
+		Emitter.setArea(x, x, y, y);
+		Emitter.setSize(3, 5);
+		Emitter.setSpeed(2, 4);
+		Emitter.setColor(C.red);
+		Emitter.emit(Math.choose(1, 2));
+		Emitter.setColor(C.fireBrick);
+		Emitter.emit(Math.choose(1, 2));
+		Emitter.setColor(C.orange);
+		Emitter.emit(Math.choose(1, 2));
+		this.alarm[2] = 100;
 	}
 	takeDamage(amount) {
-		this.strength -= amount;
+		if (this.state === BS.Data.UnitState.Dodge) {
+			return;
+		}
+		else if (this.state === BS.Data.UnitState.Defense) {
+			this.strength -= amount * 0.5;
+		}
+		else {
+			this.strength -= amount;
+		}
+		this.popHitFX();
+		Sound.play(`Hit${this.soundIndex}`);
 		if (this.strength <= 0) {
 			// If our team should be win but this unit's death will make it lose, prevent death
-			if (this.team === BS.inputJSON.winner && this.getAlly().length < OBJ.take(Unit).length * 0.5) {
+			if (this.team === BS.inputJSON.winner && this.getAlly().length <= this.getEnemy().length) {
 				this.strength = this.maxStrength;
 				return;
 			}
 			// If this is the last unit from a team, they lost
-			if (OBJ.take())
-			this.changeState(BS.Data.UnitState.Death);
+			if (this.getAlly().length < 2) {
+				BS.Battle.time = 0;
+				BS.Battle.over = true;
+			}
+			if (this.state !== BS.Data.UnitState.Death) {
+				this.changeState(BS.Data.UnitState.Death);
+				Sound.playOnce(`${this.data.audioName}${this.state}${this.soundIndex}`);
+			}
 		}
 	}
 	isAlly(x) {
@@ -111,19 +153,22 @@ class Unit extends BranthBehaviour {
 	getEnemy() {
 		return OBJ.take(Unit).filter(x => this.isEnemy(x));
 	}
+	resetState() {
+		this.changeState(BS.Data.UnitState.Idle);
+		this.alarm[1] = Math.range(this.actionInterval.min, this.actionInterval.max);
+	}
 	render() {
 		const name = `${this.data.spriteName}${this.state}`;
 		const img = Draw.getStrip(name);
 		switch (this.state) {
 			case BS.Data.UnitState.Attack:
 				if (this.imageIndex >= img.strip) {
-					this.changeState(BS.Data.UnitState.Idle);
 					// Take random enemy to hit
 					try {
 						Math.pick(this.getEnemy()).takeDamage(this.getAttackStrength());
 					}
 					catch {}
-					this.alarm[1] = Math.range(this.actionInterval.min, this.actionInterval.max);
+					this.resetState();
 				}
 				break;
 			case BS.Data.UnitState.Death:
@@ -132,25 +177,26 @@ class Unit extends BranthBehaviour {
 					return;
 				}
 				break;
-			case BS.Data.UnitState.JumpAndFall:
+			case BS.Data.UnitState.Dodge:
 				if (this.imageIndex >= img.strip) {
-					this.changeState(BS.Data.UnitState.Idle);
-					this.alarm[1] = Math.range(this.actionInterval.min * 0.7, this.actionInterval.max * 0.7);
+					this.resetState();
 				}
 				break;
-			case BS.Data.UnitState.Shield:
+			case BS.Data.UnitState.Defense:
 				if (this.imageIndex >= img.strip) {
-					this.changeState(BS.Data.UnitState.Idle);
-					this.alarm[1] = Math.range(this.actionInterval.min * 0.5, this.actionInterval.max * 0.5);
+					this.resetState();
 				}
 				break;
 		}
 		this.iconDrawY = Math.range(this.iconDrawY, this.y - img.height + Math.sin(Time.time * 0.01 + this.id) * 4, 0.1);
-		Draw.strip(name, this.imageIndex, this.x, this.y, this.imageXScale);
+		Draw.strip(name, this.imageIndex, this.x + Math.randneg() * (this.alarm[2] / 50), this.y, this.imageXScale);
 	}
 	alarm0() {
 		// Animate by increasing image index
 		this.imageIndex++;
+		if (this.state === BS.Data.UnitState.Attack && this.imageIndex === 2) {
+			Sound.playOnce(`${this.data.audioName}${this.state}${this.soundIndex}`);
+		}
 		this.alarm[0] = 50;
 	}
 	alarm1() {
@@ -164,7 +210,7 @@ class Unit extends BranthBehaviour {
 			}
 			else {
 				this.nonAttackCount++;
-				this.changeState(Math.choose(BS.Data.UnitState.JumpAndFall, BS.Data.UnitState.Shield));
+				this.changeState(Math.choose(BS.Data.UnitState.Dodge, BS.Data.UnitState.Defense));
 			}
 		}
 		else {
@@ -174,7 +220,7 @@ class Unit extends BranthBehaviour {
 			}
 			else {
 				this.nonAttackCount++;
-				this.changeState(Math.choose(BS.Data.UnitState.JumpAndFall, BS.Data.UnitState.Shield));
+				this.changeState(Math.choose(BS.Data.UnitState.Dodge, BS.Data.UnitState.Defense));
 			}
 		}
 	}
@@ -191,7 +237,7 @@ BS.Battle = {
 	CreateAverageDamage() {
 		let dmg = 0;
 		for (const i of OBJ.take(Unit).map(x => +x.maxStrength)) {
-			dmg += i / 10;
+			dmg += i / 5;
 		}
 		return dmg / OBJ.take(Unit).length;
 	},
@@ -199,6 +245,9 @@ BS.Battle = {
 		this.time = this.duration;
 		this.over = false;
 		this.averageDamage = this.CreateAverageDamage();
+		if (!Sound.isPlaying("BGM")) {
+			Sound.loop("BGM");
+		}
 	},
 	update() {
 		if (!this.over) {
@@ -224,9 +273,29 @@ Boot.start = () => {
 	Draw.addStrip(new Vector2(0.5, 1), "icons", "src/img/icons_strip3.png", 3);
 	Draw.addStrip(new Vector2(0.5, 1), "KnightAttack", "src/img/KnightAttack_strip26.png", 26);
 	Draw.addStrip(new Vector2(0.5, 1), "KnightDeath", "src/img/KnightDeath_strip15.png", 15);
+	Draw.addStrip(new Vector2(0.5, 1), "KnightDefense", "src/img/KnightDefense_strip20.png", 20);
+	Draw.addStrip(new Vector2(0.5, 1), "KnightDodge", "src/img/KnightDodge_strip12.png", 12);
 	Draw.addStrip(new Vector2(0.5, 1), "KnightIdle", "src/img/KnightIdle_strip15.png", 15);
-	Draw.addStrip(new Vector2(0.5, 1), "KnightJumpAndFall", "src/img/KnightJumpAndFall_strip12.png", 12);
-	Draw.addStrip(new Vector2(0.5, 1), "KnightShield", "src/img/KnightShield_strip20.png", 20);
+	Draw.addStrip(new Vector2(0.5, 1), "HeavyAttack", "src/img/HeavyAttack_strip30.png", 30);
+	Draw.addStrip(new Vector2(0.5, 1), "HeavyDeath", "src/img/HeavyDeath_strip40.png", 40);
+	Draw.addStrip(new Vector2(0.5, 1), "HeavyDefense", "src/img/HeavyDefense_strip18.png", 18);
+	Draw.addStrip(new Vector2(0.5, 1), "HeavyDodge", "src/img/HeavyDodge_strip25.png", 25);
+	Draw.addStrip(new Vector2(0.5, 1), "HeavyIdle", "src/img/HeavyIdle_strip16.png", 16);
+	Draw.addStrip(new Vector2(0.5, 1), "ArcherAttack", "src/img/ArcherAttack_strip14.png", 14);
+	Draw.addStrip(new Vector2(0.5, 1), "ArcherDeath", "src/img/ArcherDeath_strip24.png", 24);
+	Draw.addStrip(new Vector2(0.5, 1), "ArcherDefense", "src/img/ArcherDefense_strip22.png", 22);
+	Draw.addStrip(new Vector2(0.5, 1), "ArcherDodge", "src/img/ArcherDodge_strip12.png", 12);
+	Draw.addStrip(new Vector2(0.5, 1), "ArcherIdle", "src/img/ArcherIdle_strip8.png", 8);
+	Sound.add("BGM", "src/snd/BGM.mp3");
+	for (let i = 0; i < 3; i++) {
+		Sound.add(`Hit${i}`, "src/snd/Hit.wav");
+		Sound.add(`Jump${i}`, "src/snd/Jump.wav");
+		Sound.add(`Miss${i}`, "src/snd/Miss.wav");
+		Sound.add(`KnightAttack${i}`, "src/snd/KnightAttack.wav");
+		Sound.add(`KnightDeath${i}`, "src/snd/KnightDeath.wav");
+		Sound.add(`HeavyAttack${i}`, "src/snd/KnightAttack.wav");
+		Sound.add(`HeavyDeath${i}`, "src/snd/HeavyDeath.wav");
+	}
 	fileInput.onchange = (e) => {
 		const f = e.target.files[0];
 		const reader = new FileReader();
@@ -296,12 +365,12 @@ Game.renderUI = () => {
 			Draw.setFont(Font.m);
 			Draw.setColor(C.black);
 			for (const i of OBJ.take(Unit)) {
-				txt = `#${i.index + 1} ${i.name}\nstr: ${Math.ceil(i.strength)}/${i.maxStrength}\nicon: ${i.iconIndex}`;
+				txt = `#${i.index + 1} ${i.name} (${i.iconIndex})\nstr: ${Math.ceil(i.strength)}/${i.maxStrength}\n${i.state}`;
 				Draw.text(i.x, i.y + 10, txt);
 			}
-			for (const i of OBJ.take(Unit)) {
-				Draw.strip("icons", i.iconIndex, i.x, i.iconDrawY);
-			}
+		}
+		for (const i of OBJ.take(Unit)) {
+			Draw.strip("icons", i.iconIndex, i.x, i.iconDrawY);
 		}
 		Draw.setFont(Font.xl);
 		Draw.setColor(C.yellow);

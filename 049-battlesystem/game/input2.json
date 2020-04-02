@@ -1,0 +1,23 @@
+{
+	"army1":
+	{
+		"flag": "S",
+		"nickname": "kpzero",
+		"s1": { "name": "FDG", "strength": 100, "iconIndex": 0 },
+		"s2": { "name": "HAS", "strength": 100, "iconIndex": 1 },
+		"s3": { "name": "OEI", "strength": 100, "iconIndex": 0 },
+		"s4": { "name": "DOK", "strength": 100, "iconIndex": 2 },
+		"s5": { "name": "SPO", "strength": 100, "iconIndex": 2 }
+	},
+	"army2":
+	{
+		"flag": "P",
+		"nickname": "branth",
+		"s1": { "name": "FWN", "strength": 100, "iconIndex": 0 },
+		"s2": { "name": "WOF", "strength": 100, "iconIndex": 1 },
+		"s3": { "name": "JFS", "strength": 100, "iconIndex": 0 },
+		"s4": { "name": "OIS", "strength": 100, "iconIndex": 2 },
+		"s5": { "name": "ERJ", "strength": 100, "iconIndex": 2 }
+	},
+	"winner": "army1"
+}

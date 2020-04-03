@@ -44,6 +44,9 @@ class Piece {
 	getCode() {
 		return `${this.type}${this.color}`;
 	}
+	equal(p) {
+		return this.type === p.type && this.color === p.color;
+	}
 	static Create(code) {
 		const type = code[0];
 		const color = code[1];
@@ -202,10 +205,10 @@ const Board = {
 				}
 				break;
 				case Type.ROOK: {
-					/* North */ move(() => { ++step.y; });
-					/* East  */ move(() => { ++step.x; });
-					/* South */ move(() => { --step.y; });
-					/* West  */ move(() => { --step.x; });
+					/* Continuous North */ move(() => { ++step.y; });
+					/* Continuous East  */ move(() => { ++step.x; });
+					/* Continuous South */ move(() => { --step.y; });
+					/* Continuous West  */ move(() => { --step.x; });
 				}
 				break;
 				case Type.KNIGHT: {
@@ -220,10 +223,10 @@ const Board = {
 				}
 				break;
 				case Type.BISHOP: {
-					/* SouthEast */ move(() => { ++step.x; --step.y; });
-					/* NorthEast */ move(() => { ++step.x; ++step.y; });
-					/* NorthWest */ move(() => { --step.x; ++step.y; });
-					/* SouthWest */ move(() => { --step.x; --step.y; });
+					/* Continuous SouthEast */ move(() => { ++step.x; --step.y; });
+					/* Continuous NorthEast */ move(() => { ++step.x; ++step.y; });
+					/* Continuous NorthWest */ move(() => { --step.x; ++step.y; });
+					/* Continuous SouthWest */ move(() => { --step.x; --step.y; });
 				}
 				break;
 			}
@@ -428,12 +431,16 @@ class MyInputClass {
 
 const Input = {
 	Mouse: [],
+	mouseHoldTime: 0,
 	mousePosition: new Point(0, 0),
 	getX() {
 		return this.mousePosition.x;
 	},
 	getY() {
 		return this.mousePosition.y;
+	},
+	getHoldTime() {
+		return this.mouseHoldTime;
 	},
 	getMouseText() {
 		return `(${Math.floor(Input.mousePosition.x)}, ${Math.floor(Input.mousePosition.y)})`;
@@ -446,6 +453,14 @@ const Input = {
 	reset() {
 		for (let i = 0; i < 3; i++) {
 			this.Mouse[i].reset();
+		}
+	},
+	update() {
+		if (this.Mouse[0].held) {
+			this.mouseHoldTime += Time.deltaTime;
+		}
+		else {
+			this.mouseHoldTime = 0;
 		}
 	},
 	mouseUp(button) {
@@ -471,6 +486,22 @@ const Input = {
 	}
 };
 
+const Sound = {
+	list: {},
+	add(key, url, type) {
+		const snd = new Audio();
+		snd.innerHTML = `<source src="${url}" type"audio/${type}">`
+		this.list[key] = snd;
+	},
+	play(key) {
+		const s = this.list[key];
+		if (s) {
+			s.currentTime = 0;
+			s.play();
+		}
+	}
+};
+
 const State = {
 	WHITE: "WHITE",
 	BLACK: "BLACK",
@@ -481,6 +512,7 @@ const State = {
 const Game = {
 	turn: 0,
 	state: State.GAME_MENU,
+	dragOffset: new Point(0, 0),
 	gameOverState: "",
 	pieceOnHighlight: null,
 	positionOnHighlight: new Point(0, 0),
@@ -545,6 +577,7 @@ const Game = {
 		for (let i = Tile.boardTiles.length - 1; i >= 0; i--) {
 			const b = Tile.boardTiles[i];
 			const h = b.isHovered();
+			let action = Input.mouseDown(0);
 			if (Tile.isHighlighted(b.boardPosition)) {
 				let capturing = false;
 				const bb = Board.get(b.boardPosition);
@@ -557,7 +590,8 @@ const Game = {
 				else Draw.setColor("rgba(100, 100, 255, 0.7)");
 				b.draw();
 				if (h) {
-					if (Input.mouseDown(0)) {
+					if (Input.mouseDown(0) || (Input.getHoldTime() > 200 && Input.mouseUp(0))) {
+						action = true;
 						if (this.pieceOnHighlight instanceof Piece) {
 							if (capturing) {
 								Board.set(Board.getEmptyOutBoardPoints()[this.getStateIndex()][0], bb);
@@ -581,7 +615,7 @@ const Game = {
 			if (h) {
 				Draw.setColor("rgba(255, 255, 0, 0.5)");
 				b.draw();
-				if (Input.mouseDown(0)) {
+				if (action) {
 					let count = 0;
 					this.pieceOnHighlight = Board.get(b.boardPosition);
 					if (this.pieceOnHighlight instanceof Piece) {
@@ -594,6 +628,8 @@ const Game = {
 							if (count === 0) {
 								this.positionOnHighlight = b.boardPosition;
 								this.highlightedBoardPositions = Board.open(b.boardPosition);
+								this.dragOffset.x = Input.mousePosition.x - b.x;
+								this.dragOffset.y = Input.mousePosition.y - b.y;
 							}
 						}
 						else ++count;
@@ -621,6 +657,13 @@ const Game = {
 			for (let y = 0; y < Board.size.y; y++) {
 				const k = Board.boardArray[x][y];
 				if (k instanceof Piece) {
+					if (Input.mouseHold(0)) {
+						if (this.pieceOnHighlight instanceof Piece) {
+							if (k.equal(this.pieceOnHighlight)) {
+								continue;
+							}
+						}
+					}
 					Draw.imageStrip(Draw.list["Piece"], 8, k.getImageIndex(), Room.board.offset.x + Tile.size * x, Room.board.offset.y - Tile.size * (y + 1));
 				}
 			}
@@ -688,6 +731,8 @@ const GameStart = () => {
 		}
 	}
 	Draw.addImage("Piece", "src/img/Pieces_strip8.png");
+	Sound.add("Pop1", "src/snd/Pop1.wav", "wav");
+	Sound.add("Pop2", "src/snd/Pop2.wav", "wav");
 	GameUpdate(0);
 };
 
@@ -739,6 +784,20 @@ const GameUpdate = (t) => {
 	Draw.setColor(C.grey);
 	Draw.text(Room.size.x * 0.5, Room.size.y - 7, "Sotsoult 2020");
 
+	if (Input.mouseHold(0)) {
+		if (Game.pieceOnHighlight instanceof Piece) {
+			Draw.imageStrip(Draw.list["Piece"], 8, Game.pieceOnHighlight.getImageIndex(), Input.mousePosition.x - Game.dragOffset.x, Input.mousePosition.y - Game.dragOffset.y);
+		}
+	}
+
+	if (Input.mouseDown(0)) {
+		Sound.play("Pop1");
+	}
+	if (Input.mouseUp(0)) {
+		Sound.play("Pop2");
+	}
+
+	Input.update();
 	Input.reset();
 	window.requestAnimationFrame(GameUpdate);
 };

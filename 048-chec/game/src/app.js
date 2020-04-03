@@ -1,8 +1,8 @@
 const Type = {
-	BISHOP: "B",
-	KNIGHT: "K",
 	PAWN: "P",
-	ROOK: "R"
+	ROOK: "R",
+	KNIGHT: "K",
+	BISHOP: "B"
 };
 
 const Color = {
@@ -34,6 +34,12 @@ class Piece {
 		this.type = type;
 		this.color = color;
 	}
+	getImageIndex() {
+		return Object.values(Type).indexOf(this.type) + 4 * (this.color === Color.BLACK);
+	}
+	getCode() {
+		return `${this.type}${this.color}`;
+	}
 	static Create(code) {
 		const type = code[0];
 		const color = code[1];
@@ -42,13 +48,17 @@ class Piece {
 }
 
 const Board = {
-	boardArray: [
-		[null, Piece.Create("BW"), null, null, null, Piece.Create("BB")],
-		[Piece.Create("PW"), null, null, null, null, Piece.Create("PB")],
-		[null, Piece.Create("KW"), null, null, null, null, Piece.Create("KB")],
-		[null, null, Piece.Create("RW"), null, null, Piece.Create("RB")]
-	],
+	boardArray: [],
 	size: new Point(4, 6),
+	setup() {
+		this.boardArray.length = 0;
+		this.boardArray = [
+			[Piece.Create("BW"), null, null, null, null, Piece.Create("BB")],
+			[Piece.Create("PW"), null, null, null, null, Piece.Create("PB")],
+			[Piece.Create("KW"), null, null, null, null, Piece.Create("KB")],
+			[Piece.Create("RW"), null, null, null, null, Piece.Create("RB")]
+		];
+	},
 	ascii() {
 		let result = "  | 0 1 2 3 |\n---------------";
 		for (let y = this.size.y - 1; y >= 0; y--) {
@@ -68,6 +78,9 @@ const Board = {
 	},
 	get(boardPosition) {
 		return this.boardArray[boardPosition.x][boardPosition.y];
+	},
+	set(boardPosition, value) {
+		this.boardArray[boardPosition.x][boardPosition.y] = value;
 	},
 	/**
 	 * Returns move possibilites
@@ -100,11 +113,18 @@ const Board = {
 				}
 			};
 			switch (n.type) {
-				case Type.BISHOP: {
-					/* SouthEast */ move(() => { ++step.x; --step.y; });
-					/* NorthEast */ move(() => { ++step.x; ++step.y; });
-					/* NorthWest */ move(() => { --step.x; ++step.y; });
-					/* SouthWest */ move(() => { --step.x; --step.y; });
+				case Type.PAWN: {
+					switch (n.color) {
+						case Color.BLACK: /* 1 South */ move(() => { --step.y }, false); break;
+						case Color.WHITE: /* 1 North */ move(() => { ++step.y }, false); break;
+					}
+				}
+				break;
+				case Type.ROOK: {
+					/* North */ move(() => { ++step.y; });
+					/* East  */ move(() => { ++step.x; });
+					/* South */ move(() => { --step.y; });
+					/* West  */ move(() => { --step.x; });
 				}
 				break;
 				case Type.KNIGHT: {
@@ -118,18 +138,11 @@ const Board = {
 					/* 2 West 1 South */ move(() => { step.x -= 2; --step.y; }, false);
 				}
 				break;
-				case Type.PAWN: {
-					switch (n.color) {
-						case Color.BLACK: /* 1 North */ move(() => { ++step.y }, false); break;
-						case Color.WHITE: /* 1 South */ move(() => { --step.y }, false); break;
-					}
-				}
-				break;
-				case Type.ROOK: {
-					/* North */ move(() => { ++step.y; });
-					/* East  */ move(() => { ++step.x; });
-					/* South */ move(() => { --step.y; });
-					/* West  */ move(() => { --step.x; });
+				case Type.BISHOP: {
+					/* SouthEast */ move(() => { ++step.x; --step.y; });
+					/* NorthEast */ move(() => { ++step.x; ++step.y; });
+					/* NorthWest */ move(() => { --step.x; ++step.y; });
+					/* SouthWest */ move(() => { --step.x; --step.y; });
 				}
 				break;
 			}
@@ -150,4 +163,404 @@ const Board = {
 	}
 };
 
+const Time = {
+	time: 0,
+	lastTime: 0,
+	deltaTime: 0,
+	update(t) {
+		this.lastTime = this.time;
+		this.time = t;
+		this.deltaTime = this.time - this.lastTime;
+	}
+};
+
+const Font = {
+	s: "10px Maven Pro, sans-serif",
+	m: "16px Maven Pro, sans-serif",
+	l: "24px Maven Pro, sans-serif",
+	xl: "36px Maven Pro, sans-serif",
+	xxl: "48px Maven Pro, sans-serif"
+};
+
+const Align = {
+	l: "left",
+	r: "right",
+	c: "center",
+	t: "top",
+	b: "bottom",
+	m: "middle"
+};
+
+const Room = {
+	size: new Point(376, 600),
+	board: {
+		offset: new Point(0, 0)
+	}
+};
+
+class BoardTiles {
+	constructor(x, y, w, h, boardPosition) {
+		this.x = x;
+		this.y = y;
+		this.w = w;
+		this.h = h;
+		this.boardPosition = boardPosition;
+	}
+	isHovered(m=Input.mousePosition) {
+		return m.x > this.x && m.x < this.x + this.w && m.y > this.y && m.y < this.y + this.h;
+	}
+	draw() {
+		Draw.rect(this.x, this.y, this.w, this.h);
+	}
+}
+
+const Tile = {
+	size: 75,
+	boardTiles: [],
+	isHighlighted(boardPosition) {
+		for (let i = Game.highlightedBoardPositions.length - 1; i >= 0; i--) {
+			if (Game.highlightedBoardPositions[i].equal(boardPosition)) {
+				return true;
+			}
+		}
+		return false;
+	}
+};
+
+const Canvas = document.createElement("canvas");
+
+const C = {
+	black: "black",
+	grey: "grey",
+	white: "white"
+};
+
+const Draw = {
+	list: {},
+	ctx: Canvas.getContext("2d"),
+	addBitmap(key, width, height, drawingFunction) {
+		const canvas = document.createElement("canvas");
+		canvas.width = width;
+		canvas.height = height;
+		this.setCtx(canvas.getContext("2d"));
+		drawingFunction();
+		this.resetCtx();
+		this.list[key] = canvas;
+	},
+	addImage(key, url) {
+		const img = new Image();
+		img.src = url;
+		this.list[key] = img;
+	},
+	setCtx(ctx) {
+		this.ctx = ctx;
+	},
+	resetCtx() {
+		this.ctx = Canvas.getContext("2d");
+	},
+	setColor(c) {
+		this.ctx.fillStyle = c;
+		this.ctx.strokeStyle = c;
+	},
+	draw(outline=false) {
+		if (outline) this.ctx.stroke();
+		else this.ctx.fill();
+	},
+	rect(x, y, w, h, outline=false) {
+		this.ctx.beginPath();
+		this.ctx.rect(x, y, w, h);
+		this.draw(outline);
+	},
+	circle(x, y, r, outline=false) {
+		this.ctx.beginPath();
+		this.ctx.arc(x, y, r, 0, 2 * Math.PI);
+		this.draw(outline);
+	},
+	image(img, x, y) {
+		this.ctx.drawImage(img, x, y);
+	},
+	/**
+	 * Split image by stripAmount and draw the imageIndex-th image
+	 */
+	imageStrip(img, stripAmount, imageIndex, x, y) {
+		const s = {
+			w: img.width / stripAmount,
+			h: img.height
+		};
+		this.ctx.drawImage(img, s.w * imageIndex, 0, s.w, s.h, x, y, s.w, s.h);
+	},
+	imageWithAnchor(img, x, y, anchorX, anchorY) {
+		this.ctx.drawImage(img, x - img.width * anchorX, y - img.height * anchorY);
+	},
+	setFont(font) {
+		this.ctx.font = font;
+	},
+	setHVAlign(h, v) {
+		this.ctx.textAlign = h;
+		this.ctx.textBaseline = v;
+	},
+	text(x, y, text) {
+		this.ctx.fillText(text, x, y);
+	},
+	clear() {
+		this.ctx.clearRect(0, 0, Room.size.x, Room.size.y);
+	}
+};
+
+class MyInputClass {
+	constructor(key) {
+		this.key = key;
+		this.held = false;
+		this.pressed = false;
+		this.released = false;
+	}
+	up() {
+		this.held = false;
+		this.released = true;
+	}
+	down() {
+		this.held = true;
+		this.pressed = true;
+	}
+	reset() {
+		this.pressed = false;
+		this.released = false;
+	}
+}
+
+const Input = {
+	Mouse: [],
+	mousePosition: new Point(0, 0),
+	getX() {
+		return this.mousePosition.x;
+	},
+	getY() {
+		return this.mousePosition.y;
+	},
+	getMouseText() {
+		return `(${Math.floor(Input.mousePosition.x)}, ${Math.floor(Input.mousePosition.y)})`;
+	},
+	setup() {
+		for (let i = 0; i < 3; i++) {
+			this.Mouse[i] = new MyInputClass(i);
+		}
+	},
+	reset() {
+		for (let i = 0; i < 3; i++) {
+			this.Mouse[i].reset();
+		}
+	},
+	mouseUp(button) {
+		return this.Mouse[button].released;
+	},
+	mouseDown(button) {
+		return this.Mouse[button].pressed;
+	},
+	mouseHold(button) {
+		return this.Mouse[button].held;
+	},
+	mouseUpEvent(e) {
+		Input.Mouse[e.button].up();
+	},
+	mouseDownEvent(e) {
+		const b = Input.Mouse[e.button];
+		if (!b.held) b.down();
+	},
+	mouseMoveEvent(e) {
+		const b = Canvas.getBoundingClientRect();
+		Input.mousePosition.x = e.clientX - b.left;
+		Input.mousePosition.y = e.clientY - b.top;
+	}
+};
+
+const State = {
+	WHITE: "WHITE",
+	BLACK: "BLACK",
+	GAME_MENU: "GAME_MENU",
+	GAME_OVER: "GAME_OVER"
+};
+
+const Game = {
+	turn: 0,
+	state: State.GAME_MENU,
+	nextTurn() {
+		if (this.state === State.BLACK) {
+			this.state = State.WHITE;
+			this.turn++;
+		}
+		else if (this.state === State.WHITE) {
+			this.state = State.BLACK;
+			this.turn++;
+		}
+	},
+	getStateColor() {
+		return this.state === State.BLACK? "B" : (this.state === State.WHITE? "W" : "");
+	},
+	pieceOnHighlight: null,
+	positionOnHighlight: new Point(0, 0),
+	highlightedBoardPositions: [],
+	INGAME_UPDATE() {
+		// Draw highlight
+		for (let i = Tile.boardTiles.length - 1; i >= 0; i--) {
+			const b = Tile.boardTiles[i];
+			const h = b.isHovered();
+			if (Tile.isHighlighted(b.boardPosition)) {
+				const bb = Board.get(b.boardPosition);
+				Draw.setColor("rgba(100, 100, 255, 0.8)");
+				if (bb instanceof Piece) {
+					if (bb.color !== this.getStateColor()) {
+						Draw.setColor("rgba(255, 0, 0, 0.8)");
+					}
+				}
+				b.draw();
+				if (h) {
+					if (Input.mouseDown(0)) {
+						if (this.pieceOnHighlight instanceof Piece) {
+							Board.set(b.boardPosition, Piece.Create(this.pieceOnHighlight.getCode()));
+							Board.set(this.positionOnHighlight, null);
+							this.nextTurn();
+						}
+					}
+				}
+			}
+			if (h) {
+				Draw.setColor("rgba(255, 255, 0, 0.5)");
+				b.draw();
+				if (Input.mouseDown(0)) {
+					this.pieceOnHighlight = Board.get(b.boardPosition);
+					if (this.pieceOnHighlight instanceof Piece) {
+						if (this.pieceOnHighlight.color === this.getStateColor()) {
+							this.positionOnHighlight = b.boardPosition;
+							this.highlightedBoardPositions = Board.open(b.boardPosition);
+						}
+						else {
+							this.highlightedBoardPositions.length = 0;
+						}
+					}
+				}
+			}
+		}
+		// Draw pieces from board
+		for (let x = 0; x < Board.size.x; x++) {
+			for (let y = 0; y < Board.size.y; y++) {
+				const k = Board.boardArray[x][y];
+				if (k instanceof Piece) {
+					Draw.imageStrip(Draw.list["Piece"], 8, k.getImageIndex(), Room.board.offset.x + Tile.size * x, Room.board.offset.y - Tile.size * (y + 1));
+				}
+			}
+		}
+		// Set ui
+		if (this.turn < 6) {
+			UI.bottomText = `Put ${this.state} piece on board (${~~(this.turn * 0.5)} / 3)`;
+		}
+		else {
+			UI.bottomText = `${this.state} turn`;
+		}
+	}
+};
+
+const UI = {
+	bottomText: ""
+};
+
+const GameStart = () => {
+	Board.setup();
+	Input.setup();
+	window.addEventListener("mouseup", Input.mouseUpEvent);
+	window.addEventListener("mousedown", Input.mouseDownEvent);
+	window.addEventListener("mousemove", Input.mouseMoveEvent);
+	const Css = document.createElement("style");
+	Css.innerHTML = `
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		canvas {
+			width: ${Room.size.x}px;
+			height: ${Room.size.y}px;
+			background-color: lightgrey;
+		}
+	`;
+	Canvas.width = Room.size.x;
+	Canvas.height = Room.size.y;
+	document.head.appendChild(Css);
+	document.body.appendChild(Canvas);
+	Draw.addBitmap(
+		"Board",
+		Tile.size * Board.size.x,
+		Tile.size * Board.size.y,
+		() => {
+			const s = Tile.size;
+			for (let y = Board.size.y - 1; y >= 0; y--) {
+				for (let x = 0; x < Board.size.x; x++) {
+					if (y === 0 || y === Board.size.y - 1) {
+						Draw.setColor(C.grey);
+						Draw.circle(s * (x + 0.5), s * (y + 0.5), s * 0.4);
+					}
+					else {
+						Draw.setColor(y % 2 === 0? (x % 2 === 0? C.white : C.black) : (x % 2 === 0? C.black : C.white));
+						Draw.rect(s * x, s * y, s, s);
+					}
+				}
+			}
+		}
+	);
+	Room.board.offset.x = Room.size.x * 0.5 - Draw.list["Board"].width * 0.5;
+	Room.board.offset.y = Room.size.y * 0.5 + Draw.list["Board"].height * 0.5;
+	for (let x = 0; x < Board.size.x; x++) {
+		for (let y = 0; y < Board.size.y; y++) {
+			Tile.boardTiles.push(new BoardTiles(
+				Room.board.offset.x + Tile.size * x,
+				Room.board.offset.y - Tile.size * (y + 1),
+				Tile.size,
+				Tile.size,
+				new Point(x, y)
+			));
+		}
+	}
+	Draw.addImage("Piece", "src/img/Pieces_strip8.png");
+	GameUpdate(0);
+};
+
+const GameUpdate = (t) => {
+	Time.update(t);
+	Draw.clear();
+	// Draw empty board
+	Draw.imageWithAnchor(Draw.list["Board"], Room.size.x * 0.5, Room.size.y * 0.5, 0.5, 0.5);
+	UI.bottomText = "";
+	switch (Game.state) {
+		case State.WHITE: {
+			Game.INGAME_UPDATE();
+		}
+		break;
+		case State.BLACK: {
+			Game.INGAME_UPDATE();
+		}
+		break;
+		case State.GAME_MENU: {
+			if (Input.mouseDown(0)) {
+				Board.setup();
+				Game.state = State.WHITE;
+			}
+			UI.bottomText = "Click anywhere to start";
+		}
+		break;
+		case State.GAME_OVER: {
+			if (Input.mouseDown(0)) {
+				Board.setup();
+				Game.state = State.WHITE;
+			}
+			UI.bottomText = "Click anywhere to restart";
+		}
+		break;
+	}
+	Draw.setFont(Font.m);
+	Draw.setColor(C.black);
+	Draw.setHVAlign(Align.c, Align.b);
+	Draw.text(Room.size.x * 0.5, Room.size.y - Tile.size * 0.5, UI.bottomText);
+	Input.reset();
+	window.requestAnimationFrame(GameUpdate);
+};
+
+GameStart();
 console.log(Board.ascii());

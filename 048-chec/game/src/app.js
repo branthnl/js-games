@@ -17,6 +17,10 @@ class Point {
 		this.xstart = x;
 		this.ystart = y;
 	}
+	set(p) {
+		this.x = p.x;
+		this.y = p.y;
+	}
 	reset() {
 		this.x = this.xstart;
 		this.y = this.ystart;
@@ -92,22 +96,45 @@ const Board = {
 		const n = this.get(boardPosition);
 		if (n instanceof Piece) {
 			if (!this.insidePlayBoard(boardPosition)) {
-				return this.createPlayBoardPoints();
+				return this.getEmptyPlayBoardPoints();
 			}
 			const step = Point.copy(boardPosition);
+			const prevStep = Point.copy(step);
+			const check = () => {
+				if (this.insidePlayBoard(step)) {
+					const prevBb = this.get(prevStep);
+					if (prevBb instanceof Piece) {
+						if (prevBb.color !== n.color) {
+							return false;
+						}
+					}
+					const bb = this.get(step);
+					if (bb instanceof Piece) {
+						// If board position not empty
+						if (bb.color !== n.color) {
+							return true;
+						}
+						return false;
+					}
+					return true;
+				}
+				return false;
+			};
 			const move = (movement, continuous=true) => {
 				step.reset();
 				if (continuous) {
-					while (this.insidePlayBoard(step)) {
-						if (!step.equal(boardPosition)) {
-							result.push(Point.copy(step));
-						}
+					prevStep.set(step);
+					movement();
+					while (check()) {
+						result.push(Point.copy(step));
+						prevStep.set(step);
 						movement();
 					}
 				}
 				else {
+					prevStep.set(step);
 					movement();
-					if (this.insidePlayBoard(step)) {
+					if (check()) {
 						result.push(Point.copy(step));
 					}
 				}
@@ -149,12 +176,29 @@ const Board = {
 		}
 		return result;
 	},
-	createPlayBoardPoints() {
+	getEmptyPlayBoardPoints() {
 		const result = [];
 		for (let i = 0; i < this.size.x; i++) {
 			for (let j = 1; j < this.size.y - 1; j++) {
-				result.push(new Point(i, j));
+				const k = this.boardArray[i][j];
+				if (!(k instanceof Piece)) {
+					result.push(new Point(i, j));
+				}
 			}
+		}
+		return result;
+	},
+	getEmptyOutBoardPoints() {
+		const result = [[], []];
+		let i = 0;
+		for (let y = this.size.y - 1; y >= 0; y -= this.size.y - 1) {
+			for (let x = 0; x < this.size.x; x++) {
+				const k = this.boardArray[x][y];
+				if (!(k instanceof Piece)) {
+					result[i].push(new Point(x, y));
+				}
+			}
+			i++;
 		}
 		return result;
 	},
@@ -393,8 +437,11 @@ const Game = {
 			this.turn++;
 		}
 	},
+	getStateIndex() {
+		return Object.values(State).indexOf(this.state);
+	},
 	getStateColor() {
-		return this.state === State.BLACK? "B" : (this.state === State.WHITE? "W" : "");
+		return ["W", "B"][this.getStateIndex()];
 	},
 	pieceOnHighlight: null,
 	positionOnHighlight: new Point(0, 0),
@@ -405,17 +452,22 @@ const Game = {
 			const b = Tile.boardTiles[i];
 			const h = b.isHovered();
 			if (Tile.isHighlighted(b.boardPosition)) {
+				let capturing = false;
 				const bb = Board.get(b.boardPosition);
-				Draw.setColor("rgba(100, 100, 255, 0.8)");
 				if (bb instanceof Piece) {
 					if (bb.color !== this.getStateColor()) {
-						Draw.setColor("rgba(255, 0, 0, 0.8)");
+						capturing = true;
 					}
 				}
+				if (capturing) Draw.setColor("rgb(255, 40, 40)");
+				else Draw.setColor("rgba(100, 100, 255, 0.7)");
 				b.draw();
 				if (h) {
 					if (Input.mouseDown(0)) {
 						if (this.pieceOnHighlight instanceof Piece) {
+							if (capturing) {
+								Board.set(Board.getEmptyOutBoardPoints()[this.getStateIndex()][0], bb);
+							}
 							Board.set(b.boardPosition, Piece.Create(this.pieceOnHighlight.getCode()));
 							Board.set(this.positionOnHighlight, null);
 							this.nextTurn();

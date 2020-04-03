@@ -574,6 +574,7 @@ const Game = {
 	},
 	INGAME_UPDATE() {
 		// Draw highlight
+		let hoveredTile = 0;
 		for (let i = Tile.boardTiles.length - 1; i >= 0; i--) {
 			const b = Tile.boardTiles[i];
 			const h = b.isHovered();
@@ -613,6 +614,7 @@ const Game = {
 				b.draw();
 			}
 			if (h) {
+				++hoveredTile;
 				Draw.setColor("rgba(255, 255, 0, 0.5)");
 				b.draw();
 				if (action) {
@@ -641,6 +643,10 @@ const Game = {
 					}
 				}
 			}
+		}
+		if (Input.mouseDown(0) && hoveredTile === 0) {
+			this.pieceOnHighlight = null;
+			this.highlightedBoardPositions.length = 0;
 		}
 		this.drawPieces();
 		// Set ui
@@ -673,6 +679,45 @@ const Game = {
 
 const UI = {
 	bottomText: ""
+};
+
+Math.clamp = (a, b, c) => Math.min(c, Math.max(b, a));
+
+class Particle {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.c = 100 + Math.random() * 50;
+		this.r = 2 + Math.random() * 2;
+		this.d = Math.random() * 360;
+		this.v = 1 + Math.random() * 2;
+		this.t = 1;
+	}
+}
+
+const Emitter = {
+	list: [],
+	emit(x, y, amount) {
+		for (let i = 0; i < amount; ++i) {
+			this.list.push(new Particle(x, y));
+		}
+	},
+	renderAll() {
+		for (let i = this.list.length - 1; i >= 0; --i) {
+			const j = this.list[i];
+			j.x += j.v * Math.cos(j.d * Math.PI / 180);
+			j.y += j.v * Math.sin(j.d * Math.PI / 180);
+			j.t -= 0.05;
+			j.v *= 0.9;
+			if (j.t <= 0) {
+				this.list.splice(i, 1);
+			}
+			else {
+				Draw.setColor(`rgba(${j.c}, ${j.c}, ${j.c}, ${Math.clamp(j.t, 0, 1)}`);
+				Draw.circle(j.x, j.y, j.r);
+			}
+		}
+	}
 };
 
 const GameStart = () => {
@@ -784,6 +829,8 @@ const GameUpdate = (t) => {
 	Draw.setColor(C.grey);
 	Draw.text(Room.size.x * 0.5, Room.size.y - 7, "Sotsoult 2020");
 
+	Emitter.renderAll();
+
 	if (Input.mouseHold(0)) {
 		if (Game.pieceOnHighlight instanceof Piece) {
 			Draw.imageStrip(Draw.list["Piece"], 8, Game.pieceOnHighlight.getImageIndex(), Input.mousePosition.x - Game.dragOffset.x, Input.mousePosition.y - Game.dragOffset.y);
@@ -792,6 +839,9 @@ const GameUpdate = (t) => {
 
 	if (Input.mouseDown(0)) {
 		Sound.play("Pop1");
+		if (!(Game.pieceOnHighlight instanceof Piece)) {
+			Emitter.emit(Input.getX(), Input.getY(), 5);
+		}
 	}
 	if (Input.mouseUp(0)) {
 		Sound.play("Pop2");

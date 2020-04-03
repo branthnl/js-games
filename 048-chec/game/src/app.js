@@ -574,14 +574,18 @@ const Game = {
 					}
 				}
 			}
+			if (this.pieceOnHighlight instanceof Piece && b.boardPosition.equal(this.positionOnHighlight)) {
+				Draw.setColor("rgba(100, 255, 100, 0.7)");
+				b.draw();
+			}
 			if (h) {
 				Draw.setColor("rgba(255, 255, 0, 0.5)");
 				b.draw();
 				if (Input.mouseDown(0)) {
+					let count = 0;
 					this.pieceOnHighlight = Board.get(b.boardPosition);
 					if (this.pieceOnHighlight instanceof Piece) {
 						if (this.pieceOnHighlight.color === this.getStateColor()) {
-							let count = 0;
 							if (this.isTheFirst6Turn()) {
 								if (Board.insidePlayBoard(b.boardPosition)) {
 									++count;
@@ -592,10 +596,12 @@ const Game = {
 								this.highlightedBoardPositions = Board.open(b.boardPosition);
 							}
 						}
-						else {
-							this.pieceOnHighlight = null;
-							this.highlightedBoardPositions.length = 0;
-						}
+						else ++count;
+					}
+					else ++count;
+					if (count > 0) {
+						this.pieceOnHighlight = null;
+						this.highlightedBoardPositions.length = 0;
 					}
 				}
 			}

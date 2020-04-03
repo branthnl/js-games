@@ -103,6 +103,19 @@ const Board = {
 		}
 		return result;
 	},
+	get2DiagonalGameAscii() {
+		let result = "";
+		let i = 0;
+		const y = [1, 2, 3, 4, 4, 3, 2, 1];
+		while (i < y.length) {
+			for (let x = 0; x < this.size.x; ++x) {
+				const p = this.boardArray[x][y[i++]];
+				result += p instanceof Piece? p.color : ".";
+			}
+			if (i < y.length - 1) result += "\n";
+		}
+		return result;
+	},
 	get(boardPosition) {
 		return this.boardArray[boardPosition.x][boardPosition.y];
 	},
@@ -503,6 +516,7 @@ const Game = {
 	checkGameOver() {
 		const horGameAscii = Board.getGameAsciiHorizontally().split("\n");
 		const verGameAscii = Board.getGameAsciiVertically().split("\n");
+		const diagGameAscii = Board.get2DiagonalGameAscii().split("\n");
 		// Horizontal check
 		if (horGameAscii.includes("WWWW")) {
 			this.gameOverState = "WHITE WON!";
@@ -515,6 +529,13 @@ const Game = {
 			this.gameOverState = "WHITE WON!";
 		}
 		else if (verGameAscii.includes("BBBB")) {
+			this.gameOverState = "BLACK WON!";
+		}
+		// Diagonal check
+		else if (diagGameAscii.includes("WWWW")) {
+			this.gameOverState = "WHITE WON!";
+		}
+		else if (diagGameAscii.includes("BBBB")) {
 			this.gameOverState = "BLACK WON!";
 		}
 		return this.gameOverState !== "";

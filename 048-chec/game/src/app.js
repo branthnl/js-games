@@ -68,8 +68,9 @@ const Board = {
 		for (let y = this.size.y - 1; y >= 0; y--) {
 			result += `\n${y} | `;
 			for (let x = 0; x < this.size.x; x++) {
-				if (this.boardArray[x][y]) {
-					result += `${this.boardArray[x][y].type} `;
+				const p = this.boardArray[x][y];
+				if (p instanceof Piece) {
+					result += `${p.type} `;
 				}
 				else {
 					result += ". ";
@@ -78,6 +79,28 @@ const Board = {
 			result += `| ${y}`;
 		}
 		result += "\n---------------\n  | 0 1 2 3 |";
+		return result;
+	},
+	getGameAsciiHorizontally() {
+		let result = "";
+		for (let y = this.size.y - 2; y > 0; --y) {
+			if (y < this.size.y - 2) result += "\n";
+			for (let x = 0; x < this.size.x; ++x) {
+				const p = this.boardArray[x][y];
+				result += p instanceof Piece? p.color : ".";
+			}
+		}
+		return result;
+	},
+	getGameAsciiVertically() {
+		let result = "";
+		for (let x = 0; x < this.size.x; ++x) {
+			if (x > 0) result += "\n";
+			for (let y = this.size.y - 2; y > 0; --y) {
+				const p = this.boardArray[x][y];
+				result += p instanceof Piece? p.color : ".";
+			}
+		}
 		return result;
 	},
 	get(boardPosition) {
@@ -112,6 +135,11 @@ const Board = {
 					if (bb instanceof Piece) {
 						// If board position not empty
 						if (bb.color !== n.color) {
+							if (n.type === Type.PAWN) {
+								if (step.x === boardPosition.x) {
+									return false;
+								}
+							}
 							return true;
 						}
 						return false;
@@ -440,6 +468,19 @@ const State = {
 const Game = {
 	turn: 0,
 	state: State.GAME_MENU,
+	gameOverState: "",
+	pieceOnHighlight: null,
+	positionOnHighlight: new Point(0, 0),
+	highlightedBoardPositions: [],
+	restart() {
+		Board.setup();
+		this.turn = 0;
+		this.state = State.WHITE;
+		this.gameOverState = "";
+		this.pieceOnHighlight = null;
+		this.positionOnHighlight.reset();
+		this.highlightedBoardPositions.length = 0;
+	},
 	nextTurn() {
 		if (this.state === State.BLACK) {
 			this.state = State.WHITE;
@@ -456,9 +497,28 @@ const Game = {
 	getStateColor() {
 		return ["W", "B"][this.getStateIndex()];
 	},
-	pieceOnHighlight: null,
-	positionOnHighlight: new Point(0, 0),
-	highlightedBoardPositions: [],
+	isTheFirst6Turn() {
+		return this.turn < 6;
+	},
+	checkGameOver() {
+		const horGameAscii = Board.getGameAsciiHorizontally().split("\n");
+		const verGameAscii = Board.getGameAsciiVertically().split("\n");
+		// Horizontal check
+		if (horGameAscii.includes("WWWW")) {
+			this.gameOverState = "WHITE WON!";
+		}
+		else if (horGameAscii.includes("BBBB")) {
+			this.gameOverState = "BLACK WON!";
+		}
+		// Vertical check
+		else if (verGameAscii.includes("WWWW")) {
+			this.gameOverState = "WHITE WON!";
+		}
+		else if (verGameAscii.includes("BBBB")) {
+			this.gameOverState = "BLACK WON!";
+		}
+		return this.gameOverState !== "";
+	},
 	INGAME_UPDATE() {
 		// Draw highlight
 		for (let i = Tile.boardTiles.length - 1; i >= 0; i--) {
@@ -483,7 +543,12 @@ const Game = {
 							}
 							Board.set(b.boardPosition, Piece.Create(this.pieceOnHighlight.getCode()));
 							Board.set(this.positionOnHighlight, null);
-							this.nextTurn();
+							if (this.checkGameOver()) {
+								this.state = State.GAME_OVER;
+							}
+							else {
+								this.nextTurn();
+							}
 						}
 					}
 				}
@@ -495,16 +560,35 @@ const Game = {
 					this.pieceOnHighlight = Board.get(b.boardPosition);
 					if (this.pieceOnHighlight instanceof Piece) {
 						if (this.pieceOnHighlight.color === this.getStateColor()) {
-							this.positionOnHighlight = b.boardPosition;
-							this.highlightedBoardPositions = Board.open(b.boardPosition);
+							let count = 0;
+							if (this.isTheFirst6Turn()) {
+								if (Board.insidePlayBoard(b.boardPosition)) {
+									++count;
+								}
+							}
+							if (count === 0) {
+								this.positionOnHighlight = b.boardPosition;
+								this.highlightedBoardPositions = Board.open(b.boardPosition);
+							}
 						}
 						else {
+							this.pieceOnHighlight = null;
 							this.highlightedBoardPositions.length = 0;
 						}
 					}
 				}
 			}
 		}
+		this.drawPieces();
+		// Set ui
+		if (this.isTheFirst6Turn()) {
+			UI.bottomText = `Put 3 ${this.state} piece on board (${~~(this.turn / 2)}/3)`;
+		}
+		else {
+			UI.bottomText = `${this.state} turn`;
+		}
+	},
+	drawPieces() {
 		// Draw pieces from board
 		for (let x = 0; x < Board.size.x; x++) {
 			for (let y = 0; y < Board.size.y; y++) {
@@ -513,13 +597,6 @@ const Game = {
 					Draw.imageStrip(Draw.list["Piece"], 8, k.getImageIndex(), Room.board.offset.x + Tile.size * x, Room.board.offset.y - Tile.size * (y + 1));
 				}
 			}
-		}
-		// Set ui
-		if (this.turn < 6) {
-			UI.bottomText = `Put ${this.state} piece on board (${~~(this.turn * 0.5)} / 3)`;
-		}
-		else {
-			UI.bottomText = `${this.state} turn`;
 		}
 	}
 };
@@ -594,35 +671,47 @@ const GameUpdate = (t) => {
 	Draw.imageWithAnchor(Draw.list["Board"], Room.size.x * 0.5, Room.size.y * 0.5, 0.5, 0.5);
 	UI.bottomText = "";
 	switch (Game.state) {
-		case State.WHITE: {
+		case State.WHITE:
+		case State.BLACK:
 			Game.INGAME_UPDATE();
-		}
-		break;
-		case State.BLACK: {
-			Game.INGAME_UPDATE();
-		}
 		break;
 		case State.GAME_MENU: {
 			if (Input.mouseDown(0)) {
-				Board.setup();
-				Game.state = State.WHITE;
+				Game.restart();
 			}
 			UI.bottomText = "Click anywhere to start";
 		}
 		break;
 		case State.GAME_OVER: {
+			Game.drawPieces();
 			if (Input.mouseDown(0)) {
-				Board.setup();
-				Game.state = State.WHITE;
+				Game.restart();
 			}
+			const h = 90;
+			Draw.setColor("rgba(0, 0, 0, 0.8)");
+			Draw.rect(0, Room.size.y * 0.5 - h * 0.5, Room.size.x, h);
+			Draw.setFont(Font.xxl);
+			Draw.setColor("rgba(255, 255, 0, 1)");
+			Draw.setHVAlign(Align.c, Align.m);
+			Draw.text(Room.size.x * 0.5, Room.size.y * 0.5, Game.gameOverState);
 			UI.bottomText = "Click anywhere to restart";
 		}
 		break;
 	}
+	Draw.setFont(Font.l);
+	Draw.setColor(C.grey);
+	Draw.setHVAlign(Align.c, Align.m);
+	Draw.text(Room.size.x * 0.5, Tile.size * 0.5, "TIC TAC CHEC");
+
 	Draw.setFont(Font.m);
-	Draw.setColor(C.black);
 	Draw.setHVAlign(Align.c, Align.b);
+	Draw.setColor(C.black);
 	Draw.text(Room.size.x * 0.5, Room.size.y - Tile.size * 0.5, UI.bottomText);
+
+	Draw.setFont(Font.s);
+	Draw.setColor(C.grey);
+	Draw.text(Room.size.x * 0.5, Room.size.y - 7, "Sotsoult 2020");
+
 	Input.reset();
 	window.requestAnimationFrame(GameUpdate);
 };

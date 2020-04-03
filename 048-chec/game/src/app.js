@@ -116,6 +116,11 @@ const Board = {
 						}
 						return false;
 					}
+					if (n.type === Type.PAWN) {
+						if (step.x !== boardPosition.x) {
+							return false;
+						}
+					}
 					return true;
 				}
 				return false;
@@ -142,8 +147,16 @@ const Board = {
 			switch (n.type) {
 				case Type.PAWN: {
 					switch (n.color) {
-						case Color.BLACK: /* 1 South */ move(() => { --step.y }, false); break;
-						case Color.WHITE: /* 1 North */ move(() => { ++step.y }, false); break;
+						case Color.BLACK:
+							/* 1 South */ move(() => { --step.y }, false);
+							/* 1 SouthEast */ move(() => { ++step.x; --step.y; }, false);
+							/* 1 SouthWest */ move(() => { --step.x; --step.y; }, false);
+							break;
+						case Color.WHITE:
+							/* 1 North */ move(() => { ++step.y }, false);
+							/* 1 NorthEast */ move(() => { ++step.x; ++step.y; }, false);
+							/* 1 NorthWest */ move(() => { --step.x; ++step.y; }, false);
+							break;
 					}
 				}
 				break;

@@ -18,9 +18,32 @@ SV.Canvas.width = 960;
 SV.Canvas.height = 540;
 SV.Canvas.style.backgroundColor = "#eeeeee";
 SV.Draw = {
+	list: {},
 	ctx: SV.Canvas.getContext("2d"),
+	add(key, url, imageNumber) {
+		const img = new Image();
+		img.src = url;
+		img.in = imageNumber;
+		this.list[key] = img;
+	},
 	text(x, y, text) {
 		this.ctx.fillText(text, x, y);
+	},
+	sprite(key, imageIndex, x, y, xs, ys, ox=0.5, oy=0.5) {
+		const img = this.list[key];
+		const s = {
+			w: img.width / img.in,
+			h: img.height
+		};
+		const d = {
+			w: s.w * xs,
+			h: s.h * ys
+		};
+		this.ctx.save();
+		this.ctx.translate(x - d.w * ox, y - d.h * oy);
+		this.ctx.scale(xs, ys);
+		this.ctx.drawImage(img, s.w * (imageIndex % img.in), 0, s.w, s.h, 0, 0, s.w, s.h);
+		this.ctx.restore();
 	},
 	circle(x, y, r) {
 		this.ctx.beginPath();
@@ -59,18 +82,21 @@ SV.OBJ = {
 		}
 	}
 };
-SV.Unit = function(team, x, y) {
+SV.Unit = function(team, type, x, y) {
 	this.id = SV.OBJ.ID++;
 	this.team = team;
+	this.type = type;
 	this.x = x;
 	this.y = y;
 	this.r = 10;
-	this.hp = 1000;
-	this.hpmax = 100;
+	this.hp = 500;
+	this.hpmax = 500;
 	this.speed = 1;
 	this.damage = 2;
 	this.atkrange = 30;
 	this.direction = 180 * this.team;
+	this.spriteName = "KnightIdle";
+	this.imageIndex = 0;
 	this.isDead = false;
 }
 SV.Unit.prototype.applySpeed = function() {
@@ -118,8 +144,13 @@ SV.Unit.prototype.respondAttack = function(dmg) {
 		this.hp -= dmg;
 	}
 	if (this.hp <= 0) {
+		this.spriteName = "KnightDeath";
+		this.imageIndex = 0;
 		this.isDead = true;
 	}
+};
+SV.Unit.prototype.getImageXScale = function() {
+	return this.direction > 90 && this.direction < 270? -1 : 1;
 };
 SV.Unit.prototype.render = function() {
 	if (SV.state === "battle") {
@@ -131,21 +162,30 @@ SV.Unit.prototype.render = function() {
 				else {
 					this.direction += Math.sin(-Math.atan2(this.target.x - this.x, this.target.y - this.y) - (this.direction - 90) * Math.PI / 180) * 10;
 					if (Math.hypot(this.target.x - this.x, this.target.y - this.y) < this.atkrange) {
+						this.spriteName = "KnightAttack";
 						this.attack();
 					}
 					else {
+						this.spriteName = "KnightRun";
 						this.move();
 					}
 				}
 			}
 			else {
+				this.spriteName = "KnightIdle";
 				this.findTarget();
 			}
 		}
 	}
 	SV.Draw.ctx.fillStyle = this.team > 0? "red" : "blue";
-	SV.Draw.text(this.x, this.y - 10, this.hp);
-	SV.Draw.circle(this.x, this.y, this.r);
+	// SV.Draw.text(this.x, this.y - 10, this.hp);
+	// SV.Draw.circle(this.x, this.y, this.r);
+	this.imageIndex += 0.2 * Math.random() + 0.3;
+	if (this.isDead && this.imageIndex > SV.Draw.list[this.spriteName].in - 1) {
+		return;
+	}
+	SV.Draw.sprite("Icons", this.type, this.x, this.y - SV.Draw.list[this.spriteName].height, 1, 1, 0.5, 1);
+	SV.Draw.sprite(this.spriteName, ~~this.imageIndex, this.x, this.y, this.getImageXScale(), 1, 0.5, 1);
 };
 SV.state = "countdown";
 SV.onUserUpdate = (t) => {
@@ -178,17 +218,24 @@ const StartGame = (options={}) => {
 	SV.battleTime = options.battleTime;
 	SV.countdownTime = options.countdownTime;
 	SV.onBattleEnd = options.onBattleEnd;
+	SV.Draw.add("Icons", "src/img/Icons_strip3.png", 3);
+	SV.Draw.add("KnightAttack", "src/img/KnightAttack_strip26.png", 26);
+	SV.Draw.add("KnightDeath", "src/img/KnightDeath_strip15.png", 15);
+	SV.Draw.add("KnightDefense", "src/img/KnightDefense_strip20.png", 20);
+	SV.Draw.add("KnightDodge", "src/img/KnightDodge_strip12.png", 12);
+	SV.Draw.add("KnightIdle", "src/img/KnightIdle_strip15.png", 15);
+	SV.Draw.add("KnightRun", "src/img/KnightRun_strip8.png", 8);
 	const bandHeight = SV.Canvas.height / 6;
-	SV.OBJ.add(new SV.Unit(0, SV.Canvas.width * 0.3, bandHeight * 2));
-	SV.OBJ.add(new SV.Unit(0, SV.Canvas.width * 0.3, bandHeight * 3));
-	SV.OBJ.add(new SV.Unit(0, SV.Canvas.width * 0.3, bandHeight * 4));
-	SV.OBJ.add(new SV.Unit(0, SV.Canvas.width * 0.1, bandHeight * 2.5));
-	SV.OBJ.add(new SV.Unit(0, SV.Canvas.width * 0.1, bandHeight * 3.5));
-	SV.OBJ.add(new SV.Unit(1, SV.Canvas.width * 0.7, bandHeight * 2));
-	SV.OBJ.add(new SV.Unit(1, SV.Canvas.width * 0.7, bandHeight * 3));
-	SV.OBJ.add(new SV.Unit(1, SV.Canvas.width * 0.7, bandHeight * 4));
-	SV.OBJ.add(new SV.Unit(1, SV.Canvas.width * 0.9, bandHeight * 2.5));
-	SV.OBJ.add(new SV.Unit(1, SV.Canvas.width * 0.9, bandHeight * 3.5));
+	SV.OBJ.add(new SV.Unit(0, 1, SV.Canvas.width * 0.3, bandHeight * 2));
+	SV.OBJ.add(new SV.Unit(0, 0, SV.Canvas.width * 0.3, bandHeight * 3));
+	SV.OBJ.add(new SV.Unit(0, 1, SV.Canvas.width * 0.3, bandHeight * 4));
+	SV.OBJ.add(new SV.Unit(0, 2, SV.Canvas.width * 0.1, bandHeight * 2.5));
+	SV.OBJ.add(new SV.Unit(0, 2, SV.Canvas.width * 0.1, bandHeight * 3.5));
+	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.7, bandHeight * 2));
+	SV.OBJ.add(new SV.Unit(1, 1, SV.Canvas.width * 0.7, bandHeight * 3));
+	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.7, bandHeight * 4));
+	SV.OBJ.add(new SV.Unit(1, 2, SV.Canvas.width * 0.9, bandHeight * 2.5));
+	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.9, bandHeight * 3.5));
 	document.body.appendChild(SV.Canvas);
 	window.requestAnimationFrame(SV.onUserUpdate);
 };

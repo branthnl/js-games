@@ -1,0 +1,25 @@
+{
+	"army1": {
+		"flag": "S",
+		"nickname": "Left side",
+		"units": [
+			{ "type": 0, "name": "Gru", "strength": 450 },
+			{ "type": 0, "name": "Leo", "strength": 450 },
+			{ "type": 1, "name": "Hut", "strength": 720 },
+			{ "type": 2, "name": "Ity", "strength": 350 },
+			{ "type": 0, "name": "Bea", "strength": 821 }
+		]
+	},
+	"army2": {
+		"flag": "P",
+		"nickname": "Right side",
+		"units": [
+			{ "type": 0, "name": "Hug", "strength": 320 },
+			{ "type": 1, "name": "Pot", "strength": 440 },
+			{ "type": 0, "name": "Fro", "strength": 131 },
+			{ "type": 2, "name": "Saw", "strength": 506 },
+			{ "type": 2, "name": "Sin", "strength": 356 }
+		]
+	},
+	"winner": "army1"
+}

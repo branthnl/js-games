@@ -13,5 +13,11 @@ req.onreadystatechange = () => {
 		}
 	}
 };
-req.open("GET", window.location.href.substring(window.location.href.indexOf("?json=")).split("=").pop(), true);
-req.send(null);
+const i = window.location.href.indexOf("?json=");
+if (i === -1) {
+	console.warn("Please provide url to a json file (?json=...)");
+}
+else {
+	req.open("GET", window.location.href.substring(i).split("=").pop(), true);
+	req.send(null);
+}

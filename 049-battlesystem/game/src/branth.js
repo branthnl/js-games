@@ -58,7 +58,7 @@ SV.Draw = {
 	text(x, y, text) {
 		this.ctx.fillText(text, x, y);
 	},
-	sprite(key, imageIndex, x, y, xs, ys, ox=0.5, oy=0.5) {
+	sprite(key, imageIndex, x, y, xs=1, ys=1, ox=0.5, oy=0.5) {
 		const img = this.list[key];
 		const s = {
 			w: img.width / img.in,
@@ -154,6 +154,8 @@ SV.Unit = function(team, type, name, strength, x, y) {
 	this.spriteName = "Idle";
 	this.imageIndex = Math.random() * 10;
 	this.imageSpeed = this.data.imageSpeed;
+	this.stopAction = ["Dodge", "Defense"];
+	this.stopActionCount = 5;
 	this.isDead = false;
 	this.hudy = this.y;
 }
@@ -165,6 +167,7 @@ SV.Unit.prototype.applySpeed = function() {
 	this.y += this.speed * Math.sin(this.direction * Math.PI / 180);
 };
 SV.Unit.prototype.move = function() {
+	if (this.stopAction.includes(this.spriteName)) return;
 	const xp = this.x;
 	const yp = this.y;
 	this.applySpeed();
@@ -182,23 +185,30 @@ SV.Unit.prototype.move = function() {
 	}
 };
 SV.Unit.prototype.die = function() {
-	if (!this.isDead) {
-		this.spriteName = "Death";
-		this.imageIndex = 0;
-		this.isDead = true;
-	}
+	this.spriteName = "Death";
+	this.imageIndex = 0;
+	this.isDead = true;
 };
 SV.Unit.prototype.dodge = function() {
+	if (--this.stopActionCount <= 0) return;
+	if (this.changeAction("Dodge")) {
+		this.imageIndex = 0;
+	}
 };
 SV.Unit.prototype.attack = function() {
 	this.target.respondAttack(this.damage);
 };
 SV.Unit.prototype.defense = function() {
+	if (--this.stopActionCount <= 0) return;
+	if (this.changeAction("Defense")) {
+		this.imageIndex = 0;
+	}
 };
 SV.Unit.prototype.findTarget = function() {
 	this.target = SV.OBJ.nearest(this.x, this.y, n => n.id !== this.id && n.team !== this.team && !n.isDead);
 };
 SV.Unit.prototype.respondAttack = function(dmg) {
+	if (this.isDead) return;
 	const i = Math.random();
 	if (i > 0.8) {
 		this.dodge();
@@ -212,14 +222,33 @@ SV.Unit.prototype.respondAttack = function(dmg) {
 		this.hp -= dmg;
 	}
 	if (this.hp <= 0) {
+		if (this.getTeamAliveCount() <= 1) {
+			if (SV.GetWinnerTeamIndex() === this.team) {
+				this.hp = this.hpmax;
+				return;
+			}
+			else {
+				SV.battleTime = 0;
+			}
+		}
 		this.die();
 	}
+};
+SV.Unit.prototype.getTeamAliveCount = function() {
+	return SV.OBJ.list.filter(n => n.team === this.team && !n.isDead).length;
 };
 SV.Unit.prototype.getTeamColor = function() {
 	return SV.GetTeamColor(this.team);
 };
 SV.Unit.prototype.getImageXScale = function() {
 	return this.direction > 90 && this.direction < 270? -1 : 1;
+};
+SV.Unit.prototype.changeAction = function(name) {
+	if (!this.stopAction.includes(this.spriteName)) {
+		this.spriteName = name;
+		return true;
+	}
+	return false;
 };
 SV.Unit.prototype.render = function() {
 	if (SV.state === "battle") {
@@ -231,17 +260,17 @@ SV.Unit.prototype.render = function() {
 				else {
 					this.direction += Math.sin(-Math.atan2(this.target.x - this.x, this.target.y - this.y) - (this.direction - 90) * Math.PI / 180) * 10;
 					if (Math.hypot(this.target.x - this.x, this.target.y - this.y) < this.atkrange) {
-						this.spriteName = "Attack";
+						this.changeAction("Attack");
 						this.attack();
 					}
 					else {
-						this.spriteName = "Run";
+						this.changeAction("Run");
 						this.move();
 					}
 				}
 			}
 			else {
-				this.spriteName = "Idle";
+				this.changeAction("Idle");
 				this.findTarget();
 			}
 		}
@@ -250,6 +279,9 @@ SV.Unit.prototype.render = function() {
 	this.imageIndex += this.imageSpeed * (1 + 0.2 * Math.random());
 	if (this.isDead && this.imageIndex > img.in - 1) {
 		return;
+	}
+	else if ((this.spriteName === "Dodge" || this.spriteName === "Defense") && this.imageIndex > img.in - 1) {
+		this.spriteName = "Idle";
 	}
 	this.hudy += (this.y - img.height - this.hudy) * 0.09;
 	SV.Draw.setColor(this.getTeamColor());
@@ -262,12 +294,19 @@ SV.Unit.prototype.render = function() {
 	SV.Draw.text(this.x, this.hudy - SV.Draw.list["Icons"].height - 2, this.name);
 };
 SV.state = "countdown";
+SV.GetFlagIndex = (flag) => ["R", "P", "S"].indexOf(flag);
 SV.GetTeamColor = (team) => team === 0? "rgba(0, 0, 255, 0.2)" : "rgba(255, 0, 0, 0.2)";
 SV.GetWinnerTeamIndex = () => SV.Input.winner === "army1"? 0 : 1;
 SV.onUserUpdate = (t) => {
 	SV.Time.update(t);
 	SV.Draw.clear();
 	SV.OBJ.render();
+	SV.Draw.ctx.globalAlpha = 0.8;
+	SV.Draw.sprite("Flag", 0, 200, SV.Canvas.height - 120, -1, 1, 0, 0);
+	SV.Draw.sprite("Flag", 0, SV.Canvas.width - 200, SV.Canvas.height - 120, 1, 1, 0, 0);
+	SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army1.flag), 120, SV.Canvas.height - 70);
+	SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army2.flag), SV.Canvas.width - 120, SV.Canvas.height - 70);
+	SV.Draw.ctx.globalAlpha = 1;
 	switch (SV.state) {
 		case "countdown":
 			SV.countdownTime -= SV.Time.deltaTime * 0.001;
@@ -282,12 +321,13 @@ SV.onUserUpdate = (t) => {
 		case "battle":
 			SV.battleTime -= SV.Time.deltaTime * 0.001;
 			if (SV.battleTime <= 0) {
-				const h = SV.GetWinnerTeamIndex();
 				for (let i = SV.OBJ.list.length - 1; i >= 0; --i) {
 					const j = SV.OBJ.list[i];
-					j.spriteName = "Idle";
-					if (j.team !== h) {
-						j.die();
+					if (!j.isDead) {
+						j.spriteName = "Idle";
+						if (j.team !== SV.GetWinnerTeamIndex()) {
+							j.die();
+						}
 					}
 				}
 				SV.state = "over";
@@ -295,16 +335,16 @@ SV.onUserUpdate = (t) => {
 			}
 			SV.Draw.setFont(SV.Font.xl);
 			SV.Draw.setColor(SV.C.black);
-			SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 10, SV.battleTime.toFixed(2));
+			SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
+			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, SV.battleTime.toFixed(2));
 			break;
 		case "over":
 			SV.Draw.setColor(SV.GetTeamColor(SV.GetWinnerTeamIndex()));
 			SV.Draw.ctx.fillRect(0, 0, SV.Canvas.width, SV.Canvas.height);
-			SV.Draw.setFont(SV.Font.xl);
+			SV.Draw.setFont("bold " + SV.Font.xl);
 			SV.Draw.setColor(SV.C.black);
 			SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, `${SV.Input[SV.Input.winner].nickname} won!`);
+			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, `${SV.Input[SV.Input.winner].nickname} won!`);
 			break;
 	}
 	window.requestAnimationFrame(SV.onUserUpdate);

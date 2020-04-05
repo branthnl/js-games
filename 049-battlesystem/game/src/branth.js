@@ -17,6 +17,24 @@ SV.Canvas = document.createElement("canvas");
 SV.Canvas.width = 960;
 SV.Canvas.height = 540;
 SV.Canvas.style.backgroundColor = "#eeeeee";
+SV.C = {
+	black: "#000000"
+};
+SV.Font = {
+	s: "10px Montserrat, serif",
+	m: "16px Montserrat, serif",
+	l: "24px Montserrat, serif",
+	xl: "36px Montserrat, serif",
+	xxl: "48px Montserrat, serif"
+};
+SV.Align = {
+	l: 'left',
+	r: 'right',
+	c: 'center',
+	t: 'top',
+	b: 'bottom',
+	m: 'middle'
+};
 SV.Draw = {
 	list: {},
 	ctx: SV.Canvas.getContext("2d"),
@@ -25,6 +43,17 @@ SV.Draw = {
 		img.src = url;
 		img.in = imageNumber;
 		this.list[key] = img;
+	},
+	setFont(font) {
+		this.ctx.font = font;
+	},
+	setColor(c) {
+		this.ctx.fillStyle = c;
+		this.ctx.strokeStyle = c;
+	},
+	setHVAlign(h, v) {
+		this.ctx.textAlign = h;
+		this.ctx.textBaseline = v;
 	},
 	text(x, y, text) {
 		this.ctx.fillText(text, x, y);
@@ -105,16 +134,18 @@ SV.UnitData = [
 		imageSpeed: 0.4
 	}
 ];
-SV.Unit = function(team, type, x, y) {
+SV.Unit = function(team, type, name, strength, x, y) {
 	this.id = SV.OBJ.ID++;
 	this.team = team;
 	this.type = type;
+	this.name = name;
+	this.strength = strength;
 	this.data = SV.UnitData[this.type];
 	this.x = x;
 	this.y = y;
 	this.r = 10;
-	this.hp = 500;
-	this.hpmax = 500;
+	this.hp = strength;
+	this.hpmax = strength;
 	this.speed = this.data.speed;
 	this.damage = this.data.damage;
 	this.atkrange = this.data.atkrange;
@@ -124,6 +155,7 @@ SV.Unit = function(team, type, x, y) {
 	this.imageIndex = Math.random() * 10;
 	this.imageSpeed = this.data.imageSpeed;
 	this.isDead = false;
+	this.hudy = this.y;
 }
 SV.Unit.prototype.getSpriteKey = function() {
 	return this.spriteType + this.spriteName;
@@ -147,6 +179,13 @@ SV.Unit.prototype.move = function() {
 				this.applySpeed();
 			}
 		}
+	}
+};
+SV.Unit.prototype.die = function() {
+	if (!this.isDead) {
+		this.spriteName = "Death";
+		this.imageIndex = 0;
+		this.isDead = true;
 	}
 };
 SV.Unit.prototype.dodge = function() {
@@ -173,10 +212,11 @@ SV.Unit.prototype.respondAttack = function(dmg) {
 		this.hp -= dmg;
 	}
 	if (this.hp <= 0) {
-		this.spriteName = "Death";
-		this.imageIndex = 0;
-		this.isDead = true;
+		this.die();
 	}
+};
+SV.Unit.prototype.getTeamColor = function() {
+	return SV.GetTeamColor(this.team);
 };
 SV.Unit.prototype.getImageXScale = function() {
 	return this.direction > 90 && this.direction < 270? -1 : 1;
@@ -206,18 +246,24 @@ SV.Unit.prototype.render = function() {
 			}
 		}
 	}
-	SV.Draw.ctx.fillStyle = this.team > 0? "red" : "blue";
-	// SV.Draw.text(this.x, this.y - 10, this.hp);
-	// SV.Draw.circle(this.x, this.y, this.r);
 	const img = SV.Draw.list[this.getSpriteKey()];
 	this.imageIndex += this.imageSpeed * (1 + 0.2 * Math.random());
 	if (this.isDead && this.imageIndex > img.in - 1) {
 		return;
 	}
-	SV.Draw.sprite("Icons", this.type, this.x, this.y - img.height, 1, 1, 0.5, 1);
+	this.hudy += (this.y - img.height - this.hudy) * 0.09;
+	SV.Draw.setColor(this.getTeamColor());
+	SV.Draw.circle(this.x, this.y, this.r);
 	SV.Draw.sprite(this.getSpriteKey(), ~~this.imageIndex, this.x, this.y, this.getImageXScale(), 1, 0.5, 1);
+	SV.Draw.sprite("Icons", this.type, this.x, this.hudy, 1, 1, 0.5, 1);
+	SV.Draw.setFont(SV.Font.s);
+	SV.Draw.setColor(SV.C.black);
+	SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
+	SV.Draw.text(this.x, this.hudy - SV.Draw.list["Icons"].height - 2, this.name);
 };
 SV.state = "countdown";
+SV.GetTeamColor = (team) => team === 0? "rgba(0, 0, 255, 0.2)" : "rgba(255, 0, 0, 0.2)";
+SV.GetWinnerTeamIndex = () => SV.Input.winner === "army1"? 0 : 1;
 SV.onUserUpdate = (t) => {
 	SV.Time.update(t);
 	SV.Draw.clear();
@@ -228,21 +274,37 @@ SV.onUserUpdate = (t) => {
 			if (SV.countdownTime <= 0) {
 				SV.state = "battle";
 			}
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, SV.countdownTime);
+			SV.Draw.setFont(SV.Font.xxl);
+			SV.Draw.setColor(SV.C.black);
+			SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
+			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, Math.max(1, Math.floor(SV.countdownTime + 1)));
 			break;
 		case "battle":
 			SV.battleTime -= SV.Time.deltaTime * 0.001;
 			if (SV.battleTime <= 0) {
+				const h = SV.GetWinnerTeamIndex();
 				for (let i = SV.OBJ.list.length - 1; i >= 0; --i) {
-					SV.OBJ.list[i].spriteName = "Idle";
+					const j = SV.OBJ.list[i];
+					j.spriteName = "Idle";
+					if (j.team !== h) {
+						j.die();
+					}
 				}
 				SV.state = "over";
 				SV.onBattleEnd();
 			}
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, SV.battleTime);
+			SV.Draw.setFont(SV.Font.xl);
+			SV.Draw.setColor(SV.C.black);
+			SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
+			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 10, SV.battleTime.toFixed(2));
 			break;
 		case "over":
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, `${SV.Input.winner} won!`);
+			SV.Draw.setColor(SV.GetTeamColor(SV.GetWinnerTeamIndex()));
+			SV.Draw.ctx.fillRect(0, 0, SV.Canvas.width, SV.Canvas.height);
+			SV.Draw.setFont(SV.Font.xl);
+			SV.Draw.setColor(SV.C.black);
+			SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
+			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, `${SV.Input[SV.Input.winner].nickname} won!`);
 			break;
 	}
 	window.requestAnimationFrame(SV.onUserUpdate);
@@ -258,6 +320,7 @@ const StartGame = (options={}) => {
 	SV.Draw.add("ArcherDodge", "src/img/ArcherDodge_strip12.png", 12);
 	SV.Draw.add("ArcherIdle", "src/img/ArcherIdle_strip8.png", 8);
 	SV.Draw.add("ArcherRun", "src/img/ArcherRun_strip8.png", 8);
+	SV.Draw.add("Flag", "src/img/Flag_strip1.png", 1);
 	SV.Draw.add("HeavyAttack", "src/img/HeavyAttack_strip30.png", 30);
 	SV.Draw.add("HeavyDeath", "src/img/HeavyDeath_strip40.png", 40);
 	SV.Draw.add("HeavyDefense", "src/img/HeavyDefense_strip18.png", 18);
@@ -271,17 +334,20 @@ const StartGame = (options={}) => {
 	SV.Draw.add("KnightDodge", "src/img/KnightDodge_strip12.png", 12);
 	SV.Draw.add("KnightIdle", "src/img/KnightIdle_strip15.png", 15);
 	SV.Draw.add("KnightRun", "src/img/KnightRun_strip8.png", 8);
+	SV.Draw.add("RPS", "src/img/RPS_strip3.png", 3);
 	const bandHeight = SV.Canvas.height / 6;
-	SV.OBJ.add(new SV.Unit(0, 1, SV.Canvas.width * 0.3, bandHeight * 2));
-	SV.OBJ.add(new SV.Unit(0, 0, SV.Canvas.width * 0.3, bandHeight * 3));
-	SV.OBJ.add(new SV.Unit(0, 1, SV.Canvas.width * 0.3, bandHeight * 4));
-	SV.OBJ.add(new SV.Unit(0, 2, SV.Canvas.width * 0.1, bandHeight * 2.5));
-	SV.OBJ.add(new SV.Unit(0, 2, SV.Canvas.width * 0.1, bandHeight * 3.5));
-	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.7, bandHeight * 2));
-	SV.OBJ.add(new SV.Unit(1, 1, SV.Canvas.width * 0.7, bandHeight * 3));
-	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.7, bandHeight * 4));
-	SV.OBJ.add(new SV.Unit(1, 2, SV.Canvas.width * 0.9, bandHeight * 2.5));
-	SV.OBJ.add(new SV.Unit(1, 0, SV.Canvas.width * 0.9, bandHeight * 3.5));
+	const a1 = SV.Input.army1.units;
+	const a2 = SV.Input.army2.units;
+	SV.OBJ.add(new SV.Unit(0, a1[0].type, a1[0].name, a1[0].strength, SV.Canvas.width * 0.3, bandHeight * 2));
+	SV.OBJ.add(new SV.Unit(0, a1[1].type, a1[1].name, a1[1].strength, SV.Canvas.width * 0.3, bandHeight * 3));
+	SV.OBJ.add(new SV.Unit(0, a1[2].type, a1[2].name, a1[2].strength, SV.Canvas.width * 0.3, bandHeight * 4));
+	SV.OBJ.add(new SV.Unit(0, a1[3].type, a1[3].name, a1[3].strength, SV.Canvas.width * 0.1, bandHeight * 2.5));
+	SV.OBJ.add(new SV.Unit(0, a1[4].type, a1[4].name, a1[4].strength, SV.Canvas.width * 0.1, bandHeight * 3.5));
+	SV.OBJ.add(new SV.Unit(1, a2[0].type, a2[0].name, a2[0].strength, SV.Canvas.width * 0.7, bandHeight * 2));
+	SV.OBJ.add(new SV.Unit(1, a2[1].type, a2[1].name, a2[1].strength, SV.Canvas.width * 0.7, bandHeight * 3));
+	SV.OBJ.add(new SV.Unit(1, a2[2].type, a2[2].name, a2[2].strength, SV.Canvas.width * 0.7, bandHeight * 4));
+	SV.OBJ.add(new SV.Unit(1, a2[3].type, a2[3].name, a2[3].strength, SV.Canvas.width * 0.9, bandHeight * 2.5));
+	SV.OBJ.add(new SV.Unit(1, a2[4].type, a2[4].name, a2[4].strength, SV.Canvas.width * 0.9, bandHeight * 3.5));
 	document.body.appendChild(SV.Canvas);
 	window.requestAnimationFrame(SV.onUserUpdate);
 };

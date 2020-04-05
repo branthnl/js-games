@@ -6,6 +6,10 @@ req.onreadystatechange = () => {
 				input: JSON.parse(req.responseText),
 				battleTime: 15,
 				countdownTime: 3,
+				parityCheck: false,
+				onBattleStart() {
+					console.log(`${SV.Input.winner} (${SV.Input[SV.Input.winner].nickname}) will won`);
+				},
 				onBattleEnd() {
 					console.log("battle end");
 				}

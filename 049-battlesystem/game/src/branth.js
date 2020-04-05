@@ -82,23 +82,52 @@ SV.OBJ = {
 		}
 	}
 };
+SV.UnitData = [
+	{
+		speed: 1,
+		damage: 2,
+		atkrange: 30,
+		spriteType: "Knight",
+		imageSpeed: 0.4
+	},
+	{
+		speed: 0.5,
+		damage: 3,
+		atkrange: 30,
+		spriteType: "Heavy",
+		imageSpeed: 0.2
+	},
+	{
+		speed: 1.2,
+		damage: 1,
+		atkrange: 200,
+		spriteType: "Archer",
+		imageSpeed: 0.4
+	}
+];
 SV.Unit = function(team, type, x, y) {
 	this.id = SV.OBJ.ID++;
 	this.team = team;
 	this.type = type;
+	this.data = SV.UnitData[this.type];
 	this.x = x;
 	this.y = y;
 	this.r = 10;
 	this.hp = 500;
 	this.hpmax = 500;
-	this.speed = 1;
-	this.damage = 2;
-	this.atkrange = 30;
+	this.speed = this.data.speed;
+	this.damage = this.data.damage;
+	this.atkrange = this.data.atkrange;
 	this.direction = 180 * this.team;
-	this.spriteName = "KnightIdle";
-	this.imageIndex = 0;
+	this.spriteType = this.data.spriteType;
+	this.spriteName = "Idle";
+	this.imageIndex = Math.random() * 10;
+	this.imageSpeed = this.data.imageSpeed;
 	this.isDead = false;
 }
+SV.Unit.prototype.getSpriteKey = function() {
+	return this.spriteType + this.spriteName;
+};
 SV.Unit.prototype.applySpeed = function() {
 	this.x += this.speed * Math.cos(this.direction * Math.PI / 180);
 	this.y += this.speed * Math.sin(this.direction * Math.PI / 180);
@@ -144,7 +173,7 @@ SV.Unit.prototype.respondAttack = function(dmg) {
 		this.hp -= dmg;
 	}
 	if (this.hp <= 0) {
-		this.spriteName = "KnightDeath";
+		this.spriteName = "Death";
 		this.imageIndex = 0;
 		this.isDead = true;
 	}
@@ -162,17 +191,17 @@ SV.Unit.prototype.render = function() {
 				else {
 					this.direction += Math.sin(-Math.atan2(this.target.x - this.x, this.target.y - this.y) - (this.direction - 90) * Math.PI / 180) * 10;
 					if (Math.hypot(this.target.x - this.x, this.target.y - this.y) < this.atkrange) {
-						this.spriteName = "KnightAttack";
+						this.spriteName = "Attack";
 						this.attack();
 					}
 					else {
-						this.spriteName = "KnightRun";
+						this.spriteName = "Run";
 						this.move();
 					}
 				}
 			}
 			else {
-				this.spriteName = "KnightIdle";
+				this.spriteName = "Idle";
 				this.findTarget();
 			}
 		}
@@ -180,12 +209,13 @@ SV.Unit.prototype.render = function() {
 	SV.Draw.ctx.fillStyle = this.team > 0? "red" : "blue";
 	// SV.Draw.text(this.x, this.y - 10, this.hp);
 	// SV.Draw.circle(this.x, this.y, this.r);
-	this.imageIndex += 0.2 * Math.random() + 0.3;
-	if (this.isDead && this.imageIndex > SV.Draw.list[this.spriteName].in - 1) {
+	const img = SV.Draw.list[this.getSpriteKey()];
+	this.imageIndex += this.imageSpeed * (1 + 0.2 * Math.random());
+	if (this.isDead && this.imageIndex > img.in - 1) {
 		return;
 	}
-	SV.Draw.sprite("Icons", this.type, this.x, this.y - SV.Draw.list[this.spriteName].height, 1, 1, 0.5, 1);
-	SV.Draw.sprite(this.spriteName, ~~this.imageIndex, this.x, this.y, this.getImageXScale(), 1, 0.5, 1);
+	SV.Draw.sprite("Icons", this.type, this.x, this.y - img.height, 1, 1, 0.5, 1);
+	SV.Draw.sprite(this.getSpriteKey(), ~~this.imageIndex, this.x, this.y, this.getImageXScale(), 1, 0.5, 1);
 };
 SV.state = "countdown";
 SV.onUserUpdate = (t) => {
@@ -203,7 +233,11 @@ SV.onUserUpdate = (t) => {
 		case "battle":
 			SV.battleTime -= SV.Time.deltaTime * 0.001;
 			if (SV.battleTime <= 0) {
+				for (let i = SV.OBJ.list.length - 1; i >= 0; --i) {
+					SV.OBJ.list[i].spriteName = "Idle";
+				}
 				SV.state = "over";
+				SV.onBattleEnd();
 			}
 			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, SV.battleTime);
 			break;
@@ -218,6 +252,18 @@ const StartGame = (options={}) => {
 	SV.battleTime = options.battleTime;
 	SV.countdownTime = options.countdownTime;
 	SV.onBattleEnd = options.onBattleEnd;
+	SV.Draw.add("ArcherAttack", "src/img/ArcherAttack_strip14.png", 14);
+	SV.Draw.add("ArcherDeath", "src/img/ArcherDeath_strip24.png", 24);
+	SV.Draw.add("ArcherDefense", "src/img/ArcherDefense_strip22.png", 22);
+	SV.Draw.add("ArcherDodge", "src/img/ArcherDodge_strip12.png", 12);
+	SV.Draw.add("ArcherIdle", "src/img/ArcherIdle_strip8.png", 8);
+	SV.Draw.add("ArcherRun", "src/img/ArcherRun_strip8.png", 8);
+	SV.Draw.add("HeavyAttack", "src/img/HeavyAttack_strip30.png", 30);
+	SV.Draw.add("HeavyDeath", "src/img/HeavyDeath_strip40.png", 40);
+	SV.Draw.add("HeavyDefense", "src/img/HeavyDefense_strip18.png", 18);
+	SV.Draw.add("HeavyDodge", "src/img/HeavyDodge_strip25.png", 25);
+	SV.Draw.add("HeavyIdle", "src/img/HeavyIdle_strip16.png", 16);
+	SV.Draw.add("HeavyRun", "src/img/HeavyRun_strip8.png", 8);
 	SV.Draw.add("Icons", "src/img/Icons_strip3.png", 3);
 	SV.Draw.add("KnightAttack", "src/img/KnightAttack_strip26.png", 26);
 	SV.Draw.add("KnightDeath", "src/img/KnightDeath_strip15.png", 15);

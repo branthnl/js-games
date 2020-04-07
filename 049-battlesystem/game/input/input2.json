@@ -3,22 +3,22 @@
 		"flag": "S",
 		"nickname": "Branth",
 		"units": [
-			{ "type": 0, "name": "Bot 6", "strength": 600 },
-			{ "type": 1, "name": "Bot 7", "strength": 600 },
-			{ "type": 0, "name": "Bot 8", "strength": 600 },
-			{ "type": 2, "name": "Bot 9", "strength": 600 },
-			{ "type": 2, "name": "Bot 10", "strength": 600 }
+			{ "type": 0, "name": "OTD", "strength": 600 },
+			{ "type": 1, "name": "KSE", "strength": 600 },
+			{ "type": 0, "name": "RUA", "strength": 600 },
+			{ "type": 2, "name": "POS", "strength": 600 },
+			{ "type": 2, "name": "NZW", "strength": 600 }
 		]
 	},
 	"army2": {
 		"flag": "R",
 		"nickname": "Kpzero",
 		"units": [
-			{ "type": 0, "name": "Bot 1", "strength": 600 },
-			{ "type": 1, "name": "Bot 2", "strength": 600 },
-			{ "type": 0, "name": "Bot 3", "strength": 600 },
-			{ "type": 2, "name": "Bot 4", "strength": 600 },
-			{ "type": 2, "name": "Bot 5", "strength": 600 }
+			{ "type": 0, "name": "YHU", "strength": 600 },
+			{ "type": 1, "name": "ZZU", "strength": 600 },
+			{ "type": 0, "name": "VNC", "strength": 600 },
+			{ "type": 2, "name": "OCR", "strength": 600 },
+			{ "type": 2, "name": "LOF", "strength": 600 }
 		]
 	},
 	"winner": "army2"

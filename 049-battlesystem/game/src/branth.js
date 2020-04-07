@@ -1,10 +1,38 @@
 const SV = {};
 SV.Input = null;
 SV.battleTime = 15;
-SV.countdownTime = 2;
+SV.countdownTime = 3;
 SV.parityCheck = false;
+SV.DISPLAY_ICON = 1; // Above soldier
+SV.DISPLAY_NAME = 1; // Above icon
+SV.DISPLAY_NAME_AS_SYMBOL = 1; // Display 3 letters of symbol instead of the name
+SV.DISPLAY_SPOT = 1; // Blue or red circle under soldier
+SV.DISPLAY_TIMER = 1;
+SV.DISPLAY_ARMY_FLAG = 1;
+SV.DISPLAY_ARMY_NICKNAME = 1;
+SV.DISPLAY_COUNTDOWN_TEXT = 1;
+SV.DISPLAY_WINNER_TEXT = 1; // e.g. display "Avenger won!"
+SV.DISPLAY_GAME_OVER_BACKGROUND = 1; // Blue or red overlay behind the winner text
+SV.ENABLE_SE = 1; // Sound effects
+SV.ENABLE_BGM = 1; // Background music
+SV.DISPLAY_UI = (b) => {
+	SV.DISPLAY_ICON = b;
+	SV.DISPLAY_NAME = b;
+	SV.DISPLAY_SPOT = b;
+	SV.DISPLAY_TIMER = b;
+	SV.DISPLAY_ARMY_FLAG = b;
+	SV.DISPLAY_ARMY_NICKNAME = b;
+	SV.DISPLAY_COUNTDOWN_TEXT = b;
+	SV.DISPLAY_WINNER_TEXT = b;
+	SV.DISPLAY_GAME_OVER_BACKGROUND = b;
+};
+SV.ENABLE_SOUNDS = (b) => {
+	SV.ENABLE_SE = b;
+	SV.ENABLE_BGM = b;
+};
 SV.onBattleStart = () => {};
 SV.onBattleEnd = () => {};
+SV.NAMES = {};
 SV.Time = {
 	time: 0,
 	lastTime: 0,
@@ -45,6 +73,7 @@ SV.Draw = {
 		img.src = url;
 		img.in = imageNumber;
 		this.list[key] = img;
+		return img;
 	},
 	setFont(font) {
 		this.ctx.font = font;
@@ -287,14 +316,20 @@ SV.Unit.prototype.render = function() {
 		this.spriteName = "Idle";
 	}
 	this.hudy += (this.y - img.height - this.hudy) * 0.09;
-	SV.Draw.setColor(this.getTeamColor());
-	SV.Draw.circle(this.x, this.y, this.r);
+	if (SV.DISPLAY_SPOT) {
+		SV.Draw.setColor(this.getTeamColor());
+		SV.Draw.circle(this.x, this.y, this.r);
+	}
 	SV.Draw.sprite(this.getSpriteKey(), ~~this.imageIndex, this.x, this.y, this.getImageXScale(), 1, 0.5, 1);
-	SV.Draw.sprite("Icons", this.type, this.x, this.hudy, 1, 1, 0.5, 1);
-	SV.Draw.setFont(SV.Font.s);
-	SV.Draw.setColor(SV.C.black);
-	SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
-	SV.Draw.text(this.x, this.hudy - SV.Draw.list["Icons"].height - 2, this.name);
+	if (SV.DISPLAY_ICON) {
+		SV.Draw.sprite(this.name, 0, this.x, this.hudy, 0.5, 0.5, 0.5, 1);
+	}
+	if (SV.DISPLAY_NAME) {
+		SV.Draw.setFont(SV.Font.s);
+		SV.Draw.setColor(SV.C.black);
+		SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
+		SV.Draw.text(this.x, this.hudy - SV.Draw.list[this.name].height - 2, SV.DISPLAY_NAME_AS_SYMBOL? this.name : SV.NAMES[this.name]);
+	}
 };
 SV.state = "countdown";
 SV.GetFlagIndex = (flag) => ["R", "P", "S"].indexOf(flag);
@@ -304,28 +339,34 @@ SV.onUserUpdate = (t) => {
 	SV.Time.update(t);
 	SV.Draw.clear();
 	SV.OBJ.render();
-	SV.Draw.ctx.globalAlpha = 0.8;
-	SV.Draw.sprite("Flag", 0, 180, SV.Canvas.height - 120, -1, 1, 0, 0);
-	SV.Draw.sprite("Flag", 0, SV.Canvas.width - 180, SV.Canvas.height - 120, 1, 1, 0, 0);
-	SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army1.flag), 100, SV.Canvas.height - 70);
-	SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army2.flag), SV.Canvas.width - 100, SV.Canvas.height - 70);
-	SV.Draw.ctx.globalAlpha = 1;
-	SV.Draw.setFont(SV.Font.l);
-	SV.Draw.setColor(SV.C.black);
-	SV.Draw.setHVAlign(SV.Align.l, SV.Align.t);
-	SV.Draw.text(40, 20, SV.Input.army1.nickname);
-	SV.Draw.setHVAlign(SV.Align.r, SV.Align.t);
-	SV.Draw.text(SV.Canvas.width - 40, 20, SV.Input.army2.nickname);
+	if (SV.DISPLAY_ARMY_FLAG) {
+		SV.Draw.ctx.globalAlpha = 0.8;
+		SV.Draw.sprite("Flag", 0, 180, SV.Canvas.height - 120, -1, 1, 0, 0);
+		SV.Draw.sprite("Flag", 0, SV.Canvas.width - 180, SV.Canvas.height - 120, 1, 1, 0, 0);
+		SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army1.flag), 100, SV.Canvas.height - 70);
+		SV.Draw.sprite("RPS", SV.GetFlagIndex(SV.Input.army2.flag), SV.Canvas.width - 100, SV.Canvas.height - 70);
+		SV.Draw.ctx.globalAlpha = 1;
+	}
+	if (SV.DISPLAY_ARMY_NICKNAME) {
+		SV.Draw.setFont(SV.Font.l);
+		SV.Draw.setColor(SV.C.black);
+		SV.Draw.setHVAlign(SV.Align.l, SV.Align.t);
+		SV.Draw.text(40, 20, SV.Input.army1.nickname);
+		SV.Draw.setHVAlign(SV.Align.r, SV.Align.t);
+		SV.Draw.text(SV.Canvas.width - 40, 20, SV.Input.army2.nickname);
+	}
 	switch (SV.state) {
 		case "countdown":
 			SV.countdownTime -= SV.Time.deltaTime * 0.001;
 			if (SV.countdownTime <= 0) {
 				SV.state = "battle";
 			}
-			SV.Draw.setFont(SV.Font.xxl);
-			SV.Draw.setColor(SV.C.black);
-			SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, Math.max(1, Math.floor(SV.countdownTime + 1)));
+			if (SV.DISPLAY_COUNTDOWN_TEXT) {
+				SV.Draw.setFont(SV.Font.xxl);
+				SV.Draw.setColor(SV.C.black);
+				SV.Draw.setHVAlign(SV.Align.c, SV.Align.b);
+				SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height * 0.5, Math.max(1, Math.floor(SV.countdownTime + 1)));
+			}
 			break;
 		case "battle":
 			SV.battleTime -= SV.Time.deltaTime * 0.001;
@@ -337,8 +378,8 @@ SV.onUserUpdate = (t) => {
 							j.die();
 						}
 						else if (SV.parityCheck) {
-							const parityCheck = SV.OBJ.list.filter(n => n.isDead && n.type === j.type);
-							const friend = parityCheck.filter(n => n.team === j.team);
+							const parityCheck = SV.OBJ.list.filter(n => n.type === j.type);
+							const friend = parityCheck.filter(n => n.team === j.team && n.isDead);
 							const enemy = parityCheck.filter(n => n.team !== j.team);
 							if (friend.length < enemy.length && j.getTeamAliveCount() > 1) {
 								j.die();
@@ -352,18 +393,24 @@ SV.onUserUpdate = (t) => {
 				SV.state = "over";
 				SV.onBattleEnd();
 			}
-			SV.Draw.setFont(SV.Font.xl);
-			SV.Draw.setColor(SV.C.black);
-			SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, SV.battleTime.toFixed(2));
+			if (SV.DISPLAY_TIMER) {
+				SV.Draw.setFont(SV.Font.xl);
+				SV.Draw.setColor(SV.C.black);
+				SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
+				SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, SV.battleTime.toFixed(2));
+			}
 			break;
 		case "over":
-			SV.Draw.setColor(SV.GetTeamColor(SV.GetWinnerTeamIndex()));
-			SV.Draw.ctx.fillRect(0, 0, SV.Canvas.width, SV.Canvas.height);
-			SV.Draw.setFont("bold " + SV.Font.xl);
-			SV.Draw.setColor(SV.C.black);
-			SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
-			SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, `${SV.Input[SV.Input.winner].nickname} won!`);
+			if (SV.DISPLAY_GAME_OVER_BACKGROUND) {
+				SV.Draw.setColor(SV.GetTeamColor(SV.GetWinnerTeamIndex()));
+				SV.Draw.ctx.fillRect(0, 0, SV.Canvas.width, SV.Canvas.height);
+			}
+			if (SV.DISPLAY_WINNER_TEXT) {
+				SV.Draw.setFont("bold " + SV.Font.xl);
+				SV.Draw.setColor(SV.C.black);
+				SV.Draw.setHVAlign(SV.Align.c, SV.Align.m);
+				SV.Draw.text(SV.Canvas.width * 0.5, SV.Canvas.height - 68, `${SV.Input[SV.Input.winner].nickname} won!`);
+			}
 			break;
 	}
 	window.requestAnimationFrame(SV.onUserUpdate);
@@ -375,6 +422,11 @@ const StartGame = (options={}) => {
 	SV.parityCheck = options.parityCheck || false;
 	if (options.onBattleEnd) SV.onBattleEnd = options.onBattleEnd;
 	if (options.onBattleStart) SV.onBattleStart = options.onBattleStart;
+	for (let i = ICONS.items.length - 1; i >= 0; --i) {
+		const j = ICONS.items[i];
+		SV.Draw.add(j.symbol, j.icon, 1);
+		SV.NAMES[j.symbol] = j.name;
+	}
 	SV.Draw.add("ArcherAttack", "src/img/ArcherAttack_strip14.png", 14);
 	SV.Draw.add("ArcherDeath", "src/img/ArcherDeath_strip24.png", 24);
 	SV.Draw.add("ArcherDefense", "src/img/ArcherDefense_strip22.png", 22);

@@ -14,6 +14,8 @@ req.onreadystatechange = () => {
 					console.log("battle end");
 				}
 			});
+			// SV.DISPLAY_UI(false);
+			// ^ Definition: branth.js (line: 17)
 		}
 	}
 };

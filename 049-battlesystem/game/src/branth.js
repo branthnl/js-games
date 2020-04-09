@@ -29,6 +29,7 @@ SV.DISPLAY_UI = (b) => {
 SV.ENABLE_SOUNDS = (b) => {
 	SV.ENABLE_SE = b;
 	SV.ENABLE_BGM = b;
+	SV.Sound.setAllVolume(b? 1 : 0);
 };
 SV.onBattleStart = () => {};
 SV.onBattleEnd = () => {};
@@ -114,6 +115,55 @@ SV.Draw = {
 		this.ctx.clearRect(0, 0, SV.Canvas.width, SV.Canvas.height);
 	}
 };
+SV.Sound = {
+	list: {},
+	add(key, url, type="wav") {
+		const s = new Audio();
+		s.innerHTML = `<source src="${url}" type="audio/${type}">`;
+		this.list[key] = s;
+	},
+	play(key) {
+		const s = this.list[key];
+		if (s) {
+			s.currentTime = 0;
+			s.play();
+		}
+	},
+	playOnce(key) {
+		if (SV.ENABLE_SE) {
+			if (!this.isPlaying(key)) {
+				this.play(key);
+			}
+		}
+	},
+	loop(key) {
+		const s = this.list[key];
+		if (s) {
+			s.currentTime = 0;
+			s.loop = true;
+			s.play();
+		}
+	},
+	stop(key) {
+		const s = this.list[key];
+		if (s) {
+			s.pause();
+			s.currentTime = 0;
+		}
+	},
+	isPlaying(key) {
+		const s = this.list[key];
+		if (s) {
+			return s.currentTime > 0 && !s.paused;
+		}
+		return false;
+	},
+	setAllVolume(value) {
+		for (const i of Object.keys(this.list)) {
+			this.list[i].volume = value;
+		}
+	}
+};
 SV.OBJ = {
 	ID: 0,
 	list: [],
@@ -148,21 +198,27 @@ SV.UnitData = [
 		damage: 2,
 		atkrange: 30,
 		spriteType: "Knight",
-		imageSpeed: 0.4
+		imageSpeed: 0.4,
+		deathSound: "KnightDeath",
+		attackSound: "KnightAttack"
 	},
 	{
 		speed: 0.5,
 		damage: 3,
 		atkrange: 30,
 		spriteType: "Heavy",
-		imageSpeed: 0.2
+		imageSpeed: 0.2,
+		deathSound: "HeavyDeath",
+		attackSound: "KnightAttack"
 	},
 	{
 		speed: 1.2,
 		damage: 1,
 		atkrange: 200,
 		spriteType: "Archer",
-		imageSpeed: 0.4
+		imageSpeed: 0.4,
+		deathSound: "KnightDeath",
+		attackSound: "KnightAttack"
 	}
 ];
 SV.Unit = function(team, type, name, strength, x, y) {
@@ -189,6 +245,13 @@ SV.Unit = function(team, type, name, strength, x, y) {
 	this.stopActionCount = 5;
 	this.isDead = false;
 	this.hudy = this.y;
+	this.soundIndex = this.id % 3;
+	this.deathSoundKey = `${this.data.deathSound}${this.soundIndex}`;
+	this.dodgeSoundKey = `Miss${this.soundIndex}`;
+	this.attackSoundKey = `${this.data.attackSound}${this.soundIndex}`;
+	this.defenseSoundKey = `Jump${this.soundIndex}`;
+	this.hitSoundKey = `Hit${this.soundIndex}`;
+	this.hitSoundTimer = 60;
 }
 SV.Unit.prototype.getSpriteKey = function() {
 	return this.spriteType + this.spriteName;
@@ -216,6 +279,7 @@ SV.Unit.prototype.move = function() {
 	}
 };
 SV.Unit.prototype.die = function() {
+	SV.Sound.playOnce(this.deathSoundKey);
 	this.spriteName = "Death";
 	this.imageIndex = 0;
 	this.imageSpeed = 0.2;
@@ -223,15 +287,18 @@ SV.Unit.prototype.die = function() {
 };
 SV.Unit.prototype.dodge = function() {
 	if (--this.stopActionCount <= 0) return;
+	SV.Sound.playOnce(this.dodgeSoundKey);
 	if (this.changeAction("Dodge")) {
 		this.imageIndex = 0;
 	}
 };
 SV.Unit.prototype.attack = function() {
+	SV.Sound.playOnce(this.attackSoundKey);
 	this.target.respondAttack(this.damage);
 };
 SV.Unit.prototype.defense = function() {
 	if (--this.stopActionCount <= 0) return;
+	SV.Sound.playOnce(this.defenseSoundKey);
 	if (this.changeAction("Defense")) {
 		this.imageIndex = 0;
 	}
@@ -241,6 +308,10 @@ SV.Unit.prototype.findTarget = function() {
 };
 SV.Unit.prototype.respondAttack = function(dmg) {
 	if (this.isDead) return;
+	if (--this.hitSoundTimer < 0) {
+		SV.Sound.playOnce(this.hitSoundKey);
+		this.hitSoundTimer = 60;
+	}
 	const i = Math.random();
 	if (i > 0.8) {
 		this.dodge();
@@ -448,6 +519,15 @@ const StartGame = (options={}) => {
 	SV.Draw.add("KnightIdle", "src/img/KnightIdle_strip15.png", 15);
 	SV.Draw.add("KnightRun", "src/img/KnightRun_strip8.png", 8);
 	SV.Draw.add("RPS", "src/img/RPS_strip3.png", 3);
+	SV.Sound.add("BGM", "src/snd/BGM.mp3", "mpeg");
+	for (let i = 0; i < 3; ++i) {
+		SV.Sound.add(`HeavyDeath${i}`, "src/snd/HeavyDeath.wav");
+		SV.Sound.add(`Hit${i}`, "src/snd/Hit.wav");
+		SV.Sound.add(`Jump${i}`, "src/snd/Jump.wav");
+		SV.Sound.add(`KnightAttack${i}`, "src/snd/KnightAttack.wav");
+		SV.Sound.add(`KnightDeath${i}`, "src/snd/KnightDeath.wav");
+		SV.Sound.add(`Miss${i}`, "src/snd/Miss.wav");
+	}
 	const bandHeight = SV.Canvas.height / 6;
 	const a1 = SV.Input.army1.units;
 	const a2 = SV.Input.army2.units;
@@ -462,6 +542,11 @@ const StartGame = (options={}) => {
 	SV.OBJ.add(new SV.Unit(1, a2[3].type, a2[3].name, a2[3].strength, SV.Canvas.width * 0.9, bandHeight * 2.5));
 	SV.OBJ.add(new SV.Unit(1, a2[4].type, a2[4].name, a2[4].strength, SV.Canvas.width * 0.9, bandHeight * 3.5));
 	document.body.appendChild(SV.Canvas);
+	if (SV.ENABLE_BGM) {
+		if (!SV.Sound.isPlaying("BGM")) {
+			SV.Sound.loop("BGM");
+		}
+	}
 	SV.onBattleStart();
 	window.requestAnimationFrame(SV.onUserUpdate);
 };

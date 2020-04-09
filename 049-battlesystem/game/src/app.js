@@ -14,16 +14,24 @@ req.onreadystatechange = () => {
 					console.log("battle end");
 				}
 			});
-			// SV.DISPLAY_UI(false);
-			// ^ Definition: branth.js (line: 17)
+			SV.DISPLAY_UI(displayUI);
+			SV.ENABLE_SOUNDS(enableSound);
+			// ^ Definition: branth.js (line: 18)
 		}
 	}
 };
-const i = window.location.href.indexOf("?json=");
-if (i === -1) {
-	console.warn("Please provide url to a json file (?json=...)");
-}
-else {
-	req.open("GET", window.location.href.substring(i).split("=").pop(), true);
+const uri = decodeURIComponent(window.location.href);
+const getValue = (name) => uri.split(`${name}=`).pop().split("&").shift();
+const displayUI = true;
+const enableSound = true;
+const jsonValue = getValue("json");
+if (uri.includes("displayUI")) getValue("displayUI") === "on";
+if (uri.includes("enableSound")) getValue("enableSound") === "on";
+if (uri.includes("json")) {
+	req.open("GET", jsonValue, true);
 	req.send(null);
 }
+else console.warn("Please provide url to a json file (?json=...)");
+window.onmousedown = () => {
+	console.log("mouse clicked (an interaction made sound enabled)");
+};

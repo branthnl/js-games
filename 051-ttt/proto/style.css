@@ -1,0 +1,76 @@
+* {
+	margin: 0;
+	padding: 0;
+	font-family: 'Fresca', sans-serif;
+	user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+}
+
+.tic {
+	width: 100vw;
+	background-color: #ddd;
+}
+
+.ticHeader, .ticFooter {
+	height: 4vh;
+	padding-top: 1vh;
+	text-align: center;
+}
+
+.ticHeader > select {
+	font-size: 2vh;
+}
+
+.ticHeaderButton {
+	display: inline;
+	font-size: 2vh;
+	padding: 0.05vh 1vh;
+	border: 1px solid #aaa;
+	border-radius: 2px;
+	background-color: white;
+}
+
+.ticHeaderButton:hover {
+	cursor: pointer;
+	border: 1px solid #777;
+}
+
+.ticHeaderButton:active {
+	border: 1px solid #1e8fff;
+	box-shadow: 0 0 0 0.5px #1e8fff;
+}
+
+.ticHeaderButton.disabled {
+	color: #888;
+}
+
+.ticHeaderButton.disabled:hover {
+	cursor: default;
+	border: 1px solid #aaa;
+}
+
+.ticHeaderBgm.disabled:hover, .ticHeaderSe.disabled:hover {
+	cursor: pointer;
+	border: 1px solid #aaa;
+}
+
+.ticCanvas {
+	width: 95vw;
+	height: 90vh;
+	max-width: 55vh;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.ticCanvas > canvas {
+	border-radius: calc(1vw + 1vh);
+	background-color: black;
+}
+
+@media screen and (max-width: 420px) {
+	.ticHeaderBgm, .ticHeaderSe {
+		display: none;
+	}
+}

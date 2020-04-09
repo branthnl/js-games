@@ -1,0 +1,1 @@
+TC.Game.start();

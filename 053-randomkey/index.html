@@ -1,0 +1,21 @@
+<script type="text/javascript">
+
+const randomKey=(a=1)=>{var b='';while(a-->0){b+=Math.random().toString(36).substr(2,9)}return b;}
+
+const keys = [];
+const target = 100000;
+while (keys.length < target) {
+	const key = randomKey(1);
+	if (keys.includes(key)) {
+		break;
+	}
+	keys.push(key);
+}
+
+console.log("Successfully generated " + keys.length + " random keys from target " + target);
+
+// Example use
+const _ticket = randomKey(100);
+console.log(_ticket);
+
+</script>

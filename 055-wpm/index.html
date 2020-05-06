@@ -3,6 +3,14 @@
 <head>
 	<title>WPM Counter</title>
 	<script src="app.js"></script>
+	<style type="text/css">
+		canvas {
+			position: absolute;
+			display: block;
+			left: 0;
+			transform: translateX(-50%);
+		}
+	</style>
 </head>
 <body>
 	<p>WPM: <span id="wpmDisplay"></span></p>
@@ -10,5 +18,15 @@
 	<p>Char count: <span id="charCountDisplay"></span></p>
 	<p>Word count: <span id="wordCountDisplay"></span></p>
 	<p>Time: <span id="timeDisplay"></span></p>
+	<h1 id="resultDisplay"></h1>
+	<div style="background-color: gray; padding: 1rem 4rem; width: 600px; height: 400px">
+		<div id="gameContainer" style="position: relative">
+			<canvas width="100" height="40" class="car"></canvas>
+			<canvas style="top: 50px" width="100" height="40" class="car"></canvas>
+			<canvas style="top: 100px" width="100" height="40" class="car"></canvas>
+		</div>
+	</div>
+	<p>Press any key to simulate typing</p>
+	<p>Press space to move your car</p>
 </body>
 </html>
